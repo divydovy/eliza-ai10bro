@@ -36,7 +36,9 @@ timeline_cache.json
 
 *.sqlite
 
-characters/
+characters/*.private.json
+characters/private/
+characters/*.character copy.json
 
 packages/core/src/providers/cache
 packages/core/src/providers/cache/*
