@@ -53,7 +53,9 @@
     },
     "dependencies": {
         "@0glabs/0g-ts-sdk": "0.2.1",
+        "@ai16z/adapter-supabase": "0.1.5-alpha.5",
         "@coinbase/coinbase-sdk": "0.10.0",
+        "@supabase/supabase-js": "2.46.2",
         "@vitest/eslint-plugin": "1.0.1",
         "amqplib": "0.10.5",
         "better-sqlite3": "11.6.0",
