@@ -9,8 +9,6 @@
         },
         "vectorStore": {
             "type": "supabase",
-            "tableName": "documents",
-            "queryName": "match_documents",
             "embeddingDimension": 1536
         }
     },

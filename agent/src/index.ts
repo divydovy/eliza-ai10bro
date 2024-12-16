@@ -620,3 +620,10 @@ async function gracefulExit() {
 
 rl.on("SIGINT", gracefulExit);
 rl.on("SIGTERM", gracefulExit);
+
+import { SupabaseDatabaseAdapter } from "@ai16z/adapter-supabase";
+
+const db = new SupabaseDatabaseAdapter(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_ANON_KEY!,
+);
