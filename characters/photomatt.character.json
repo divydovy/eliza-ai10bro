@@ -6,6 +6,12 @@
         "secrets": {},
         "voice": {
             "model": "en_US-male-medium"
+        },
+        "vectorStore": {
+            "type": "supabase",
+            "tableName": "documents",
+            "queryName": "match_documents",
+            "embeddingDimension": 1536
         }
     },
     "plugins": [],
