@@ -240,4 +240,15 @@ export class MemoryManager implements IMemoryManager {
             this.tableName
         );
     }
+
+    async createMemory(params: CreateMemoryParams): Promise<Memory> {
+        const embedding = await this.runtime.createEmbedding(params.content.text);
+
+        elizaLogger.debug("Creating memory with embedding:", {
+            dimension: embedding.length,
+            expected: this.runtime.embeddingDimension
+        });
+
+        // ... rest of createMemory
+    }
 }

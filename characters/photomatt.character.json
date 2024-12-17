@@ -7,9 +7,16 @@
         "voice": {
             "model": "en_US-male-medium"
         },
-        "vectorStore": {
-            "type": "supabase",
-            "embeddingDimension": 1536
+        "database": {
+            "type": "postgres",
+            "connectionString": "postgresql://postgres:kur@KMT.jup6kpg6thz@db.hxhgpqwdhohcyfzgsffd.supabase.co:5432/postgres?sslmode=require",
+            "ssl": {
+                "rejectUnauthorized": false
+            }
+        },
+        "embedding": {
+            "model": "text-embedding-ada-002",
+            "dimension": 1536
         }
     },
     "plugins": [],

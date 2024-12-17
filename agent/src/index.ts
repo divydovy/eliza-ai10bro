@@ -290,8 +290,57 @@ export function getTokenForProvider(
 }
 
 function initializeDatabase(dataDir: string) {
-    if (process.env.POSTGRES_URL) {
-        elizaLogger.info("Initializing PostgreSQL connection...");
+    elizaLogger.info("=== Database Initialization ===");
+    elizaLogger.info("Environment variables:", {
+        hasSupabaseUrl: !!process.env.SUPABASE_URL,
+        hasSupabaseKey: !!process.env.SUPABASE_ANON_KEY,
+        hasSupabaseDbUrl: !!process.env.SUPABASE_DB_URL,
+        hasPostgresUrl: !!process.env.POSTGRES_URL
+    });
+
+    if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY && process.env.SUPABASE_DB_URL) {
+        elizaLogger.info("=== Using Supabase Connection ===");
+        elizaLogger.info(`URL: ${process.env.SUPABASE_URL}`);
+        elizaLogger.info(`Database URL: ${process.env.SUPABASE_DB_URL.replace(/:[^:@]+@/, ':****@')}`);
+
+        const adapter = new PostgresDatabaseAdapter({
+            connectionString: process.env.SUPABASE_DB_URL,
+            parseInputs: true,
+            ssl: {
+                rejectUnauthorized: false
+            },
+            max: 20,
+            connectionTimeoutMillis: 5000,
+            idleTimeoutMillis: 30000
+        });
+
+        // Add test query
+        adapter.init()
+            .then(async () => {
+                elizaLogger.success("Successfully connected to Supabase via PostgreSQL");
+                try {
+                    const result = await adapter.testConnection();
+                    elizaLogger.info("Test query successful:", result);
+
+                    // Test rooms table
+                    const { data, error } = await adapter.supabase
+                        .from('rooms')
+                        .select('*')
+                        .limit(1);
+
+                    elizaLogger.info("Rooms table test:", { data, error });
+                } catch (error) {
+                    elizaLogger.error("Test query failed:", error);
+                }
+            })
+            .catch((error) => {
+                elizaLogger.error("Failed to connect to Supabase:", error);
+            });
+
+        return adapter;
+    } else if (process.env.POSTGRES_URL) {
+        elizaLogger.info("=== Using PostgreSQL Connection ===");
+        elizaLogger.info(`URL: ${process.env.POSTGRES_URL}`);
         const db = new PostgresDatabaseAdapter({
             connectionString: process.env.POSTGRES_URL,
             parseInputs: true,
@@ -310,6 +359,7 @@ function initializeDatabase(dataDir: string) {
 
         return db;
     } else {
+        elizaLogger.info("=== Using SQLite Connection ===");
         const filePath =
             process.env.SQLITE_FILE ?? path.resolve(dataDir, "db.sqlite");
         // ":memory:";
@@ -620,10 +670,3 @@ async function gracefulExit() {
 
 rl.on("SIGINT", gracefulExit);
 rl.on("SIGTERM", gracefulExit);
-
-import { SupabaseDatabaseAdapter } from "@ai16z/adapter-supabase";
-
-const db = new SupabaseDatabaseAdapter(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_ANON_KEY!,
-);

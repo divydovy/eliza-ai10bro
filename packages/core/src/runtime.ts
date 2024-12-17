@@ -143,6 +143,9 @@ export class AgentRuntime implements IAgentRuntime {
     memoryManagers: Map<string, IMemoryManager> = new Map();
     cacheManager: ICacheManager;
 
+    private embeddingModel: string;
+    private embeddingDimension: number;
+
     registerMemoryManager(manager: IMemoryManager): void {
         if (!manager.tableName) {
             throw new Error("Memory manager must have a tableName");
@@ -373,6 +376,15 @@ export class AgentRuntime implements IAgentRuntime {
     }
 
     async initialize() {
+        // Initialize embedding model
+        this.embeddingModel = this.character.settings?.embedding?.model || "text-embedding-ada-002";
+        this.embeddingDimension = this.character.settings?.embedding?.dimension || 1536;
+
+        elizaLogger.info("Initializing with embedding config:", {
+            model: this.embeddingModel,
+            dimension: this.embeddingDimension
+        });
+
         for (const [serviceType, service] of this.services.entries()) {
             try {
                 await service.initialize(this);
@@ -1253,6 +1265,15 @@ Text: ${attachment.text}
             recentMessagesData,
             attachments: formattedAttachments,
         } as State;
+    }
+
+    async createEmbedding(text: string): Promise<number[]> {
+        // Use the configured dimension
+        if (this.embeddingDimension !== 1536) {
+            elizaLogger.warn(`Expected embedding dimension 1536, but configured for ${this.embeddingDimension}`);
+        }
+
+        // ... embedding creation logic
     }
 }
 
