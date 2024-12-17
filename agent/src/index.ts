@@ -50,6 +50,7 @@ import path from "path";
 import readline from "readline";
 import { fileURLToPath } from "url";
 import yargs from "yargs";
+import { createClient } from '@supabase/supabase-js';
 
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename); // get the name of the directory
@@ -572,6 +573,37 @@ async function startAgent(character: Character, directClient) {
 
         directClient.registerAgent(runtime);
 
+        // Test document search
+        try {
+            const query = "Tell me about WordPress";
+            elizaLogger.info("=== Testing Document Search ===");
+            elizaLogger.info("Query:", query);
+
+            // Create embedding
+            const embedding = await runtime.createEmbedding(query);
+            elizaLogger.info("Created embedding with length:", embedding.length);
+
+            // Search documents
+            const documents = await runtime.databaseAdapter.searchMemories({
+                tableName: "agent_documents",
+                embedding,
+                match_threshold: 0.7,
+                match_count: 5,
+                agentId: runtime.agentId
+            });
+
+            elizaLogger.info("Search results:", {
+                count: documents.length,
+                documents: documents.map(d => ({
+                    id: d.id,
+                    text: d.content.text.substring(0, 100) + "...",
+                    similarity: d.similarity
+                }))
+            });
+        } catch (error) {
+            elizaLogger.error("Document search test failed:", error);
+        }
+
         return clients;
     } catch (error) {
         elizaLogger.error(
@@ -670,3 +702,93 @@ async function gracefulExit() {
 
 rl.on("SIGINT", gracefulExit);
 rl.on("SIGTERM", gracefulExit);
+
+const supabase = createClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_ANON_KEY!
+);
+
+async function uploadDocument(file: Buffer, fileName: string) {
+    // Upload file to Supabase Storage
+    const { data, error } = await supabase.storage
+        .from('agent-documents')
+        .upload(fileName, file);
+
+    if (error) {
+        throw error;
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+        .from('agent-documents')
+        .getPublicUrl(fileName);
+
+    return publicUrl;
+}
+
+async function processDocument(url: string) {
+    // Download and process the document
+    const response = await fetch(url);
+    const text = await response.text(); // For HTML
+    // or for PDFs, use a PDF parser
+
+    // Store in agent's knowledge base
+    const document = {
+        id: generateUUID(),
+        content: {
+            text,
+            source: url,
+            title: fileName
+        },
+        type: "document"
+    };
+
+    await runtime.documentsManager.createMemory(document);
+}
+
+async function processStorageDocument(runtime: IAgentRuntime, fileName: string) {
+    try {
+        elizaLogger.info("Processing document:", fileName);
+
+        // 1. Get file from Supabase Storage
+        const { data: { publicUrl } } = supabase.storage
+            .from('agent_documents')
+            .getPublicUrl(fileName);
+
+        // 2. Download and extract text
+        const response = await fetch(publicUrl);
+        const text = await response.text(); // For HTML/text files
+
+        // 3. Create document in database with embedding
+        const document = {
+            id: generateUUID(),
+            content: {
+                text,
+                source: publicUrl,
+                title: fileName
+            },
+            roomId: runtime.agentId,
+            userId: runtime.agentId,
+            type: "document"
+        };
+
+        await runtime.documentsManager.createMemory(document);
+        elizaLogger.success("Document processed and stored:", fileName);
+
+    } catch (error) {
+        elizaLogger.error("Error processing document:", error);
+    }
+}
+
+// Subscribe to storage changes
+supabase
+    .channel('storage-changes')
+    .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'storage',
+        table: 'objects',
+        filter: 'bucket_id=eq.agent-documents'
+    }, payload => {
+        processStorageDocument(runtime, payload.new.name);
+    })
+    .subscribe();

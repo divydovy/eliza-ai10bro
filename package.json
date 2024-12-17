@@ -3,6 +3,7 @@
     "scripts": {
         "preinstall": "npx only-allow pnpm",
         "build": "turbo run build --filter=!eliza-docs",
+        "process-docs": "ts-node --project scripts/tsconfig.json scripts/process-documents.ts",
         "build-docker": "turbo run build",
         "start": "pnpm --filter \"@ai16z/agent\" start --isRoot",
         "start:client": "pnpm --dir client dev",
@@ -61,6 +62,7 @@
         "amqplib": "0.10.5",
         "better-sqlite3": "11.6.0",
         "csv-parse": "5.6.0",
+        "dotenv": "16.4.5",
         "ollama-ai-provider": "0.16.1",
         "optional": "0.1.4",
         "pg": "8.13.1",
@@ -73,3 +75,4 @@
         "packages/*"
     ]
 }
+
