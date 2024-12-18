@@ -1078,11 +1078,11 @@ export class PostgresDatabaseAdapter
         }
     ): Promise<Memory[]> {
         return this.withDatabase(async () => {
-            elizaLogger.debug("Incoming vector:", {
-                length: embedding.length,
-                sample: embedding.slice(0, 5),
-                isArray: Array.isArray(embedding),
-                allNumbers: embedding.every((n) => typeof n === "number"),
+            elizaLogger.debug("Search params:", {
+                ...params,
+                embeddingLength: embedding.length,
+                matchThreshold: params.match_threshold,
+                tableName: params.tableName
             });
 
             // Validate embedding dimension
@@ -1117,11 +1117,17 @@ export class PostgresDatabaseAdapter
 
             const values: any[] = [vectorStr, params.tableName];
 
-            // Log the query for debugging
-            elizaLogger.debug("Query debug:", {
-                sql: sql.slice(0, 200),
-                paramTypes: values.map((v) => typeof v),
-                vectorStrLength: vectorStr.length,
+            // Log the complete SQL with values
+            const finalSql = sql.replace('$1', `'${vectorStr}'`)
+                               .replace('$2', `'${params.tableName}'`);
+            elizaLogger.debug("Complete SQL:", {
+                sql: finalSql,
+                values,
+                params: {
+                    tableName: params.tableName,
+                    roomId: params.roomId,
+                    agentId: params.agentId
+                }
             });
 
             let paramCount = 2;
@@ -1157,6 +1163,19 @@ export class PostgresDatabaseAdapter
             }
 
             const { rows } = await this.pool.query(sql, values);
+
+            // Log detailed results
+            elizaLogger.debug("Search results:", {
+                rowCount: rows.length,
+                rows: rows.map(r => ({
+                    id: r.id,
+                    type: r.type,
+                    similarity: r.similarity,
+                    text: r.content?.text?.substring(0, 100),
+                    roomId: r.roomId
+                }))
+            });
+
             return rows.map((row) => ({
                 ...row,
                 content:

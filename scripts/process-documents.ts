@@ -23,6 +23,30 @@ async function createEmbedding(text: string) {
 
 async function processDocuments() {
     try {
+        // Get PhotoMatt's account ID
+        const { data: account, error: accountError } = await supabase
+            .from('accounts')
+            .select('id')
+            .eq('username', 'photomatt')
+            .single();
+
+        if (accountError) {
+            console.error('Error finding PhotoMatt account:', accountError);
+            return;
+        }
+
+        if (!account) {
+            console.error('PhotoMatt account not found');
+            return;
+        }
+
+        const userId = account.id;
+        console.log('Using account ID:', userId);
+
+        // Use the agent's ID as the roomId
+        const roomId = userId;
+        console.log('Using agent ID as room ID:', roomId);
+
         const bucketId = 'agent_documents';
         console.log('Listing files in bucket:', bucketId);
 
@@ -59,20 +83,33 @@ async function processDocuments() {
 
                 // Create embedding
                 const embedding = await createEmbedding(text);
+                console.log('Created embedding:', {
+                    length: embedding.length,
+                    sample: embedding.slice(0, 5)
+                });
 
                 // Store in database
+                const insertData = {
+                    id: crypto.randomUUID(),
+                    content: {
+                        text,
+                        source: 'document',
+                        attachments: []
+                    },
+                    embedding,
+                    type: 'messages',
+                    roomId: roomId,
+                    userId: userId,
+                    agentId: userId
+                };
+                console.log('Inserting memory:', {
+                    ...insertData,
+                    embedding: `<vector length: ${embedding.length}>`
+                });
+
                 const { error: insertError } = await supabase
-                    .from('agent_documents')
-                    .insert({
-                        id: crypto.randomUUID(),
-                        content: {
-                            text,
-                            source: file.name,
-                            title: file.name
-                        },
-                        embedding,
-                        type: 'document'
-                    });
+                    .from('memories')
+                    .insert(insertData);
 
                 if (insertError) {
                     console.error('Error storing document:', insertError);

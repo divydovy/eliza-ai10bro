@@ -51,6 +51,7 @@ import readline from "readline";
 import { fileURLToPath } from "url";
 import yargs from "yargs";
 import { createClient } from '@supabase/supabase-js';
+import OpenAI from 'openai';
 
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename); // get the name of the directory
@@ -546,6 +547,18 @@ function initializeDbCache(character: Character, db: IDatabaseCacheAdapter) {
     return cache;
 }
 
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY
+});
+
+async function createEmbedding(text: string) {
+    const response = await openai.embeddings.create({
+        model: "text-embedding-ada-002",
+        input: text
+    });
+    return response.data[0].embedding;
+}
+
 async function startAgent(character: Character, directClient) {
     let db: IDatabaseAdapter & IDatabaseCacheAdapter;
     try {
@@ -579,29 +592,59 @@ async function startAgent(character: Character, directClient) {
             elizaLogger.info("=== Testing Document Search ===");
             elizaLogger.info("Query:", query);
 
-            // Create embedding
-            const embedding = await runtime.createEmbedding(query);
+            // Create embedding using our local function
+            const embedding = await createEmbedding(query);
             elizaLogger.info("Created embedding with length:", embedding.length);
 
-            // Search documents
-            const documents = await runtime.databaseAdapter.searchMemories({
+            // Search both memories and agent_documents
+            const [memories, documents] = await Promise.all([
+                runtime.databaseAdapter.searchMemories({
+                    tableName: "memories",
+                    embedding,
+                    match_threshold: 0.7,
+                    match_count: 5,
+                    agentId: runtime.agentId
+                }),
+                runtime.databaseAdapter.searchMemories({
+                    tableName: "agent_documents",
+                    embedding,
+                    match_threshold: 0.7,
+                    match_count: 5
+                })
+            ]);
+
+            elizaLogger.info("Search details:", {
                 tableName: "agent_documents",
-                embedding,
-                match_threshold: 0.7,
-                match_count: 5,
+                embeddingLength: embedding.length,
+                threshold: 0.7,
                 agentId: runtime.agentId
             });
 
             elizaLogger.info("Search results:", {
-                count: documents.length,
-                documents: documents.map(d => ({
-                    id: d.id,
-                    text: d.content.text.substring(0, 100) + "...",
-                    similarity: d.similarity
-                }))
+                memories: {
+                    count: memories.length,
+                    items: memories.map(m => ({
+                        id: m.id,
+                        text: m.content.text.substring(0, 100) + "...",
+                        similarity: m.similarity
+                    }))
+                },
+                documents: {
+                    count: documents.length,
+                    items: documents.map(d => ({
+                        id: d.id,
+                        text: d.content.text.substring(0, 100) + "...",
+                        similarity: d.similarity
+                    }))
+                }
             });
         } catch (error) {
-            elizaLogger.error("Document search test failed:", error);
+            elizaLogger.error("Document search test failed:", {
+                name: error.name,
+                message: error.message,
+                stack: error.stack,
+                details: error
+            });
         }
 
         return clients;

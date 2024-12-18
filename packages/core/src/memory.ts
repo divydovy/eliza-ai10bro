@@ -242,13 +242,15 @@ export class MemoryManager implements IMemoryManager {
     }
 
     async createMemory(params: CreateMemoryParams): Promise<Memory> {
+        if (params.embedding) {
+            return this.adapter.createMemory(params);
+        }
+
         const embedding = await this.runtime.createEmbedding(params.content.text);
-
-        elizaLogger.debug("Creating memory with embedding:", {
-            dimension: embedding.length,
-            expected: this.runtime.embeddingDimension
+        return this.adapter.createMemory({
+            ...params,
+            embedding,
+            embeddingDimension: getEmbeddingConfig().dimensions
         });
-
-        // ... rest of createMemory
     }
 }
