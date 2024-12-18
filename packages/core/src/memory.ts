@@ -240,17 +240,4 @@ export class MemoryManager implements IMemoryManager {
             this.tableName
         );
     }
-
-    async createMemory(params: CreateMemoryParams): Promise<Memory> {
-        if (params.embedding) {
-            return this.adapter.createMemory(params);
-        }
-
-        const embedding = await this.runtime.createEmbedding(params.content.text);
-        return this.adapter.createMemory({
-            ...params,
-            embedding,
-            embeddingDimension: getEmbeddingConfig().dimensions
-        });
-    }
 }

@@ -142,9 +142,7 @@ export class AgentRuntime implements IAgentRuntime {
     services: Map<ServiceType, Service> = new Map();
     memoryManagers: Map<string, IMemoryManager> = new Map();
     cacheManager: ICacheManager;
-
-    private embeddingModel: string;
-    private embeddingDimension: number;
+    clients: Record<string, any>;
 
     registerMemoryManager(manager: IMemoryManager): void {
         if (!manager.tableName) {
@@ -376,15 +374,6 @@ export class AgentRuntime implements IAgentRuntime {
     }
 
     async initialize() {
-        // Initialize embedding model
-        this.embeddingModel = this.character.settings?.embedding?.model || "text-embedding-ada-002";
-        this.embeddingDimension = this.character.settings?.embedding?.dimension || 1536;
-
-        elizaLogger.info("Initializing with embedding config:", {
-            model: this.embeddingModel,
-            dimension: this.embeddingDimension
-        });
-
         for (const [serviceType, service] of this.services.entries()) {
             try {
                 await service.initialize(this);
@@ -415,6 +404,25 @@ export class AgentRuntime implements IAgentRuntime {
         ) {
             await this.processCharacterKnowledge(this.character.knowledge);
         }
+    }
+
+    async stop() {
+      elizaLogger.debug('runtime::stop - character', this.character)
+      // stop services, they don't have a stop function
+        // just initialize
+
+      // plugins
+        // have actions, providers, evaluators (no start/stop)
+        // services (just initialized), clients
+
+      // client have a start
+      for(const cStr in this.clients) {
+        const c = this.clients[cStr]
+        elizaLogger.log('runtime::stop - requesting', cStr, 'client stop for', this.character.name)
+        c.stop()
+      }
+      // we don't need to unregister with directClient
+      // don't need to worry about knowledge
     }
 
     /**
@@ -1265,15 +1273,6 @@ Text: ${attachment.text}
             recentMessagesData,
             attachments: formattedAttachments,
         } as State;
-    }
-
-    async createEmbedding(text: string): Promise<number[]> {
-        // Use the configured dimension
-        if (this.embeddingDimension !== 1536) {
-            elizaLogger.warn(`Expected embedding dimension 1536, but configured for ${this.embeddingDimension}`);
-        }
-
-        // ... embedding creation logic
     }
 }
 
