@@ -1,69 +1,94 @@
 import { createClient } from '@supabase/supabase-js'
 import dotenv from 'dotenv'
-import { AgentRuntime, ModelProviderName, Plugin, CacheManager, ICacheAdapter } from '@elizaos/core'
-import { SupabaseDatabaseAdapter } from '@elizaos/adapter-supabase'
+import OpenAI from 'openai'
+import pkg from 'pg';
+const { Pool } = pkg;
 
 dotenv.config()
 
-const SUPABASE_URL = process.env.SUPABASE_URL
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_API_KEY
+const POSTGRES_URL = process.env.POSTGRES_URL
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 
-if (!SUPABASE_URL || !SUPABASE_KEY) {
+if (!POSTGRES_URL || !OPENAI_API_KEY) {
   console.error('Missing required environment variables')
   process.exit(1)
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
+const pool = new Pool({
+  connectionString: POSTGRES_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
+
+const openai = new OpenAI({ apiKey: OPENAI_API_KEY })
 
 async function main() {
-  // First get a sample memory to get its embedding
-  const { data: memories, error: memoriesError } = await supabase
-    .from('memories')
-    .select('*')
-    .eq('type', 'knowledge')
-    .like('content->>text', '%Sid\'s Serpent Snacks%')
+  const client = await pool.connect()
+  try {
+    // First get all memories
+    const { rows: memories } = await client.query(`
+      SELECT * FROM memories WHERE type = 'knowledge'
+    `)
 
-  if (memoriesError) {
-    console.error('Error querying memories:', memoriesError)
-    process.exit(1)
-  }
+    console.log('\nFound direct matches:', memories.length)
+    memories.forEach(memory => {
+      console.log('\nContent:', memory.content.text)
+      console.log('Has embedding:', !!memory.embedding)
+      console.log('Embedding type:', typeof memory.embedding)
+      console.log('Embedding length:', memory.embedding?.length)
+      console.log('First few values:', memory.embedding?.slice(0, 5))
+      console.log('Type:', memory.type)
+      console.log('Room ID:', memory.roomId)
+      console.log('Created at:', memory.createdAt)
+      console.log('---')
+    })
 
-  console.log('\nFound direct matches:', memories.length)
-  memories.forEach(memory => {
-    console.log('\nContent:', memory.content.text)
-    console.log('Has embedding:', !!memory.embedding)
-    console.log('Type:', memory.type)
-    console.log('Room ID:', memory.roomId)
-    console.log('Created at:', memory.createdAt)
-    console.log('---')
-  })
+    // Now try a similarity search
+    const text = "Sid's Serpent Snacks website is bright purple with red spots"
+    const embeddingResponse = await openai.embeddings.create({
+      model: 'text-embedding-ada-002',
+      input: text,
+    })
 
-  // If we have a memory with an embedding, search for similar ones
-  if (memories.length > 0 && memories[0].embedding) {
-    const { data: similarMemories, error: similarError } = await supabase.rpc(
-      'search_memories',
-      {
-        query_embedding: memories[0].embedding,
-        query_match_threshold: 0.1,
-        query_match_count: 5,
-        query_roomId: null,
-        query_table_name: 'memories',
-        query_unique: true
-      }
-    )
+    const embedding = embeddingResponse.data[0].embedding
+    const vectorStr = `[${embedding.join(',')}]`
 
-    if (similarError) {
-      console.error('Error performing similarity search:', similarError)
-    } else {
-      console.log('\nSimilar memories found via vector search:', similarMemories.length)
+    console.log('\nSearching with parameters:')
+    console.log('Embedding length:', embedding.length)
+    console.log('Table name: memories')
+    console.log('Match threshold: 0.01')
+
+    try {
+      const { rows: similarMemories } = await client.query(`
+        SELECT
+          m.id,
+          m."userId",
+          m.content,
+          m."createdAt",
+          1 - (m.embedding <=> $1::vector) as similarity,
+          m."roomId",
+          m.embedding
+        FROM memories m
+        WHERE m.type = 'knowledge'
+          AND (m."roomId" IS NULL)
+          AND (1 - (m.embedding <=> $1::vector)) > 0.01
+          AND m.unique = true
+        ORDER BY similarity DESC
+        LIMIT 10
+      `, [vectorStr])
+
+      console.log('\nSimilar memories found:', similarMemories.length)
       similarMemories.forEach(memory => {
         console.log('\nContent:', memory.content.text)
         console.log('Similarity:', memory.similarity)
-        console.log('Type:', memory.type)
-        console.log('Room ID:', memory.roomId)
         console.log('---')
       })
+    } catch (error) {
+      console.error('Error performing similarity search:', error)
     }
+  } finally {
+    client.release()
   }
 }
 

@@ -1,73 +1,82 @@
 import { createClient } from '@supabase/supabase-js'
 import dotenv from 'dotenv'
-import { stringToUuid } from '@elizaos/core'
+import pkg from 'pg';
+const { Pool } = pkg;
 import OpenAI from 'openai'
+import { stringToUuid, splitChunks, embed } from '@elizaos/core'
 
 dotenv.config()
 
-const SUPABASE_URL = process.env.SUPABASE_URL
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_API_KEY
+const POSTGRES_URL = process.env.POSTGRES_URL
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 
-if (!SUPABASE_URL || !SUPABASE_KEY || !OPENAI_API_KEY) {
+if (!POSTGRES_URL || !OPENAI_API_KEY) {
   console.error('Missing required environment variables')
   process.exit(1)
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
+const pool = new Pool({
+  connectionString: POSTGRES_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
+
 const openai = new OpenAI({ apiKey: OPENAI_API_KEY })
 
-async function generateEmbedding(text: string) {
-  try {
-    const response = await openai.embeddings.create({
-      model: "text-embedding-ada-002",
-      input: text,
-    });
-
-    return response.data[0].embedding;
-  } catch (error) {
-    console.error('Error generating embedding:', error);
-    return null;
-  }
-}
-
-const createMemory = async (content: string, type: string = 'knowledge') => {
-  // First generate the embedding
-  const embedding = await generateEmbedding(content);
-  if (!embedding) {
-    console.error('Failed to generate embedding for:', content);
-    return;
-  }
-
-  // Try to insert the memory
-  const { error: insertError } = await supabase
-    .from('memories')
-    .insert([
-      {
-        content: { text: content },
-        type,
-        roomId: null,
-        embedding
-      }
-    ])
-    .select()
-    .single();
-
-  if (insertError) {
-    if (insertError.code === '23505') { // Unique violation
-      console.log('Memory already exists:', content);
-    } else {
-      console.error('Error inserting memory:', insertError);
-    }
-    return;
-  }
-
-  console.log('Successfully created memory:', content);
-};
-
 async function main() {
-  const testMemory = "Sid's Serpent Snacks website is bright purple with red spots";
-  await createMemory(testMemory);
+  const text = "Sid's Serpent Snacks website is bright purple with red spots"
+  const knowledgeId = stringToUuid(text)
+
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+
+    // First store the full document
+    const documentEmbedding = await embed({ openai }, text)
+    const documentVectorStr = `[${documentEmbedding.join(',')}]`
+
+    await client.query(`
+      INSERT INTO memories (id, type, content, embedding, "unique", "roomId", "agentId", "userId")
+      VALUES ($1, $2, $3, $4::vector, $5, $6, $6, $6)
+      ON CONFLICT (id) DO NOTHING
+      RETURNING *
+    `, [knowledgeId, 'documents', { text }, documentVectorStr, true, knowledgeId])
+
+    console.log('Created document memory')
+
+    // Now create fragments
+    const fragments = await splitChunks(text)
+
+    for (const fragment of fragments) {
+      const fragmentId = stringToUuid(knowledgeId + fragment)
+      const fragmentEmbedding = await embed({ openai }, fragment)
+      const fragmentVectorStr = `[${fragmentEmbedding.join(',')}]`
+
+      await client.query(`
+        INSERT INTO memories (id, type, content, embedding, "unique", "roomId", "agentId", "userId")
+        VALUES ($1, $2, $3, $4::vector, $5, $6, $6, $6)
+        ON CONFLICT (id) DO NOTHING
+        RETURNING *
+      `, [
+        fragmentId,
+        'fragments',
+        { source: knowledgeId, text: fragment },
+        fragmentVectorStr,
+        true,
+        knowledgeId
+      ])
+    }
+
+    await client.query('COMMIT')
+    console.log('Successfully created document and fragments for:', text)
+  } catch (error) {
+    await client.query('ROLLBACK')
+    console.error('Error creating memories:', error)
+    process.exit(1)
+  } finally {
+    client.release()
+  }
 }
 
 main().catch(console.error)
