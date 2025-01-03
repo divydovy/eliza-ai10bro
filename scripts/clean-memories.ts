@@ -1,31 +1,43 @@
-import { createClient } from '@supabase/supabase-js'
+import pkg from 'pg';
+const { Pool } = pkg;
 import dotenv from 'dotenv'
 
 dotenv.config()
 
-const SUPABASE_URL = process.env.SUPABASE_URL
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_API_KEY
+const POSTGRES_URL = process.env.POSTGRES_URL
 
-if (!SUPABASE_URL || !SUPABASE_KEY) {
+if (!POSTGRES_URL) {
   console.error('Missing required environment variables')
   process.exit(1)
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
+const pool = new Pool({
+  connectionString: POSTGRES_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
 
 async function cleanMemories() {
-  // Delete all memories of type 'knowledge'
-  const { error: memoriesError } = await supabase
-    .from('memories')
-    .delete()
-    .eq('type', 'knowledge')
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
 
-  if (memoriesError) {
-    console.error('Error deleting memories:', memoriesError)
+    // Delete all document and fragment memories
+    await client.query(`
+      DELETE FROM memories
+      WHERE type IN ('documents', 'fragments')
+    `)
+
+    await client.query('COMMIT')
+    console.log('Successfully deleted all document and fragment memories')
+  } catch (error) {
+    await client.query('ROLLBACK')
+    console.error('Error deleting memories:', error)
     process.exit(1)
+  } finally {
+    client.release()
   }
-
-  console.log('Successfully deleted all knowledge memories')
 }
 
 cleanMemories().catch(console.error)
