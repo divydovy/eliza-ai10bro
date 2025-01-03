@@ -54,3 +54,6 @@ coverage
 .eslintcache
 
 agent/content
+
+.env.bak
+.env.old

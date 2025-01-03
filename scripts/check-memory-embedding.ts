@@ -28,7 +28,9 @@ async function main() {
   try {
     // First get all memories
     const { rows: memories } = await client.query(`
-      SELECT * FROM memories WHERE type = 'knowledge'
+      SELECT * FROM memories
+      WHERE type IN ('documents', 'fragments')
+      AND "agentId" = 'd3190cd5-b7b7-06fd-b021-c833afa19cef'
     `)
 
     console.log('\nFound direct matches:', memories.length)
