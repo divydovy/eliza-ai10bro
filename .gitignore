@@ -12,6 +12,10 @@ packages/plugin-buttplug/intiface-engine
 .idea
 .DS_Store
 
+.env.bak
+.env.old
+documents/
+
 dist/
 # Allow models directory but ignore model files
 models/*.gguf
