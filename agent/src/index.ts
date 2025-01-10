@@ -70,6 +70,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import yargs from "yargs";
 import net from "net";
+import { SupabaseDatabaseAdapter } from "@elizaos/adapter-supabase";
 
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename); // get the name of the directory
@@ -356,8 +357,20 @@ export function getTokenForProvider(
     }
 }
 
-function initializeDatabase(dataDir: string) {
-    if (process.env.POSTGRES_URL) {
+function initializeDatabase(dataDir: string, character: Character) {
+    if (character.database === 'supabase') {
+        elizaLogger.info("Initializing Supabase connection...");
+        const supabaseUrl = character.settings?.secrets?.SUPABASE_URL;
+        const supabaseKey = character.settings?.secrets?.SUPABASE_ANON_KEY;
+
+        if (!supabaseUrl || !supabaseKey) {
+            elizaLogger.error("Missing Supabase credentials in character settings");
+            throw new Error("Missing Supabase credentials");
+        }
+
+        const db = new SupabaseDatabaseAdapter(supabaseUrl, supabaseKey);
+        return db;
+    } else if (process.env.POSTGRES_URL) {
         elizaLogger.info("Initializing PostgreSQL connection...");
         const db = new PostgresDatabaseAdapter({
             connectionString: process.env.POSTGRES_URL,
@@ -686,7 +699,7 @@ async function startAgent(
             fs.mkdirSync(dataDir, { recursive: true });
         }
 
-        db = initializeDatabase(dataDir) as IDatabaseAdapter &
+        db = initializeDatabase(dataDir, character) as IDatabaseAdapter &
             IDatabaseCacheAdapter;
 
         await db.init();

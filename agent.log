@@ -1,0 +1,187 @@
+
+> eliza@ start /Users/davidlockie/Documents/Projects/Eliza
+> pnpm --filter "@elizaos/agent" start --isRoot "--character=characters/photomatt.character.json"
+
+
+> @elizaos/agent@0.1.7 start /Users/davidlockie/Documents/Projects/Eliza/agent
+> node --loader ts-node/esm src/index.ts "--isRoot" "--character=characters/photomatt.character.json"
+
+[ElizaLogger] Initializing with:
+            isNode: true
+            verbose: false
+            VERBOSE env: undefined
+            NODE_ENV: undefined
+        
+[34m ℹ INFORMATIONS
+  [34m Loading embedding settings: [0m
+  [34m {"USE_OPENAI_EMBEDDING":"true","USE_OLLAMA_EMBEDDING":"false","OLLAMA_EMBEDDING_MODEL":"mxbai-embed-large"} [0m
+
+[34m ℹ INFORMATIONS
+  [34m Loading character settings: [0m
+  [34m {"ARGV":["/Users/davidlockie/.nvm/versions/node/v23.3.0/bin/node","/Users/davidlockie/Documents/Projects/Eliza/agent/src/index.ts","--isRoot","--character=characters/photomatt.character.json"],"CHARACTER_ARG":"--character=characters/photomatt.character.json","CWD":"/Users/davidlockie/Documents/Projects/Eliza/agent"} [0m
+
+[37m ["◎ Loaded .env file from: /Users/davidlockie/Documents/Projects/Eliza/.env"] [0m
+
+[34m ℹ INFORMATIONS
+  [34m Parsed settings: [0m
+  [34m {"USE_OPENAI_EMBEDDING":"true","USE_OPENAI_EMBEDDING_TYPE":"string","USE_OLLAMA_EMBEDDING":"false","USE_OLLAMA_EMBEDDING_TYPE":"string","OLLAMA_EMBEDDING_MODEL":"mxbai-embed-large"} [0m
+
+[37m ["◎ DirectClient constructor"] [0m
+
+[34m ℹ INFORMATIONS
+  [34m Trying paths: [0m
+  [34m [{"path":"characters/photomatt.character.json","exists":false},{"path":"/Users/davidlockie/Documents/Projects/Eliza/agent/characters/photomatt.character.json","exists":false},{"path":"/Users/davidlockie/Documents/Projects/Eliza/agent/agent/characters/photomatt.character.json","exists":false},{"path":"/Users/davidlockie/Documents/Projects/Eliza/agent/src/characters/photomatt.character.json","exists":false},{"path":"/Users/davidlockie/Documents/Projects/Eliza/agent/src/characters/photomatt.character.json","exists":false},{"path":"/Users/davidlockie/Documents/Projects/Eliza/agent/characters/photomatt.character.json","exists":false},{"path":"/Users/davidlockie/Documents/Projects/Eliza/characters/photomatt.character.json","exists":true}] [0m
+
+[34m ℹ INFORMATIONS
+  [34m Plugins are:  [0m
+  [34m ["@elizaos/adapter-postgres"] [0m
+
+[34m ["ℹ Successfully loaded character from: /Users/davidlockie/Documents/Projects/Eliza/characters/photomatt.character.json"] [0m
+
+[37m ["◎ sqlite-vec extensions loaded successfully."] [0m
+
+[34m ["ℹ Using Database Cache..."] [0m
+
+[32m ✓ SUCCESS
+  [32m SUCCESS [0m
+  [32m Creating runtime for character [0m
+  [32m photomatt [0m
+
+[34m ℹ INFORMATIONS
+  [34m Initializing AgentRuntime with options: [0m
+  [34m {"character":"photomatt","modelProvider":"openai","characterModelProvider":"openai"} [0m
+
+[32m ✓ SUCCESS
+  [32m Agent ID [0m
+  [32m d3190cd5-b7b7-06fd-b021-c833afa19cef [0m
+
+[34m ["ℹ Setting model provider..."] [0m
+
+[34m ℹ INFORMATIONS
+  [34m Model Provider Selection: [0m
+  [34m {"characterModelProvider":"openai","optsModelProvider":"openai","finalSelection":"openai"} [0m
+
+[34m ℹ INFORMATIONS
+  [34m Selected model provider: [0m
+  [34m openai [0m
+
+[34m ℹ INFORMATIONS
+  [34m Selected image model provider: [0m
+  [34m openai [0m
+
+[34m ℹ INFORMATIONS
+  [34m Selected model provider: [0m
+  [34m openai [0m
+
+[34m ℹ INFORMATIONS
+  [34m Selected image model provider: [0m
+  [34m openai [0m
+
+[32m ["✓ Registering action: CONTINUE"] [0m
+
+[32m ["✓ Registering action: FOLLOW_ROOM"] [0m
+
+[32m ["✓ Registering action: UNFOLLOW_ROOM"] [0m
+
+[32m ["✓ Registering action: IGNORE"] [0m
+
+[32m ["✓ Registering action: NONE"] [0m
+
+[32m ["✓ Registering action: MUTE_ROOM"] [0m
+
+[32m ["✓ Registering action: UNMUTE_ROOM"] [0m
+
+[32m ["✓ Registering action: DESCRIBE_IMAGE"] [0m
+
+[37m ◎ LOGS
+  [37m Registering service: [0m
+  [37m browser [0m
+
+[32m ["✓ Service browser registered successfully"] [0m
+
+[37m ◎ LOGS
+  [37m Registering service: [0m
+  [37m image_description [0m
+
+[32m ["✓ Service image_description registered successfully"] [0m
+
+[37m ◎ LOGS
+  [37m Registering service: [0m
+  [37m text_generation [0m
+
+[32m ["✓ Service text_generation registered successfully"] [0m
+
+[37m ◎ LOGS
+  [37m Registering service: [0m
+  [37m pdf [0m
+
+[32m ["✓ Service pdf registered successfully"] [0m
+
+[37m ◎ LOGS
+  [37m Registering service: [0m
+  [37m speech_generation [0m
+
+[32m ["✓ Service speech_generation registered successfully"] [0m
+
+[37m ◎ LOGS
+  [37m Registering service: [0m
+  [37m transcription [0m
+
+[32m ["✓ Service transcription registered successfully"] [0m
+
+[37m ◎ LOGS
+  [37m Registering service: [0m
+  [37m video [0m
+
+[32m ["✓ Service video registered successfully"] [0m
+
+[37m ◎ LOGS
+  [37m Registering service: [0m
+  [37m aws_s3 [0m
+
+[32m ["✓ Service aws_s3 registered successfully"] [0m
+
+[32m ["✓ Registering action: GENERATE_IMAGE"] [0m
+
+[32m ["✓ Service browser initialized successfully"] [0m
+
+[37m ["◎ Initializing ImageDescriptionService"] [0m
+
+[32m ["✓ Service image_description initialized successfully"] [0m
+
+[34m ["ℹ Initializing LlamaService..."] [0m
+
+[32m ["✓ Service text_generation initialized successfully"] [0m
+
+[32m ["✓ Service pdf initialized successfully"] [0m
+
+[32m ["✓ Service speech_generation initialized successfully"] [0m
+
+CUDA not supported on this platform. Transcription will run on CPU.
+[32m ["✓ Service transcription initialized successfully"] [0m
+
+[32m ["✓ Service video initialized successfully"] [0m
+
+Initializing AwsS3Service
+[32m ["✓ Service aws_s3 initialized successfully"] [0m
+
+[37m ["◎ Initializing ImageDescriptionService"] [0m
+
+[34m ["ℹ Initializing LlamaService..."] [0m
+
+CUDA not supported on this platform. Transcription will run on CPU.
+Initializing AwsS3Service
+[37m ◎ LOGS
+  [37m initializeClients [0m
+  [37m [] [0m
+  [37m for [0m
+  [37m photomatt [0m
+
+[37m ◎ LOGS
+  [37m client keys [0m
+  [37m [] [0m
+
+[37m ["◎ Run `pnpm start:client` to start the client and visit the outputted URL (http://localhost:5173) to chat with your agents. When running multiple agents, use client with different port `SERVER_PORT=3001 pnpm start:client`"] [0m
+
+[32m ["✓ REST API bound to 0.0.0.0:3000. If running locally, access it at http://localhost:3000."] [0m
+

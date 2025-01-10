@@ -9,9 +9,14 @@ import {
     type UUID,
     Participant,
     Room,
+    Plugin,
+    Service,
+    ServiceType,
+    IAgentRuntime,
 } from "@elizaos/core";
 import { DatabaseAdapter } from "@elizaos/core";
 import { v4 as uuid } from "uuid";
+
 export class SupabaseDatabaseAdapter extends DatabaseAdapter {
     async getRoom(roomId: UUID): Promise<UUID | null> {
         const { data, error } = await this.supabase
@@ -681,3 +686,29 @@ export class SupabaseDatabaseAdapter extends DatabaseAdapter {
         return data as Relationship[];
     }
 }
+
+export class SupabaseService extends Service {
+    static serviceType: ServiceType = ServiceType.DATABASE;
+    private adapter: SupabaseDatabaseAdapter;
+
+    constructor(supabaseUrl: string, supabaseKey: string) {
+        super();
+        this.adapter = new SupabaseDatabaseAdapter(supabaseUrl, supabaseKey);
+    }
+
+    async initialize(runtime: IAgentRuntime): Promise<void> {
+        await this.adapter.init();
+    }
+
+    getInstance(): SupabaseDatabaseAdapter {
+        return this.adapter;
+    }
+}
+
+export const supabasePlugin: Plugin = {
+    name: "supabase",
+    description: "Supabase database adapter for Eliza",
+    services: [new SupabaseService(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!)],
+};
+
+export default supabasePlugin;
