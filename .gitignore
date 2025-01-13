@@ -17,6 +17,8 @@ dist/
 models/*.gguf
 pgLite/
 
+documents/*
+
 cookies.json
 
 db.sqlite
