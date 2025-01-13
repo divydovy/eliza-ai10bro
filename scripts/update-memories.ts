@@ -130,7 +130,7 @@ async function broadcastNewKnowledge(runtime: AgentRuntime) {
   const sql = `
     SELECT DISTINCT roomId
     FROM participants
-    WHERE userId = ? AND userState = 'FOLLOWED'
+    WHERE userId = ?
   `;
   const rooms = sqliteDb.prepare(sql).all(runtime.agentId) as { roomId: string }[];
 
@@ -151,7 +151,7 @@ async function broadcastNewKnowledge(runtime: AgentRuntime) {
       roomId: room.roomId as UUID,
       content: {
         text: message,
-        source: 'system',
+        source: 'system'
       },
       createdAt: Date.now(),
       embedding: await embed(runtime, message),

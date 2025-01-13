@@ -47,15 +47,17 @@ async function cleanMemories() {
       process.exit(1);
     }
 
-    // Delete only document memories that were created by update-memories.ts
-    // (these will have a source field in their content)
+    // Delete document memories and any messages with broadcast action or system type
     const deleteDocsSql = `DELETE FROM memories
-      WHERE type = 'documents'
-      AND agentId = ?
-      AND json_extract(content, '$.source') IS NOT NULL`;
+      WHERE agentId = ?
+      AND (
+        (type = 'documents' AND json_extract(content, '$.source') IS NOT NULL)
+        OR json_extract(content, '$.action') = 'BROADCAST'
+        OR json_extract(content, '$.type') = 'system'
+      )`;
     sqliteDb.prepare(deleteDocsSql).run(agentId);
 
-    // Delete only fragments that are linked to documents we just deleted
+    // Delete fragments that are linked to documents we just deleted
     // (preserve fragments linked to startup documents)
     const deleteFragmentsSql = `DELETE FROM memories
       WHERE type = 'fragments'
@@ -66,7 +68,7 @@ async function cleanMemories() {
       )`;
     sqliteDb.prepare(deleteFragmentsSql).run(agentId);
 
-    console.log('Successfully deleted document and fragment memories from database (preserving startup memories)');
+    console.log('Successfully deleted document, broadcast, system notification, and fragment memories from database (preserving startup memories)');
   } catch (error) {
     console.error('Error cleaning memories:', error);
     process.exit(1);
