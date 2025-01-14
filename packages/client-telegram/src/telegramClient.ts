@@ -163,7 +163,12 @@ export class TelegramClient {
         this.bot.on("document", (ctx) => {
             elizaLogger.log(
                 "📎 Received document message:",
-                ctx.message.document.file_name
+                {
+                    fileName: ctx.message.document.file_name,
+                    mimeType: ctx.message.document.mime_type,
+                    fileId: ctx.message.document.file_id,
+                    fileSize: ctx.message.document.file_size
+                }
             );
         });
 
@@ -197,8 +202,35 @@ export class TelegramClient {
 
     public async stop(): Promise<void> {
         elizaLogger.log("Stopping Telegram bot...");
-        //await 
+        //await
             this.bot.stop();
         elizaLogger.log("Telegram bot stopped");
+    }
+
+    public async broadcast(content: string): Promise<void> {
+        elizaLogger.log("Broadcasting message to all authorized groups...");
+        const config = this.runtime.character.clientConfig?.telegram;
+
+        if (!config?.shouldOnlyJoinInAllowedGroups) {
+            elizaLogger.warn("No group restrictions configured - cannot safely broadcast");
+            return;
+        }
+
+        const allowedGroups = config.allowedGroupIds || [];
+        if (allowedGroups.length === 0) {
+            elizaLogger.warn("No allowed groups configured for broadcasting");
+            return;
+        }
+
+        elizaLogger.log(`Broadcasting to ${allowedGroups.length} groups`);
+
+        for (const groupId of allowedGroups) {
+            try {
+                await this.bot.telegram.sendMessage(groupId.toString(), content);
+                elizaLogger.success(`Successfully broadcast to group ${groupId}`);
+            } catch (error) {
+                elizaLogger.error(`Failed to broadcast to group ${groupId}:`, error);
+            }
+        }
     }
 }

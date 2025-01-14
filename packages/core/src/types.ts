@@ -608,6 +608,9 @@ export type Client = {
 
     /** Stop client connection */
     stop: (runtime: IAgentRuntime) => Promise<unknown>;
+
+    /** Broadcast a message to all active chats */
+    broadcast?: (runtime: IAgentRuntime, content: string) => Promise<void>;
 };
 
 /**

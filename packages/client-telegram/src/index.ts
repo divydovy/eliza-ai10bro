@@ -22,6 +22,20 @@ export const TelegramClientInterface: Client = {
     stop: async (_runtime: IAgentRuntime) => {
         elizaLogger.warn("Telegram client does not support stopping yet");
     },
+    broadcast: async (runtime: IAgentRuntime, content: string) => {
+        const client = runtime.clients.telegram as TelegramClient;
+        if (!client) {
+            throw new Error("Telegram client not found");
+        }
+        await client.broadcast(content);
+    }
 };
 
 export default TelegramClientInterface;
+
+export { TelegramClient } from './telegramClient';
+export interface TelegramClientInterface {
+    start(): Promise<void>;
+    stop(): Promise<void>;
+    broadcast(content: string): Promise<void>;
+}

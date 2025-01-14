@@ -32,6 +32,7 @@ import {
 } from "./constants";
 
 import fs from "fs";
+import { AttachmentManager } from "./attachments";
 
 const MAX_MESSAGE_LENGTH = 4096; // Telegram's max message length
 
@@ -158,10 +159,12 @@ export class MessageManager {
     private runtime: IAgentRuntime;
     private interestChats: InterestChats = {};
     private teamMemberUsernames: Map<string, string> = new Map();
+    private attachmentManager: AttachmentManager;
 
     constructor(bot: Telegraf<Context>, runtime: IAgentRuntime) {
         this.bot = bot;
         this.runtime = runtime;
+        this.attachmentManager = new AttachmentManager(runtime, bot);
 
         this._initializeTeamMemberUsernames().catch((error) =>
             elizaLogger.error(
@@ -418,47 +421,6 @@ export class MessageManager {
         }
 
         return true;
-    }
-
-    // Process image messages and generate descriptions
-    private async processImage(
-        message: Message
-    ): Promise<{ description: string } | null> {
-        try {
-            let imageUrl: string | null = null;
-
-            elizaLogger.info(`Telegram Message: ${message}`);
-
-            if ("photo" in message && message.photo?.length > 0) {
-                const photo = message.photo[message.photo.length - 1];
-                const fileLink = await this.bot.telegram.getFileLink(
-                    photo.file_id
-                );
-                imageUrl = fileLink.toString();
-            } else if (
-                "document" in message &&
-                message.document?.mime_type?.startsWith("image/")
-            ) {
-                const fileLink = await this.bot.telegram.getFileLink(
-                    message.document.file_id
-                );
-                imageUrl = fileLink.toString();
-            }
-
-            if (imageUrl) {
-                const imageDescriptionService =
-                    this.runtime.getService<IImageDescriptionService>(
-                        ServiceType.IMAGE_DESCRIPTION
-                    );
-                const { title, description } =
-                    await imageDescriptionService.describeImage(imageUrl);
-                return { description: `[Image: ${title}\n${description}]` };
-            }
-        } catch (error) {
-            console.error("❌ Error processing image:", error);
-        }
-
-        return null;
     }
 
     // Decide if the bot should respond to the message
@@ -995,21 +957,15 @@ export class MessageManager {
         try {
             // Convert IDs to UUIDs
             const userId = stringToUuid(ctx.from.id.toString()) as UUID;
-
-            // Get user name
-            const userName =
-                ctx.from.username || ctx.from.first_name || "Unknown User";
-
-            // Get chat ID
+            const userName = ctx.from?.username || ctx.from?.first_name || "unknown";
             const chatId = stringToUuid(
                 ctx.chat?.id.toString() + "-" + this.runtime.agentId
             ) as UUID;
-
-            // Get agent ID
             const agentId = this.runtime.agentId;
-
-            // Get room ID
             const roomId = chatId;
+            const messageId = stringToUuid(
+                message.message_id.toString() + "-" + this.runtime.agentId
+            ) as UUID;
 
             // Ensure connection
             await this.runtime.ensureConnection(
@@ -1020,13 +976,8 @@ export class MessageManager {
                 "telegram"
             );
 
-            // Get message ID
-            const messageId = stringToUuid(
-                message.message_id.toString() + "-" + this.runtime.agentId
-            ) as UUID;
-
-            // Handle images
-            const imageInfo = await this.processImage(message);
+            // Process attachments
+            const attachments = await this.attachmentManager.processAttachments(message);
 
             // Get text or caption
             let messageText = "";
@@ -1036,18 +987,9 @@ export class MessageManager {
                 messageText = message.caption;
             }
 
-            // Combine text and image description
-            const fullText = imageInfo
-                ? `${messageText} ${imageInfo.description}`
-                : messageText;
-
-            if (!fullText) {
-                return; // Skip if no content
-            }
-
             // Create content
             const content: Content = {
-                text: fullText,
+                text: messageText,
                 source: "telegram",
                 inReplyTo:
                     "reply_to_message" in message && message.reply_to_message
@@ -1057,6 +999,7 @@ export class MessageManager {
                                   this.runtime.agentId
                           )
                         : undefined,
+                attachments,
             };
 
             // Create memory for the message
@@ -1164,8 +1107,8 @@ export class MessageManager {
 
             await this.runtime.evaluate(memory, state, shouldRespond, callback);
         } catch (error) {
-            elizaLogger.error("❌ Error handling message:", error);
-            elizaLogger.error("Error sending message:", error);
+            elizaLogger.error("Error handling message:", error);
+            throw error;
         }
     }
 }
