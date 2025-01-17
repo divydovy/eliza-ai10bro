@@ -18,7 +18,10 @@ async function updateObsidianKnowledge() {
                 text: "Create knowledge base",
                 type: "system",
                 userId: "system",
-                userName: "system"
+                userName: "system",
+                metadata: {
+                    silent: true  // Indicate this message should not be broadcast
+                }
             })
         });
 
@@ -28,12 +31,18 @@ async function updateObsidianKnowledge() {
         }
 
         const data = await response.json();
-        console.log("Knowledge base update command sent successfully.");
-        console.log("Response:", JSON.stringify(data, null, 2));
 
-        // Create broadcast message after knowledge update
-        console.log("Creating broadcast message...");
-        await createBroadcastMessage(characterSettings.name);
+        // Check if knowledge base creation is complete
+        if (data && Array.isArray(data) && data.some(msg => msg.text?.includes("Finished creating knowledge base"))) {
+            console.log("Knowledge base update completed successfully.");
+
+            // Create broadcast message after knowledge update
+            console.log("Creating broadcast message...");
+            await createBroadcastMessage(characterSettings.name);
+        } else {
+            console.error("Knowledge base update may not have completed successfully");
+            console.log("Response:", JSON.stringify(data, null, 2));
+        }
     } catch (error) {
         console.error("Error updating Obsidian knowledge base:", error);
         process.exit(1);

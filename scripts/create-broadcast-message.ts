@@ -98,6 +98,3 @@ async function createBroadcastMessage(characterName: string = 'photomatt') {
 }
 
 export { createBroadcastMessage };
-
-// Run the function
-createBroadcastMessage().catch(console.error);
