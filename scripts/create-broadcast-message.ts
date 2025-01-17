@@ -1,8 +1,52 @@
 import fs from 'fs';
+import path from 'path';
+import { broadcastToTelegram } from './broadcast-to-telegram.js';
+import Database from 'better-sqlite3';
+
+const dbPath = path.join(process.cwd(), '..', 'agent', 'data', 'db.sqlite');
+const db = new Database(dbPath);
+
+interface MessageContent {
+    text: string;
+    metadata: {
+        messageType: 'broadcast';
+        status: 'pending' | 'sent';
+    };
+}
+
+interface DatabaseMemory {
+    id: string;
+    content: string;
+}
 
 async function createBroadcastMessage(characterName: string = 'photomatt') {
     try {
-        // Send system message to the agent's API to create a broadcast message
+        // Check for pending broadcasts
+        const pendingBroadcasts = db.prepare(`
+            SELECT * FROM memories
+            WHERE json_extract(content, '$.metadata.messageType') = 'broadcast'
+            AND json_extract(content, '$.metadata.status') = 'pending'
+            LIMIT 1
+        `).all() as DatabaseMemory[];
+
+        if (pendingBroadcasts.length > 0) {
+            console.log("Found pending broadcasts. Processing those first...");
+            // Process the pending broadcast instead of creating a new one
+            const broadcast = pendingBroadcasts[0];
+            const content = JSON.parse(broadcast.content) as MessageContent;
+            await broadcastToTelegram(content.text, characterName);
+
+            // Update the status
+            db.prepare(`
+                UPDATE memories
+                SET content = json_set(content, '$.metadata.status', 'sent')
+                WHERE id = ?
+            `).run(broadcast.id);
+
+            return [content];
+        }
+
+        // Send system message to the agent's API
         const response = await fetch(`http://localhost:3000/${characterName}/message`, {
             method: 'POST',
             headers: {
@@ -12,7 +56,11 @@ async function createBroadcastMessage(characterName: string = 'photomatt') {
                 text: "Based on the new knowledge you've acquired, create a single social media style message summarizing the key insights. Do not try to save this as a file - just return the message text.",
                 type: "system",
                 userId: "system",
-                userName: "system"
+                userName: "system",
+                metadata: {
+                    messageType: "broadcast",
+                    status: "pending"
+                }
             })
         });
 
@@ -24,6 +72,24 @@ async function createBroadcastMessage(characterName: string = 'photomatt') {
         const data = await response.json();
         console.log("Broadcast message created successfully.");
         console.log("Response:", JSON.stringify(data, null, 2));
+
+        // Extract the message text and broadcast it
+        if (data && Array.isArray(data) && data.length > 0 && data[0].text) {
+            console.log("Broadcasting message to Telegram...");
+            await broadcastToTelegram(data[0].text, characterName);
+
+            // Update the message status in the database
+            if (data[0].id) {
+                db.prepare(`
+                    UPDATE memories
+                    SET content = json_set(content, '$.metadata.status', 'sent')
+                    WHERE id = ?
+                `).run(data[0].id);
+            }
+        } else {
+            console.error("No valid message text found in response");
+        }
+
         return data;
     } catch (error) {
         console.error("Error creating broadcast message:", error);
@@ -31,10 +97,7 @@ async function createBroadcastMessage(characterName: string = 'photomatt') {
     }
 }
 
-// Export for use in other files
 export { createBroadcastMessage };
 
-// If run directly
-if (require.main === module) {
-    createBroadcastMessage();
-}
+// Run the function
+createBroadcastMessage().catch(console.error);
