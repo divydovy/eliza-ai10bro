@@ -57,6 +57,7 @@
         "@elizaos/plugin-massa": "workspace:*",
         "@elizaos/plugin-nft-generation": "workspace:*",
         "@elizaos/plugin-node": "workspace:*",
+        "@elizaos/plugin-obsidian": "workspace:*",
         "@elizaos/plugin-solana": "workspace:*",
         "@elizaos/plugin-solana-agentkit": "workspace:*",
         "@elizaos/plugin-autonome": "workspace:*",

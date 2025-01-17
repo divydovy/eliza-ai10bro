@@ -12,6 +12,10 @@ packages/plugin-buttplug/intiface-engine
 .idea
 .DS_Store
 
+.env.bak
+.env.old
+documents/
+
 dist/
 # Allow models directory but ignore model files
 models/*.gguf
@@ -40,12 +44,9 @@ timeline_cache.json
 
 *.sqlite
 
-characters/
-
 packages/core/src/providers/cache
 packages/core/src/providers/cache/*
 cache/*
-packages/plugin-coinbase/src/plugins/transactions.csv
 
 tsup.config.bundled_*.mjs
 
@@ -58,6 +59,12 @@ coverage
 
 agent/content
 
+# Manifest files
 eliza.manifest
 eliza.manifest.sgx
 eliza.sig
+
+# Ignore all character files by default
+characters/*.character.json
+# But allow specific characters
+!characters/photomatt.character.json
