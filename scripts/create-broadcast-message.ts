@@ -3,7 +3,7 @@ import path from 'path';
 import { broadcastToTelegram } from './broadcast-to-telegram.js';
 import Database from 'better-sqlite3';
 
-const dbPath = path.join(process.cwd(), '..', 'agent', 'data', 'db.sqlite');
+const dbPath = path.join(process.cwd(), 'agent', 'data', 'db.sqlite');
 const db = new Database(dbPath);
 
 interface MessageContent {
@@ -19,8 +19,23 @@ interface DatabaseMemory {
     content: string;
 }
 
+interface CharacterSettings {
+    name: string;
+    settings?: {
+        broadcastPrompt?: string;
+    };
+}
+
 async function createBroadcastMessage(characterName: string = 'c3po') {
     try {
+        // Load character settings
+        const characterPath = path.join(process.cwd(), '..', 'characters', `${characterName}.character.json`);
+        const characterSettings: CharacterSettings = JSON.parse(fs.readFileSync(characterPath, 'utf-8'));
+
+        // Default prompt if not specified in character settings
+        const defaultPrompt = "Based on the new knowledge you've acquired, create a single social media style message summarizing the key insights. Do not try to save this as a file - just return the message text.";
+        const broadcastPrompt = characterSettings.settings?.broadcastPrompt || defaultPrompt;
+
         // Check for pending broadcasts
         const pendingBroadcasts = db.prepare(`
             SELECT * FROM memories
@@ -53,7 +68,7 @@ async function createBroadcastMessage(characterName: string = 'c3po') {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                text: "Based on the new knowledge you've acquired, create a single social media style message summarizing the key insights. Do not try to save this as a file - just return the message text.",
+                text: broadcastPrompt,
                 type: "system",
                 userId: "system",
                 userName: "system",
