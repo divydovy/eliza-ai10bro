@@ -64,7 +64,5 @@ eliza.manifest
 eliza.manifest.sgx
 eliza.sig
 
-# Ignore all character files by default
+# Ignore all character files
 characters/*.character.json
-# But allow specific characters
-!characters/photomatt.character.json
