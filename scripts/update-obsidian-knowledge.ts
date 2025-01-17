@@ -5,7 +5,7 @@ import { createBroadcastMessage } from './create-broadcast-message';
 async function updateObsidianKnowledge() {
     try {
         // Load character settings
-        const characterPath = process.argv[2] || 'characters/photomatt.character.json';
+        const characterPath = process.argv[2] || 'characters/c3po.character.json';
         const characterSettings = JSON.parse(fs.readFileSync(characterPath, 'utf-8'));
 
         // Send system message to the agent's API

@@ -19,7 +19,7 @@ interface DatabaseMemory {
     content: string;
 }
 
-async function createBroadcastMessage(characterName: string = 'photomatt') {
+async function createBroadcastMessage(characterName: string = 'c3po') {
     try {
         // Check for pending broadcasts
         const pendingBroadcasts = db.prepare(`
