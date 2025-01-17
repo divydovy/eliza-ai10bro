@@ -1,5 +1,6 @@
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { createBroadcastMessage } from './create-broadcast-message';
 
 async function updateObsidianKnowledge() {
     try {
@@ -29,6 +30,10 @@ async function updateObsidianKnowledge() {
         const data = await response.json();
         console.log("Knowledge base update command sent successfully.");
         console.log("Response:", JSON.stringify(data, null, 2));
+
+        // Create broadcast message after knowledge update
+        console.log("Creating broadcast message...");
+        await createBroadcastMessage(characterSettings.name);
     } catch (error) {
         console.error("Error updating Obsidian knowledge base:", error);
         process.exit(1);
