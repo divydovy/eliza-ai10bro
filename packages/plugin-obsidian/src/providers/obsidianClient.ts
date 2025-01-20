@@ -805,7 +805,7 @@ export class ObsidianProvider {
                     });
 
                     // delay to avoid throttling
-                    await new Promise(resolve => setTimeout(resolve, 100));
+                    await new Promise(resolve => setTimeout(resolve, 1000));
 
                 } catch (error) {
                     elizaLogger.error(`Error processing file ${file}:`, error);

@@ -27,4 +27,6 @@ export const AutoClientInterface: Client = {
     },
 };
 
+export { ObsidianAutoClient, ObsidianAutoClientInterface } from "./obsidian";
+
 export default AutoClientInterface;
