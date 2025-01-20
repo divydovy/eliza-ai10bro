@@ -3,7 +3,7 @@ import { PostgresDatabaseAdapter } from "@elizaos/adapter-postgres";
 import { RedisClient } from "@elizaos/adapter-redis";
 import { SqliteDatabaseAdapter } from "@elizaos/adapter-sqlite";
 import { SupabaseDatabaseAdapter } from "@elizaos/adapter-supabase";
-import { AutoClientInterface } from "@elizaos/client-auto";
+import { AutoClientInterface, ObsidianAutoClientInterface } from "@elizaos/client-auto";
 import { DiscordClientInterface } from "@elizaos/client-discord";
 import { FarcasterAgentClient } from "@elizaos/client-farcaster";
 import { LensAgentClient } from "@elizaos/client-lens";
@@ -39,7 +39,6 @@ import { zgPlugin } from "@elizaos/plugin-0g";
 import { bootstrapPlugin } from "@elizaos/plugin-bootstrap";
 import createGoatPlugin from "@elizaos/plugin-goat";
 // import { intifacePlugin } from "@elizaos/plugin-intiface";
-import { DirectClient } from "@elizaos/client-direct";
 import { ThreeDGenerationPlugin } from "@elizaos/plugin-3d-generation";
 import { abstractPlugin } from "@elizaos/plugin-abstract";
 import { alloraPlugin } from "@elizaos/plugin-allora";
@@ -537,6 +536,11 @@ export async function initializeClients(
     if (clientTypes.includes(Clients.AUTO)) {
         const autoClient = await AutoClientInterface.start(runtime);
         if (autoClient) clients.auto = autoClient;
+    }
+
+    if (clientTypes.includes(Clients.OBSIDIAN)) {
+        const obsidianClient = await ObsidianAutoClientInterface.start(runtime);
+        if (obsidianClient) clients.obsidian = obsidianClient;
     }
 
     if (clientTypes.includes(Clients.DISCORD)) {

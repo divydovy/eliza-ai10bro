@@ -1,6 +1,11 @@
 import { Client, IAgentRuntime, elizaLogger } from "@elizaos/core";
 import { exec } from 'child_process';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const projectRoot = path.resolve(__dirname, '../../../');
 
 export class ObsidianAutoClient {
     interval: NodeJS.Timeout;
@@ -22,12 +27,12 @@ export class ObsidianAutoClient {
     }
 
     private runUpdate() {
-        const scriptPath = path.join(process.cwd(), 'scripts', 'update-obsidian-knowledge.ts');
-        const characterPath = path.join(process.cwd(), 'characters', 'ai10bro.character.json');
+        const scriptPath = path.join(projectRoot, 'scripts', 'update-obsidian-knowledge.ts');
+        const characterPath = path.join(projectRoot, 'characters', 'ai10bro.character.json');
 
         elizaLogger.log("Running Obsidian knowledge update...");
 
-        exec(`pnpm tsx ${scriptPath} ${characterPath}`, (error, stdout, stderr) => {
+        exec(`cd ${projectRoot} && pnpm tsx ${scriptPath} ${characterPath}`, (error, stdout, stderr) => {
             if (error) {
                 elizaLogger.error(`Error executing update script: ${error}`);
                 if (stderr) elizaLogger.error(stderr);
