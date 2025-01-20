@@ -14,7 +14,7 @@ interface CharacterSettings {
 
 async function broadcastToTelegram(message: string, characterName: string = 'c3po'): Promise<void> {
     try {
-        const characterPath = path.join(process.cwd(), '..', 'characters', `${characterName}.character.json`);
+        const characterPath = path.join(process.cwd(), 'characters', `${characterName}.character.json`);
         const characterSettings: CharacterSettings = JSON.parse(fs.readFileSync(characterPath, 'utf-8'));
 
         const botToken = characterSettings.settings.secrets.TELEGRAM_BOT_TOKEN;

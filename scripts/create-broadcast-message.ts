@@ -29,7 +29,7 @@ interface CharacterSettings {
 async function createBroadcastMessage(characterName: string = 'c3po') {
     try {
         // Load character settings
-        const characterPath = path.join(process.cwd(), '..', 'characters', `${characterName}.character.json`);
+        const characterPath = path.join(process.cwd(), 'characters', `${characterName}.character.json`);
         const characterSettings: CharacterSettings = JSON.parse(fs.readFileSync(characterPath, 'utf-8'));
 
         // Default prompt if not specified in character settings
