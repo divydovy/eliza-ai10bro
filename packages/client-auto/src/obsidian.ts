@@ -10,6 +10,7 @@ const projectRoot = path.resolve(__dirname, '../../../');
 export class ObsidianAutoClient {
     interval: NodeJS.Timeout;
     runtime: IAgentRuntime;
+    private isRunning = false;
 
     constructor(runtime: IAgentRuntime) {
         this.runtime = runtime;
@@ -27,22 +28,34 @@ export class ObsidianAutoClient {
     }
 
     private runUpdate() {
+        if (this.isRunning) {
+            elizaLogger.log("Update already in progress, skipping...");
+            return;
+        }
+
         const scriptPath = path.join(projectRoot, 'scripts', 'update-obsidian-knowledge.ts');
         const characterPath = path.join(projectRoot, 'characters', 'ai10bro.character.json');
 
         elizaLogger.log("Running Obsidian knowledge update...");
+        this.isRunning = true;
 
-        exec(`cd ${projectRoot} && pnpm tsx ${scriptPath} ${characterPath}`, (error, stdout, stderr) => {
-            if (error) {
-                elizaLogger.error(`Error executing update script: ${error}`);
+        return new Promise((resolve) => {
+            exec(`cd ${projectRoot} && pnpm tsx ${scriptPath} ${characterPath}`, (error, stdout, stderr) => {
+                this.isRunning = false;
+
+                if (error) {
+                    elizaLogger.error(`Error executing update script: ${error}`);
+                    if (stderr) elizaLogger.error(stderr);
+                    resolve(false);
+                    return;
+                }
+
                 if (stderr) elizaLogger.error(stderr);
-                return;
-            }
+                if (stdout) elizaLogger.log(stdout);
 
-            if (stderr) elizaLogger.error(stderr);
-            if (stdout) elizaLogger.log(stdout);
-
-            elizaLogger.log("Obsidian knowledge update completed");
+                elizaLogger.log("Obsidian knowledge update completed");
+                resolve(true);
+            });
         });
     }
 
