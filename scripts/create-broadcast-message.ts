@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { broadcastToTelegram } from './broadcast-to-telegram.js';
 import Database from 'better-sqlite3';
+import crypto from 'crypto';
 
 console.log('Starting broadcast message creation...');
 
@@ -10,51 +10,89 @@ console.log('Database path:', dbPath);
 const db = new Database(dbPath);
 console.log('Successfully connected to database');
 
+// Ensure broadcasts table exists
+await db.exec(`
+  CREATE TABLE IF NOT EXISTS broadcasts (
+    id TEXT PRIMARY KEY,
+    documentId TEXT NOT NULL,
+    createdAt INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
+    messageId TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    FOREIGN KEY (documentId) REFERENCES memories(id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_broadcasts_documentid ON broadcasts(documentId);
+  CREATE INDEX IF NOT EXISTS idx_broadcasts_status ON broadcasts(status);
+  CREATE INDEX IF NOT EXISTS idx_broadcasts_createdat ON broadcasts(createdAt);
+`);
+
 interface MessageContent {
     text: string;
     metadata: {
         messageType: 'broadcast';
-        status: 'pending' | 'sent';
+        status: 'pending';
+        sourceMemoryId?: string;
     };
 }
 
 interface DatabaseMemory {
     id: string;
     content: string;
+    createdAt: number;
 }
 
 interface CharacterSettings {
     name: string;
     settings?: {
         broadcastPrompt?: string;
+        secrets?: {
+            ANTHROPIC_API_KEY?: string;
+        };
     };
 }
 
-async function getNewKnowledgeSinceLastBroadcast() {
-    console.log('Checking for last broadcast...');
-    const lastBroadcast = db.prepare(`
-        SELECT createdAt
-        FROM memories
-        WHERE json_extract(content, '$.metadata.messageType') = 'broadcast'
-        AND json_extract(content, '$.metadata.status') = 'sent'
-        ORDER BY createdAt DESC
+async function getNextUnbroadcastDocument(): Promise<DatabaseMemory | undefined> {
+    console.log('Looking for next unbroadcast document...');
+
+    // Find the oldest document that hasn't been broadcast yet
+    const nextDocument = db.prepare(`
+        SELECT m1.id, m1.content, m1.createdAt
+        FROM memories m1
+        WHERE m1.type = 'documents'
+        AND json_extract(m1.content, '$.source') = 'obsidian'
+        AND NOT EXISTS (
+            SELECT 1 FROM broadcasts b
+            WHERE b.documentId = m1.id
+        )
+        ORDER BY m1.createdAt ASC
         LIMIT 1
-    `).get() as { createdAt: number } | undefined;
+    `).get() as DatabaseMemory | undefined;
 
-    console.log('Last broadcast timestamp:', lastBroadcast?.createdAt || 'No previous broadcasts found');
+    if (nextDocument) {
+        console.log(`Found document from ${new Date(nextDocument.createdAt).toISOString()}`);
+        const content = JSON.parse(nextDocument.content);
+        console.log('Document summary:', {
+            id: nextDocument.id,
+            title: content.title || 'No title',
+            textLength: content.text?.length || 0
+        });
+    } else {
+        console.log('No unbroadcast documents found');
+    }
 
-    console.log('Querying for new knowledge...');
-    const newKnowledge = db.prepare(`
-        SELECT *
-        FROM memories
-        WHERE createdAt > ?
-        AND json_extract(content, '$.action') = 'CREATE_KNOWLEDGE'
-        ORDER BY createdAt DESC
-        LIMIT 5
-    `).all(lastBroadcast?.createdAt || 0) as DatabaseMemory[];
+    return nextDocument;
+}
 
-    console.log(`Found ${newKnowledge.length} new knowledge entries`);
-    return newKnowledge.map(memory => JSON.parse(memory.content));
+async function recordBroadcast(documentId: string, messageId: string) {
+    console.log('\nRecording broadcast in database...');
+    const id = crypto.randomUUID();
+
+    db.prepare(`
+        INSERT INTO broadcasts (id, documentId, messageId)
+        VALUES (?, ?, ?)
+    `).run(id, documentId, messageId);
+
+    console.log('Successfully recorded broadcast');
 }
 
 async function sendMessageToAgent(characterName: string, message: any) {
@@ -102,62 +140,68 @@ async function createBroadcastMessage(characterName: string = 'c3po') {
         const characterSettings: CharacterSettings = JSON.parse(fs.readFileSync(characterPath, 'utf-8'));
         console.log('Successfully loaded character settings');
 
-        // Check for pending broadcasts
-        console.log('\nChecking for pending broadcasts...');
-        const pendingBroadcasts = db.prepare(`
-            SELECT * FROM memories
-            WHERE json_extract(content, '$.metadata.messageType') = 'broadcast'
-            AND json_extract(content, '$.metadata.status') = 'pending'
-            LIMIT 1
-        `).all() as DatabaseMemory[];
-
-        if (pendingBroadcasts.length > 0) {
-            console.log("Found pending broadcast, processing it...");
-            const broadcast = pendingBroadcasts[0];
-            const content = JSON.parse(broadcast.content) as MessageContent;
-            console.log("Broadcasting pending message to Telegram...");
-            await broadcastToTelegram(content.text, characterName);
-
-            console.log("Updating broadcast status to sent...");
-            db.prepare(`
-                UPDATE memories
-                SET content = json_set(content, '$.metadata.status', 'sent')
-                WHERE id = ?
-            `).run(broadcast.id);
-            console.log("Successfully processed pending broadcast");
-
-            return [content];
-        }
-
-        console.log('\nNo pending broadcasts found, checking for new knowledge...');
-        const newKnowledge = await getNewKnowledgeSinceLastBroadcast();
-        if (newKnowledge.length === 0) {
-            console.log("No new knowledge found since last broadcast");
+        // Get next document to broadcast
+        const document = await getNextUnbroadcastDocument();
+        if (!document) {
+            console.log('No documents to broadcast');
             return [];
         }
 
-        console.log(`\nFound ${newKnowledge.length} new knowledge entries to process`);
-        console.log("Knowledge summary:", newKnowledge.map(k => ({
-            user: k.user,
-            textLength: k.text.length,
-            action: k.action
-        })));
+        const documentContent = JSON.parse(document.content);
 
-        // Default prompt if not specified in character settings
+        // First, get a concise summary from Claude directly
+        console.log('\nGetting document summary from Claude...');
+        const apiKey = characterSettings.settings?.secrets?.ANTHROPIC_API_KEY;
+        if (!apiKey) {
+            throw new Error('No Anthropic API key found in character settings');
+        }
+
+        const summaryPrompt = `Summarize the key insights and significance of this document in exactly 500 characters. Focus on what's most important and impactful. Here's the document:
+
+Title: ${documentContent.metadata?.frontmatter?.title || documentContent.title || 'Untitled'}
+Source: ${documentContent.metadata?.frontmatter?.source || documentContent.source || 'Unknown'}
+Content: ${documentContent.text}`;
+
+        const summaryResponse = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': apiKey,
+                'anthropic-version': '2023-06-01'
+            },
+            body: JSON.stringify({
+                model: 'claude-3-sonnet-20240229',
+                max_tokens: 500,
+                messages: [{
+                    role: 'user',
+                    content: summaryPrompt
+                }]
+            })
+        });
+
+        if (!summaryResponse.ok) {
+            const errorText = await summaryResponse.text();
+            throw new Error(`Failed to get summary: ${summaryResponse.status} ${summaryResponse.statusText}\n${errorText}`);
+        }
+
+        const summaryData = await summaryResponse.json();
+        const summary = summaryData.content[0].text;
+        const truncatedSummary = summary.slice(0, 500) + (summary.length > 500 ? '...' : '');
+        console.log('Summary length:', summary.length, 'characters');
+        console.log('Truncated summary length:', truncatedSummary.length, 'characters');
+
+        // Now create the broadcast prompt with the summary
         console.log('\nPreparing broadcast prompt...');
-        const defaultPrompt = "Based on this new knowledge I'm sharing with you, create a single social media style message summarizing the key insights. Focus on what's most significant and impactful. Keep it under 280 characters, be specific about what was learned, and cite the source if available. Here's the new knowledge:\n\n";
+        const defaultPrompt = "Create a single social media style message about this summary. Focus on what's most significant and impactful. Keep it under 280 characters, be specific about what was learned, and cite the source if available. Here's the summary:\n\n";
 
-        // Create a more concise summary of the knowledge
-        const knowledgeSummary = newKnowledge.map(k => ({
-            text: k.text.substring(0, 50) + "...", // Just the first 50 chars
-            user: k.user,
-            action: k.action,
-            timestamp: k.createdAt
-        }));
+        const broadcastPrompt = `[BROADCAST_REQUEST:${document.id}]\n\n` +
+            (characterSettings.settings?.broadcastPrompt || defaultPrompt) +
+            `\nTitle: ${documentContent.metadata?.frontmatter?.title || documentContent.title || 'Untitled'}\n` +
+            `Source: ${documentContent.metadata?.frontmatter?.source || documentContent.source || 'Unknown'}\n` +
+            `Content: ${truncatedSummary}`;
 
-        const broadcastPrompt = (characterSettings.settings?.broadcastPrompt || defaultPrompt) +
-            "New knowledge entries: " + knowledgeSummary.length + "\n\n" +
-            knowledgeSummary.map(k => `- ${k.text}`).join('\n');
+        console.log('Full prompt length:', broadcastPrompt.length, 'characters');
+        console.log('Full prompt content:', broadcastPrompt);
 
         // Send system message to the agent's API with retries
         console.log("\nSending request to agent API...");
@@ -175,58 +219,16 @@ async function createBroadcastMessage(characterName: string = 'c3po') {
                     metadata: {
                         messageType: "broadcast",
                         status: "pending",
-                        action: "CREATE_KNOWLEDGE",
+                        sourceMemoryId: document.id,
                         silent: true
                     }
                 });
 
                 if (data && Array.isArray(data) && data.length > 0 && data[0].text) {
-                    console.log("\nBroadcasting message to Telegram...");
-                    await broadcastToTelegram(data[0].text, characterName);
-
-                    // Find the most recent memory with this text
-                    console.log("\nLooking for memory to update...");
-                    console.log("Searching for text:", data[0].text);
-                    const recentMemory = db.prepare(`
-                        SELECT id, content FROM memories
-                        WHERE json_extract(content, '$.text') = ?
-                        ORDER BY createdAt DESC LIMIT 1
-                    `).get(data[0].text) as DatabaseMemory;
-
-                    if (recentMemory) {
-                        console.log("\nUpdating memory status...");
-                        console.log("Memory ID:", recentMemory.id);
-                        console.log("Original content:", recentMemory.content);
-                        const content = JSON.parse(recentMemory.content);
-                        content.metadata = {
-                            messageType: 'broadcast',
-                            status: 'sent'
-                        };
-                        const updatedContent = JSON.stringify(content);
-                        console.log("Updated content:", updatedContent);
-
-                        db.prepare(`
-                            UPDATE memories
-                            SET content = ?
-                            WHERE id = ?
-                        `).run(updatedContent, recentMemory.id);
-                        console.log("Memory updated successfully");
-
-                        // Verify the update
-                        const verifyMemory = db.prepare(`
-                            SELECT content FROM memories WHERE id = ?
-                        `).get(recentMemory.id) as DatabaseMemory;
-                        console.log("Verified content:", verifyMemory.content);
-                    } else {
-                        console.log("\nWARNING: Could not find memory to update");
-                        console.log("Showing recent memories for debugging...");
-                        const recentMemories = db.prepare(`
-                            SELECT id, content FROM memories
-                            ORDER BY createdAt DESC LIMIT 5
-                        `).all();
-                        console.log("Recent memories:", JSON.stringify(recentMemories, null, 2));
-                    }
-
+                    console.log("\nBroadcast message created successfully");
+                    // Generate a message ID if one isn't provided
+                    const messageId = data[0].id || crypto.randomUUID();
+                    await recordBroadcast(document.id, messageId);
                     return data;
                 } else {
                     console.error("\nERROR: No valid message text found in response");
@@ -249,17 +251,4 @@ async function createBroadcastMessage(characterName: string = 'c3po') {
 
 // Get character name from command line arguments
 const characterName = process.argv[2] || 'c3po';
-console.log('Using character:', characterName);
-
-// Call the function
-createBroadcastMessage(characterName)
-    .then(result => {
-        console.log('Broadcast message creation completed');
-        process.exit(0);
-    })
-    .catch(error => {
-        console.error('Failed to create broadcast message:', error);
-        process.exit(1);
-    });
-
-export { createBroadcastMessage };
+createBroadcastMessage(characterName).catch(console.error);
