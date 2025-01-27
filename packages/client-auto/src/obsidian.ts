@@ -61,7 +61,7 @@ export class ObsidianAutoClient {
         }
 
         const scriptPath = path.join(projectRoot, 'scripts', 'update-obsidian-knowledge.ts');
-        const characterPath = path.join(projectRoot, 'characters', 'ai10bro.character.json');
+        const characterPath = path.join(projectRoot, 'characters', `${this.runtime.character.name}.character.json`);
 
         elizaLogger.log("Running Obsidian knowledge update...");
         this.isKnowledgeUpdateRunning = true;
@@ -93,7 +93,7 @@ export class ObsidianAutoClient {
         }
 
         const scriptPath = path.join(projectRoot, 'scripts', 'create-broadcast-message.ts');
-        const characterName = 'ai10bro';
+        const characterName = this.runtime.character.name;
 
         elizaLogger.log("Running broadcast message creation...");
         this.isBroadcastCreateRunning = true;
@@ -125,7 +125,7 @@ export class ObsidianAutoClient {
         }
 
         const scriptPath = path.join(projectRoot, 'scripts', 'process-broadcast-queue.ts');
-        const characterName = 'ai10bro';
+        const characterName = this.runtime.character.name;
 
         elizaLogger.log("Running broadcast queue processing...");
         this.isQueueProcessRunning = true;

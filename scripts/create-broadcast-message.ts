@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import Database from 'better-sqlite3';
 import crypto from 'crypto';
+import net from 'net';
 
 console.log('Starting broadcast message creation...');
 
@@ -9,6 +10,35 @@ const dbPath = path.join(process.cwd(), 'agent', 'data', 'db.sqlite');
 console.log('Database path:', dbPath);
 const db = new Database(dbPath);
 console.log('Successfully connected to database');
+
+// Function to check if a port is in use
+async function isPortInUse(port: number): Promise<boolean> {
+    return new Promise((resolve) => {
+        const server = net.createServer()
+            .once('error', () => resolve(true))
+            .once('listening', () => {
+                server.close();
+                resolve(false);
+            })
+            .listen(port);
+    });
+}
+
+// Function to find the active agent port
+async function findActivePort(startPort: number = 3000, endPort: number = 3010): Promise<number> {
+    console.log('Scanning for active agent port...');
+    for (let port = startPort; port <= endPort; port++) {
+        if (await isPortInUse(port)) {
+            console.log(`Found active port: ${port}`);
+            return port;
+        }
+    }
+    console.log('No active port found, using default port 3000');
+    return startPort;
+}
+
+// Get the port before we need it
+let SERVER_PORT: number;
 
 // Ensure broadcasts table exists
 await db.exec(`
@@ -118,14 +148,20 @@ async function recordBroadcast(documentId: string, messageId: string) {
 }
 
 async function sendMessageToAgent(characterName: string, message: any) {
+    // Ensure we have the port
+    if (!SERVER_PORT) {
+        SERVER_PORT = await findActivePort();
+    }
+
     console.log('\nSending message to agent:', {
         characterName,
         messageType: message.type,
         messageLength: message.text.length,
-        metadata: message.metadata
+        metadata: message.metadata,
+        port: SERVER_PORT
     });
 
-    const response = await fetch(`http://localhost:3000/${characterName}/message`, {
+    const response = await fetch(`http://localhost:${SERVER_PORT}/${characterName}/message`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
