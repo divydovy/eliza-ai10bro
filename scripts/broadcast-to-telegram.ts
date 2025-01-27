@@ -18,17 +18,20 @@ async function broadcastToTelegram(message: string, characterName: string = 'c3p
         const characterSettings: CharacterSettings = JSON.parse(fs.readFileSync(characterPath, 'utf-8'));
 
         const botToken = characterSettings.settings.secrets.TELEGRAM_BOT_TOKEN;
-        const chatId = characterSettings.settings.secrets.TELEGRAM_CHAT_ID;
+        const chatIds = characterSettings.settings.secrets.TELEGRAM_CHAT_ID.split(',').map(id => id.trim());
 
-        if (!chatId) {
-            throw new Error('No chat ID found in character settings');
+        if (!chatIds.length) {
+            throw new Error('No chat IDs found in character settings');
         }
 
         const cleanMessage = message.replace(/\[BROADCAST:[^\]]+\]\s*/, '');
 
         const bot = new Telegraf(botToken);
-        await bot.telegram.sendMessage(chatId, cleanMessage);
-        console.log(`Message sent to chat ${chatId}`);
+
+        for (const chatId of chatIds) {
+            await bot.telegram.sendMessage(chatId, cleanMessage);
+            console.log(`Message sent to chat ${chatId}`);
+        }
     } catch (error) {
         console.error("Error broadcasting to Telegram:", error);
         throw error;
