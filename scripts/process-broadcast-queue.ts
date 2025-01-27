@@ -5,119 +5,134 @@ import path from 'path';
 const dbPath = path.join(process.cwd(), 'agent', 'data', 'db.sqlite');
 const db = new Database(dbPath);
 
-interface BroadcastMessage {
+interface Broadcast {
+    id: string;
+    documentId: string;
+    messageId: string;
+    createdAt: number;
+    status: string;
+}
+
+interface Memory {
     id: string;
     content: string;
-    createdAt: number;
 }
 
 // Debug function to show database state
 function showDatabaseState() {
     console.log('\nAnalyzing database state...');
 
-    // Check total number of messages
-    const totalCount = db.prepare('SELECT COUNT(*) as count FROM memories').get() as { count: number };
-    console.log(`Total messages in database: ${totalCount.count}`);
+    // Check total number of broadcasts
+    const totalCount = db.prepare('SELECT COUNT(*) as count FROM broadcasts').get() as { count: number };
+    console.log(`Total broadcasts in database: ${totalCount.count}`);
 
-    // Look for pending broadcast messages
-    console.log('\nPending broadcast messages:');
+    // Look for pending broadcasts
+    console.log('\nPending broadcasts:');
     const pendingBroadcasts = db.prepare(`
-        SELECT id, content, createdAt
-        FROM memories
-        WHERE json_extract(content, '$.metadata.messageType') = 'broadcast'
-        AND json_extract(content, '$.metadata.status') = 'pending'
-        ORDER BY createdAt DESC
+        SELECT b.*, m.content
+        FROM broadcasts b
+        JOIN memories m ON m.id = b.documentId
+        WHERE b.status = 'pending'
+        ORDER BY b.createdAt DESC
         LIMIT 3
-    `).all() as BroadcastMessage[];
+    `).all() as (Broadcast & { content: string })[];
 
-    pendingBroadcasts.forEach(msg => {
-        const content = JSON.parse(msg.content);
+    pendingBroadcasts.forEach(broadcast => {
+        const content = JSON.parse(broadcast.content);
         console.log('\nPending Broadcast:', {
-            id: msg.id,
-            createdAt: new Date(msg.createdAt).toISOString(),
-            text: content.text?.substring(0, 100) + '...',
-            metadata: content.metadata
+            id: broadcast.id,
+            documentId: broadcast.documentId,
+            messageId: broadcast.messageId,
+            createdAt: new Date(broadcast.createdAt).toISOString(),
+            title: content.title || content.metadata?.frontmatter?.title || 'No title',
+            source: content.source || content.metadata?.frontmatter?.source || 'Unknown'
         });
     });
 
     // Look for recently sent broadcasts
     console.log('\nRecently sent broadcasts:');
     const sentBroadcasts = db.prepare(`
-        SELECT id, content, createdAt
-        FROM memories
-        WHERE json_extract(content, '$.metadata.messageType') = 'broadcast'
-        AND json_extract(content, '$.metadata.status') = 'sent'
-        ORDER BY createdAt DESC
+        SELECT b.*, m.content
+        FROM broadcasts b
+        JOIN memories m ON m.id = b.documentId
+        WHERE b.status = 'sent'
+        ORDER BY b.createdAt DESC
         LIMIT 3
-    `).all() as BroadcastMessage[];
+    `).all() as (Broadcast & { content: string })[];
 
-    sentBroadcasts.forEach(msg => {
-        const content = JSON.parse(msg.content);
+    sentBroadcasts.forEach(broadcast => {
+        const content = JSON.parse(broadcast.content);
         console.log('\nSent Broadcast:', {
-            id: msg.id,
-            createdAt: new Date(msg.createdAt).toISOString(),
-            text: content.text?.substring(0, 100) + '...',
-            metadata: content.metadata
+            id: broadcast.id,
+            documentId: broadcast.documentId,
+            messageId: broadcast.messageId,
+            createdAt: new Date(broadcast.createdAt).toISOString(),
+            title: content.title || content.metadata?.frontmatter?.title || 'No title',
+            source: content.source || content.metadata?.frontmatter?.source || 'Unknown'
         });
     });
 }
 
-// Get next pending broadcast message
-function getNextPendingBroadcast(): BroadcastMessage | undefined {
+// Get next pending broadcast
+function getNextPendingBroadcast(): (Broadcast & { content: string }) | undefined {
     return db.prepare(`
-        SELECT m.id, m.content, m.createdAt
-        FROM memories m
-        WHERE json_extract(m.content, '$.metadata.messageType') = 'broadcast'
-        AND json_extract(m.content, '$.metadata.status') = 'pending'
-        ORDER BY m.createdAt ASC
+        SELECT b.*, m.content
+        FROM broadcasts b
+        JOIN memories m ON m.id = b.documentId
+        WHERE b.status = 'pending'
+        ORDER BY b.createdAt ASC
         LIMIT 1
-    `).get() as BroadcastMessage | undefined;
+    `).get() as (Broadcast & { content: string }) | undefined;
 }
 
-// Mark a message as sent
-function markAsSent(id: string, broadcastId: string) {
-    const content = db.prepare('SELECT content FROM memories WHERE id = ?').get(id) as BroadcastMessage;
-    const updatedContent = JSON.parse(content.content);
-    updatedContent.metadata = {
-        ...updatedContent.metadata,
-        status: 'sent',
-        sentAt: Date.now(),
-        broadcastId
-    };
-
+// Mark a broadcast as sent
+function markAsSent(id: string) {
     db.prepare(`
-        UPDATE memories
-        SET content = ?
+        UPDATE broadcasts
+        SET status = 'sent'
         WHERE id = ?
-    `).run(JSON.stringify(updatedContent), id);
+    `).run(id);
 }
 
 // Process one message from the queue
 async function processNextBroadcast(characterName: string) {
-    const message = getNextPendingBroadcast();
-    if (!message) {
+    const broadcast = getNextPendingBroadcast();
+    if (!broadcast) {
         console.log('No pending broadcasts found');
         return false;
     }
 
     try {
-        const content = JSON.parse(message.content);
-        const broadcastId = content.metadata?.broadcastId;
-
+        const content = JSON.parse(broadcast.content);
         console.log('\nProcessing broadcast:', {
-            id: message.id,
-            createdAt: new Date(message.createdAt).toISOString(),
-            text: content.text,
-            metadata: content.metadata
+            id: broadcast.id,
+            documentId: broadcast.documentId,
+            messageId: broadcast.messageId,
+            createdAt: new Date(broadcast.createdAt).toISOString(),
+            title: content.title || content.metadata?.frontmatter?.title || 'No title',
+            source: content.source || content.metadata?.frontmatter?.source || 'Unknown'
         });
+
+        // Get the message content from the agent's memory
+        const message = db.prepare(`
+            SELECT content FROM memories
+            WHERE id = ?
+        `).get(broadcast.messageId) as Memory | undefined;
+
+        if (!message) {
+            console.error('Could not find message content for broadcast');
+            return false;
+        }
+
+        const messageContent = JSON.parse(message.content);
 
         // Send to Telegram
         try {
-            await broadcastToTelegram(content.text, characterName);
+            await broadcastToTelegram(messageContent.text, characterName);
             console.log('Successfully sent broadcast to Telegram');
 
             // Mark as sent only if Telegram send was successful
-            markAsSent(message.id, broadcastId);
+            markAsSent(broadcast.id);
             console.log('Marked broadcast as sent');
         } catch (error) {
             console.error('Error sending to Telegram:', error);
@@ -151,7 +166,5 @@ async function processQueue(characterName: string) {
 }
 
 // Run if called directly
-if (require.main === module) {
-    const characterName = process.argv[2] || 'c3po';
-    processQueue(characterName).catch(console.error);
-}
+const characterName = process.argv[2] || 'c3po';
+processQueue(characterName).catch(console.error);
