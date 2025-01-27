@@ -126,9 +126,27 @@ async function processNextBroadcast(characterName: string) {
 
         const messageContent = JSON.parse(message.content);
 
+        // Get the source document content to check for nsource
+        const sourceDoc = db.prepare(`
+            SELECT content
+            FROM memories
+            WHERE id = ?
+        `).get(broadcast.documentId) as { content: string };
+
+        let messageText = messageContent.text;
+
+        // If source document has nsource, append it to the message
+        if (sourceDoc) {
+            const sourceContent = JSON.parse(sourceDoc.content);
+            const sourceUrl = sourceContent.metadata?.frontmatter?.source;
+            if (sourceUrl) {
+                messageText = `${messageText}\n\nSource: ${sourceUrl}`;
+            }
+        }
+
         // Send to Telegram
         try {
-            await broadcastToTelegram(messageContent.text, characterName);
+            await broadcastToTelegram(messageText, characterName);
             console.log('Successfully sent broadcast to Telegram');
 
             // Mark as sent only if Telegram send was successful
