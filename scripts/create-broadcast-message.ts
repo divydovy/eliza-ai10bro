@@ -5,7 +5,7 @@ import crypto from 'crypto';
 
 console.log('Starting broadcast message creation...');
 
-const dbPath = path.join(process.cwd(), '..', 'agent', 'data', 'db.sqlite');
+const dbPath = path.join(process.cwd(), 'agent', 'data', 'db.sqlite');
 console.log('Database path:', dbPath);
 const db = new Database(dbPath);
 console.log('Successfully connected to database');
@@ -39,6 +39,10 @@ interface DatabaseMemory {
     id: string;
     content: string;
     createdAt: number;
+}
+
+interface BroadcastMessage {
+    id: string;
 }
 
 interface CharacterSettings {
@@ -83,6 +87,24 @@ async function getNextUnbroadcastDocument(): Promise<DatabaseMemory | undefined>
     return nextDocument;
 }
 
+async function saveMessageToMemories(text: string): Promise<string> {
+    console.log('\nSaving message to memories...');
+    const id = crypto.randomUUID();
+    const content = JSON.stringify({
+        text,
+        type: 'broadcast',
+        source: 'agent'
+    });
+
+    db.prepare(`
+        INSERT INTO memories (id, type, content, createdAt)
+        VALUES (?, 'messages', ?, unixepoch() * 1000)
+    `).run(id, content);
+
+    console.log('Successfully saved message to memories');
+    return id;
+}
+
 async function recordBroadcast(documentId: string, messageId: string) {
     console.log('\nRecording broadcast in database...');
     const id = crypto.randomUUID();
@@ -123,7 +145,9 @@ async function sendMessageToAgent(characterName: string, message: any) {
         messages: data.map((msg: any) => ({
             textLength: msg.text?.length,
             type: msg.type,
-            metadata: msg.metadata
+            metadata: msg.metadata,
+            messageId: msg.messageId,
+            id: msg.id
         }))
     });
 
@@ -135,7 +159,7 @@ async function createBroadcastMessage(characterName: string = 'c3po') {
         console.log(`\n=== Starting broadcast creation for character: ${characterName} ===`);
 
         // Load character settings
-        const characterPath = path.join(process.cwd(), '..', 'characters', `${characterName}.character.json`);
+        const characterPath = path.join(process.cwd(), 'characters', `${characterName}.character.json`);
         console.log('Looking for character settings at:', characterPath);
         const characterSettings: CharacterSettings = JSON.parse(fs.readFileSync(characterPath, 'utf-8'));
         console.log('Successfully loaded character settings');
@@ -226,9 +250,23 @@ Content: ${documentContent.text}`;
 
                 if (data && Array.isArray(data) && data.length > 0 && data[0].text) {
                     console.log("\nBroadcast message created successfully");
-                    // Generate a message ID if one isn't provided
-                    const messageId = data[0].id || crypto.randomUUID();
-                    await recordBroadcast(document.id, messageId);
+                    console.log("Message text:", data[0].text);
+
+                    // Find the newly created message in the memories table
+                    const broadcastMessage = db.prepare(`
+                        SELECT id
+                        FROM memories
+                        WHERE type = 'messages'
+                        AND json_extract(content, '$.text') LIKE ?
+                        ORDER BY createdAt DESC
+                        LIMIT 1
+                    `).get(`%${data[0].text}%`) as BroadcastMessage;
+
+                    if (!broadcastMessage) {
+                        throw new Error("Could not find broadcast message in memories table");
+                    }
+
+                    await recordBroadcast(document.id, broadcastMessage.id);
                     return data;
                 } else {
                     console.error("\nERROR: No valid message text found in response");
