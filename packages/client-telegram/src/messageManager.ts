@@ -1147,18 +1147,44 @@ export class MessageManager {
 
                 if (!responseContent || !responseContent.text) return;
 
-                // Execute callback to send messages and log memories
-                const responseMessages = await callback(responseContent);
+                // Check if we should suppress the initial message
+                const action = responseContent.action ? this.runtime.actions.find(
+                    (a) => a.name === responseContent.action
+                ) : null;
+                const shouldSuppressInitialMessage = action?.suppressInitialMessage;
 
-                // Update state after response
-                state = await this.runtime.updateRecentMessageState(state);
+                // Initialize responseMessages
+                let responseMessages: Memory[] = [];
 
-                // Handle any resulting actions
+                // Create response memory
+                const responseMemory: Memory = {
+                    id: stringToUuid(Date.now().toString() + "-" + this.runtime.agentId),
+                    userId: this.runtime.agentId,
+                    agentId: this.runtime.agentId,
+                    roomId: memory.roomId,
+                    content: responseContent,
+                    createdAt: Date.now(),
+                    embedding: getEmbeddingZeroVector(),
+                };
+
+                // Only send initial response if not suppressed
+                if (!shouldSuppressInitialMessage) {
+                    // Execute callback to send messages and log memories
+                    responseMessages = await callback(responseContent);
+                    // Update state after response
+                    state = await this.runtime.updateRecentMessageState(state);
+                }
+
+                // Handle any resulting actions and get their responses
                 await this.runtime.processActions(
                     memory,
-                    responseMessages,
+                    [responseMemory], // Pass the response memory even if we didn't send it
                     state,
-                    callback
+                    async (content) => {
+                        // For suppressed initial messages, this is where we'll actually send the response
+                        const actionResponses = await callback(content);
+                        return actionResponses;
+                    }
                 );
             }
 
