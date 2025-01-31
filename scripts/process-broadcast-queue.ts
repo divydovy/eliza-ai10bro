@@ -1,4 +1,5 @@
 import { broadcastToTelegram } from './broadcast-to-telegram.js';
+import { broadcastToTwitter } from './broadcast-to-twitter.js';
 import Database from 'better-sqlite3';
 import path from 'path';
 
@@ -144,21 +145,33 @@ async function processNextBroadcast(characterName: string) {
             }
         }
 
+        let success = true;
+
         // Send to Telegram
         try {
             await broadcastToTelegram(messageText, characterName);
             console.log('Successfully sent broadcast to Telegram');
-
-            // Mark as sent only if Telegram send was successful
-            markAsSent(broadcast.id);
-            console.log('Marked broadcast as sent');
         } catch (error) {
             console.error('Error sending to Telegram:', error);
-            // Could add retry logic here
-            return false;
+            success = false;
         }
 
-        return true;
+        // Send to Twitter
+        try {
+            await broadcastToTwitter(messageText, characterName);
+            console.log('Successfully sent broadcast to Twitter');
+        } catch (error) {
+            console.error('Error sending to Twitter:', error);
+            success = false;
+        }
+
+        if (success) {
+            // Mark as sent only if at least one broadcast was successful
+            markAsSent(broadcast.id);
+            console.log('Marked broadcast as sent');
+        }
+
+        return success;
     } catch (error) {
         console.error('Error processing broadcast:', error);
         return false;
@@ -170,17 +183,10 @@ async function processQueue(characterName: string) {
     // First show database state
     showDatabaseState();
 
-    const hasMore = await processNextBroadcast(characterName);
-
-    if (hasMore) {
-        // Process next message after a delay
-        const delayMs = 5000;
-        console.log(`\nScheduling next broadcast processing in 5 seconds...`);
-        setTimeout(() => processQueue(characterName), delayMs);
-    } else {
-        console.log('No more broadcasts to process');
-        process.exit(0);
-    }
+    // Process just one message and exit
+    await processNextBroadcast(characterName);
+    console.log('Finished processing one broadcast message');
+    process.exit(0);
 }
 
 // Run if called directly
