@@ -22,17 +22,17 @@ export class ObsidianAutoClient {
     }
 
     private startAllProcesses() {
-        // Start knowledge update process (every 5 minutes)
+        // Start knowledge update process (every 10 minutes)
         this.runKnowledgeUpdate();
         this.knowledgeInterval = setInterval(() => {
             this.runKnowledgeUpdate();
-        }, 5 * 60 * 1000);
+        }, 10 * 60 * 1000);
 
-        // Start broadcast creation process (every 5 minutes)
+        // Start broadcast creation process (every 10 minutes)
         this.runBroadcastCreate();
         this.broadcastInterval = setInterval(() => {
             this.runBroadcastCreate();
-        }, 5 * 60 * 1000);
+        }, 10 * 60 * 1000);
 
         // Start queue processing with random interval
         this.scheduleNextQueueProcess();
