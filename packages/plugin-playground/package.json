@@ -1,0 +1,25 @@
+{
+    "name": "@elizaos/plugin-playground",
+    "version": "0.1.9",
+    "main": "dist/index.js",
+    "module": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "type": "module",
+    "scripts": {
+        "build": "tsup",
+        "dev": "tsup --watch",
+        "clean": "rm -rf dist",
+        "typecheck": "tsc --noEmit",
+        "test": "vitest"
+    },
+    "dependencies": {
+        "@elizaos/core": "workspace:*",
+        "@elizaos/adapter-sqlite": "workspace:*",
+        "better-sqlite3": "^9.4.3"
+    },
+    "devDependencies": {
+        "tsup": "8.0.1",
+        "typescript": "5.3.3",
+        "vitest": "1.2.1"
+    }
+} 
