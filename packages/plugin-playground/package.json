@@ -13,7 +13,9 @@
         "test": "vitest"
     },
     "dependencies": {
-        "@elizaos/core": "workspace:*"
+        "@elizaos/core": "workspace:*",
+        "@elizaos/adapter-sqlite": "workspace:*",
+        "better-sqlite3": "^9.4.3"
     },
     "devDependencies": {
         "tsup": "8.0.1",
