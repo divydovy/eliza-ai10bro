@@ -3,6 +3,7 @@ import path from 'path';
 import Database from 'better-sqlite3';
 import crypto from 'crypto';
 import net from 'net';
+import { encodingForModel } from "js-tiktoken";
 
 console.log('Starting broadcast message creation...');
 
@@ -83,6 +84,16 @@ interface CharacterSettings {
             ANTHROPIC_API_KEY?: string;
         };
     };
+}
+
+function countTokens(text: string): number {
+    try {
+        const encoding = encodingForModel("gpt-4");
+        return encoding.encode(text).length;
+    } catch (error) {
+        // Fallback to rough estimation if tokenizer fails
+        return Math.ceil(text.length / 4);
+    }
 }
 
 async function getNextUnbroadcastDocument(): Promise<DatabaseMemory | undefined> {
@@ -209,8 +220,29 @@ async function createBroadcastMessage(characterName: string = 'c3po') {
 
         const documentContent = JSON.parse(document.content);
 
+        // Log document stats before truncation
+        console.log('\nDocument stats before truncation:', {
+            title: documentContent.metadata?.frontmatter?.title || documentContent.title || 'Untitled',
+            source: documentContent.metadata?.frontmatter?.source || documentContent.source || 'Unknown',
+            originalLength: documentContent.text?.length || 0,
+            hasMetadata: !!documentContent.metadata,
+            hasFrontmatter: !!documentContent.metadata?.frontmatter
+        });
+
+        // Truncate document content if it's too long (limit to ~25k tokens which is roughly 100k characters)
+        const maxContentLength = 100000;
+        const truncatedText = documentContent.text.length > maxContentLength
+            ? documentContent.text.slice(0, maxContentLength) + "... [truncated due to length]"
+            : documentContent.text;
+
+        console.log('Document stats after truncation:', {
+            finalLength: truncatedText.length,
+            wasTruncated: truncatedText.length !== documentContent.text.length,
+            truncatedAmount: documentContent.text.length - truncatedText.length
+        });
+
         // First, get a concise summary from Claude directly
-        console.log('\nGetting document summary from Claude...');
+        console.log('\nPreparing Claude summary request...');
         const apiKey = characterSettings.settings?.secrets?.ANTHROPIC_API_KEY;
         if (!apiKey) {
             throw new Error('No Anthropic API key found in character settings');
@@ -220,7 +252,20 @@ async function createBroadcastMessage(characterName: string = 'c3po') {
 
 Title: ${documentContent.metadata?.frontmatter?.title || documentContent.title || 'Untitled'}
 Source: ${documentContent.metadata?.frontmatter?.source || documentContent.source || 'Unknown'}
-Content: ${documentContent.text}`;
+Content: ${truncatedText}`;
+
+        console.log('Summary request stats:', {
+            promptLength: summaryPrompt.length,
+            titleLength: (documentContent.metadata?.frontmatter?.title || documentContent.title || 'Untitled').length,
+            sourceLength: (documentContent.metadata?.frontmatter?.source || documentContent.source || 'Unknown').length
+        });
+
+        console.log('\nClaude API request parameters:', {
+            model: 'claude-3-sonnet-20240229',
+            maxTokens: 500,
+            promptTokens: countTokens(summaryPrompt),
+            totalEstimatedTokens: countTokens(summaryPrompt) + 500
+        });
 
         const summaryResponse = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
@@ -241,14 +286,32 @@ Content: ${documentContent.text}`;
 
         if (!summaryResponse.ok) {
             const errorText = await summaryResponse.text();
-            throw new Error(`Failed to get summary: ${summaryResponse.status} ${summaryResponse.statusText}\n${errorText}`);
+            let parsedError;
+            try {
+                parsedError = JSON.parse(errorText);
+            } catch {
+                parsedError = { raw: errorText };
+            }
+
+            console.error('\nClaude API Error Details:', {
+                status: summaryResponse.status,
+                statusText: summaryResponse.statusText,
+                headers: Object.fromEntries(summaryResponse.headers.entries()),
+                error: parsedError
+            });
+
+            // Throw a truncated version of the error
+            throw new Error(`Claude API error: ${summaryResponse.status} ${summaryResponse.statusText}`);
         }
 
         const summaryData = await summaryResponse.json();
         const summary = summaryData.content[0].text;
         const truncatedSummary = summary.slice(0, 500) + (summary.length > 500 ? '...' : '');
-        console.log('Summary length:', summary.length, 'characters');
-        console.log('Truncated summary length:', truncatedSummary.length, 'characters');
+        console.log('Summary stats:', {
+            originalLength: summary.length,
+            truncatedLength: truncatedSummary.length,
+            wasTruncated: summary.length > 500
+        });
 
         // Now create the broadcast prompt with the summary
         console.log('\nPreparing broadcast prompt...');
@@ -260,8 +323,17 @@ Content: ${documentContent.text}`;
             `Source: ${documentContent.metadata?.frontmatter?.source || documentContent.source || 'Unknown'}\n` +
             `Content: ${truncatedSummary}`;
 
-        console.log('Full prompt length:', broadcastPrompt.length, 'characters');
-        console.log('Full prompt content:', broadcastPrompt);
+        console.log('Broadcast prompt stats:', {
+            totalLength: broadcastPrompt.length,
+            estimatedTokens: countTokens(broadcastPrompt),
+            components: {
+                requestTag: `[BROADCAST_REQUEST:${document.id}]`.length,
+                prompt: (characterSettings.settings?.broadcastPrompt || defaultPrompt).length,
+                title: (documentContent.metadata?.frontmatter?.title || documentContent.title || 'Untitled').length,
+                source: (documentContent.metadata?.frontmatter?.source || documentContent.source || 'Unknown').length,
+                summary: truncatedSummary.length
+            }
+        });
 
         // Send system message to the agent's API with retries
         console.log("\nSending request to agent API...");

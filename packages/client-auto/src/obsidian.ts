@@ -66,8 +66,12 @@ export class ObsidianAutoClient {
         elizaLogger.log("Running Obsidian knowledge update...");
         this.isKnowledgeUpdateRunning = true;
 
+        // Extract port from runtime's serverUrl
+        const serverUrl = new URL(this.runtime.serverUrl);
+        const port = serverUrl.port;
+
         return new Promise((resolve) => {
-            exec(`cd ${projectRoot} && pnpm tsx ${scriptPath} ${characterPath}`, (error, stdout, stderr) => {
+            exec(`cd ${projectRoot} && SERVER_PORT=${port} pnpm tsx ${scriptPath} ${characterPath}`, (error, stdout, stderr) => {
                 this.isKnowledgeUpdateRunning = false;
 
                 if (error) {
