@@ -18,7 +18,7 @@ export default defineConfig({
             exclude: ["onnxruntime-node", "@anush008/tokenizers"],
         },
         rollupOptions: {
-            external: ["onnxruntime-node", "@anush008/tokenizers"],
+            external: ["onnxruntime-node", "@anush008/tokenizers", "turbo-stream"],
         },
     },
     resolve: {
