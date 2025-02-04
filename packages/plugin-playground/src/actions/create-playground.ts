@@ -3,8 +3,57 @@ import { generateBlueprintAction } from "./generate-blueprint";
 import axios from "axios";
 
 const extractBlueprintFromMessage = (text: string): string | null => {
-    const blueprintMatch = text.match(/BLUEPRINT_JSON\s*({[\s\S]*?})\s*BLUEPRINT_JSON/);
-    return blueprintMatch ? blueprintMatch[1] : null;
+    try {
+        elizaLogger.info('Attempting to extract blueprint from message:', { messageLength: text.length });
+
+        // Try to find a JSON object in the text
+        const matches = text.match(/(\{[\s\S]*\})/g);
+        elizaLogger.info('JSON-like matches found:', {
+            matchCount: matches?.length || 0
+        });
+
+        if (!matches) return null;
+
+        // Try each match to find valid JSON with required blueprint fields
+        for (const match of matches) {
+            try {
+                elizaLogger.info('Attempting to parse potential JSON match:', {
+                    matchLength: match.length,
+                    preview: match.substring(0, 100) + '...'
+                });
+
+                const parsed = JSON.parse(match);
+                elizaLogger.info('Successfully parsed JSON, checking blueprint structure:', {
+                    hasSchema: Boolean(parsed.$schema),
+                    schemaValue: parsed.$schema,
+                    hasMeta: Boolean(parsed.meta),
+                    hasSteps: Boolean(parsed.steps),
+                    stepsIsArray: Array.isArray(parsed.steps)
+                });
+
+                // Validate it has the required blueprint structure
+                if (
+                    parsed.$schema?.includes('playground.wordpress.net') &&
+                    parsed.meta &&
+                    parsed.steps &&
+                    Array.isArray(parsed.steps)
+                ) {
+                    elizaLogger.info('Valid blueprint found!');
+                    return match;
+                }
+            } catch (error) {
+                elizaLogger.info('Failed to parse JSON match:', {
+                    error: error instanceof Error ? error.message : 'Unknown error'
+                });
+                continue;
+            }
+        }
+        elizaLogger.info('No valid blueprint found in any JSON matches');
+        return null;
+    } catch (error) {
+        elizaLogger.error('Error in extractBlueprintFromMessage:', error);
+        return null;
+    }
 };
 
 const uploadToTransferSh = async (blueprint: string): Promise<string> => {
@@ -51,24 +100,43 @@ const createPlaygroundAction: Action = {
         // Get recent messages from the conversation
         const recentMessages = await runtime.messageManager.getMemories({
             roomId: message.roomId,
-            count: 3,
+            count: 10,
             unique: false
+        });
+
+        elizaLogger.info('Searching through recent messages:', {
+            messageCount: recentMessages.length,
+            roomId: message.roomId
         });
 
         // Look for blueprint in recent messages
         let blueprint: string | null = null;
         for (const msg of recentMessages.reverse()) {
             if (msg.content.text) {
+                elizaLogger.info('Checking message for blueprint:', {
+                    messageId: msg.id,
+                    messageLength: msg.content.text.length,
+                    preview: msg.content.text.substring(0, 100) + '...'
+                });
+
                 blueprint = extractBlueprintFromMessage(msg.content.text);
-                if (blueprint) break;
+                if (blueprint) {
+                    elizaLogger.info('Blueprint found in message:', {
+                        messageId: msg.id,
+                        blueprintLength: blueprint.length,
+                        blueprintPreview: blueprint.substring(0, 100) + '...'
+                    });
+                    break;
+                }
             }
         }
 
         // If no blueprint found, suggest generating one
         if (!blueprint) {
             return {
-                response: "I couldn't find a recent blueprint. Would you like me to generate one for you first? Just say 'yes' and I'll help you create a blueprint before setting up the playground.",
-                nextAction: generateBlueprintAction.name
+                response: "I couldn't find a recent blueprint. Would you like me to help you generate one first? Just let me know what kind of store you'd like to create.",
+                // Let the agent handle this naturally through examples
+                // nextAction: generateBlueprintAction.name
             };
         }
 
