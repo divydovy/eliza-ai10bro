@@ -89,6 +89,7 @@ const createPlaygroundAction: Action = {
         ]
     ],
     validate: async (runtime: IAgentRuntime, message: Memory) => {
+        elizaLogger.info("Validating CREATE_PLAYGROUND request");
         const text = message.content.text?.toLowerCase() || '';
         return text.includes("playground") ||
                text.includes("launch") ||

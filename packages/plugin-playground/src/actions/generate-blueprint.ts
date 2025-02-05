@@ -1,79 +1,52 @@
-import { Action, IAgentRuntime, Memory, elizaLogger } from "@elizaos/core";
+import { Action, IAgentRuntime, Memory, elizaLogger, State, HandlerCallback } from "@elizaos/core";
+
+// 1. Intercept the message using the action
+// 2. Suppress the default message
+// 3. Use our custom prompt (i.e. use this blueprint template to generate a WordPress Blueprint JSON that MUST follow the playground.wordpress.net schema format with $schema, meta, and steps fields. Used to create a working WooCommerce store configuration.) to the LLM along with recent messages (i.e. just tweak default agent behaviour by injecting this prompt).
+// 4. Receive the response from the LLM and send it (including the blueprint JSON) back to the chat
 
 const generateBlueprintAction: Action = {
     name: "GENERATE_BLUEPRINT",
-    similes: ["CREATE_BLUEPRINT", "MAKE_BLUEPRINT", "GENERATE_PLAYGROUND_BLUEPRINT"],
-    description: "Generate a WordPress Blueprint JSON that MUST follow the playground.wordpress.net schema format with $schema, meta, and steps fields. Used to create a working WooCommerce store configuration.",
-    suppressInitialMessage: true,  // Suppress default, let LLM handle response
+    similes: ["GENERATE_BLUEPRINT", "CREATE_BLUEPRINT", "MAKE_BLUEPRINT"],
+    description: "Generate a WordPress Blueprint JSON for configuring a WooCommerce store",
     examples: [
         [
             {
                 user: "customer",
                 content: {
-                    text: "Can you generate a blueprint for my store now?"
-                }
-            },
-            {
-                user: "WooGuide",
-                content: {
-                    text: "I've created a blueprint for your store! It includes essential WooCommerce setup and configurations.",
-                    blueprint: `{
-    "$schema": "https://playground.wordpress.net/blueprint-schema.json",
-    "meta": {
-        "title": "Example Store",
-        "description": "A WooCommerce store selling products",
-        "author": "WooGuide",
-        "categories": ["ecommerce"]
-    },
-    "landingPage": "/shop",
-    "preferredVersions": {
-        "php": "8.2",
-        "wp": "6.4"
-    },
-    "features": {
-        "networking": true
-    },
-    "steps": [
-        { "step": "resetData" },
-        {
-            "step": "setSiteOptions",
-            "options": {
-                "blogname": "Example Store",
-                "blogdescription": "Your store tagline",
-                "woocommerce_currency": "EUR",
-                "timezone_string": "Europe/Paris",
-                "WPLANG": "fr_FR"
-            }
-        },
-        {
-            "step": "installPlugin",
-            "pluginZipFile": {
-                "resource": "wordpress.org/plugins",
-                "slug": "woocommerce"
-            },
-            "options": {
-                "activate": true
-            }
-        }
-    ]
-}`,
-                    action: "GENERATE_BLUEPRINT"
+                    text: "Can you generate a blueprint for my store?"
                 }
             }
         ]
     ],
+    suppressInitialMessage: true,
     validate: async (runtime: IAgentRuntime, message: Memory) => {
+        elizaLogger.info("Validating GENERATE_BLUEPRINT request");
         const text = message.content.text?.toLowerCase() || '';
-        return text === "generate_blueprint" ||
-               text === "generate blueprint" ||
-               text.includes("generate blueprint");
+        const isGenerateBlueprint = text === "generate_blueprint" ||
+                                  text === "generate blueprint" ||
+                                  text === "GENERATE_BLUEPRINT";
+        if (isGenerateBlueprint) {
+            message.content = {
+                ...message.content,
+                action: "GENERATE_BLUEPRINT",
+                normalized: "GENERATE_BLUEPRINT",
+                shouldHandle: true
+            };
+            elizaLogger.info("Claiming GENERATE_BLUEPRINT command");
+            return true;
+        }
+        elizaLogger.info("Failed to validate GENERATE_BLUEPRINT command");
+        return false;
     },
-    handler: async (runtime: IAgentRuntime, message: Memory) => {
-        elizaLogger.info("Starting GENERATE_BLUEPRINT handler");
-        elizaLogger.debug("Message content:", message.content);
-
-        // Return empty response to allow LLM to handle it
-        return { response: {} };
+    handler: async (runtime: IAgentRuntime, message: Memory, state?: State, options?: { [key: string]: unknown }, callback?: HandlerCallback): Promise<boolean> => {
+        elizaLogger.info("Handling GENERATE_BLUEPRINT request");
+        if (callback) {
+            callback({
+                text: "🎯 Test message from GENERATE_BLUEPRINT handler"
+            });
+        }
+        return true;
     }
 };
 
