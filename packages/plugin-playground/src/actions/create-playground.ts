@@ -3,6 +3,7 @@ import { generateBlueprintAction } from "./generate-blueprint";
 import axios from "axios";
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
+import { blueprintSchema } from "../schema/blueprint";
 
 // Initialize AJV with standard options
 const ajv = new Ajv({
@@ -15,75 +16,6 @@ const ajv = new Ajv({
 });
 
 addFormats(ajv);
-
-// Define the blueprint schema
-const blueprintSchema = {
-    type: "object",
-    required: ["$schema", "meta", "landingPage", "preferredVersions", "features", "steps"],
-    properties: {
-        $schema: {
-            type: "string",
-            const: "https://playground.wordpress.net/blueprint-schema.json"
-        },
-        meta: {
-            type: "object",
-            required: ["title", "description", "author", "categories"],
-            properties: {
-                title: { type: "string" },
-                description: { type: "string" },
-                author: { type: "string" },
-                categories: {
-                    type: ["array", "string"],
-                    items: { type: "string" },
-                    default: ["ecommerce"]
-                }
-            }
-        },
-        landingPage: { type: "string", default: "/shop" },
-        preferredVersions: {
-            type: "object",
-            required: ["php", "wp"],
-            properties: {
-                php: { type: "string", default: "8.2" },
-                wp: { type: "string", default: "6.4" }
-            }
-        },
-        features: {
-            type: "object",
-            required: ["networking"],
-            properties: {
-                networking: { type: "boolean", default: true }
-            }
-        },
-        steps: {
-            type: "array",
-            items: {
-                type: "object",
-                required: ["step"],
-                properties: {
-                    step: { type: "string" },
-                    options: {
-                        type: "object",
-                        properties: {
-                            woocommerce_specific_allowed_countries: {
-                                type: "array",
-                                items: { type: "string" }
-                            }
-                        },
-                        additionalProperties: true
-                    },
-                    pluginZipFile: {
-                        type: "object",
-                        properties: {
-                            resource: { type: "string" },
-                            slug: { type: "string" }
-                        }
-                    }
-                }
-            }
-        }
-    }
-};
 
 // Compile the schema
 const validateBlueprint = ajv.compile(blueprintSchema);
@@ -262,7 +194,9 @@ const createPlaygroundAction: Action = {
         const text = message.content.text?.toLowerCase() || '';
         return text.includes("playground") ||
                text.includes("launch") ||
-               text.includes("preview");
+               text.includes("preview") ||
+               text === "let's play" ||
+               text === "lets play";
     },
     handler: async (runtime: IAgentRuntime, message: Memory, state?: State, options?: { [key: string]: unknown }, callback?: HandlerCallback): Promise<boolean> => {
         elizaLogger.info("Handling CREATE_PLAYGROUND request");
@@ -394,7 +328,82 @@ const testBlueprintExtraction = (rawEntry: string) => {
 };
 
 // Run test with sample data
-const sampleEntry = `{"text":"{\\\"$schema\\\":\\\"https://playground.wordpress.net/blueprint-schema.json\\\",\\\"meta\\\":{\\\"title\\\":\\\"Portuguese Marmalade Shop\\\",\\\"description\\\":\\\"WooCommerce store for selling homemade marmalades in Portugal and Spain\\\",\\\"author\\\":\\\"WooGuide\\\",\\\"categories\\\":\\\"ecommerce\\\",\\\"food\\\"},\\\"landingPage\\\":\\\"/shop\\\",\\\"preferredVersions\\\":{\\\"php\\\":\\\"8.2\\\",\\\"wp\\\":\\\"6.4\\\"},\\\"features\\\":{\\\"networking\\\":true},\\\"steps\\\":{\\\"step\\\":\\\"resetData\\\"},{\\\"step\\\":\\\"installPlugin\\\",\\\"pluginZipFile\\\":{\\\"resource\\\":\\\"wordpress.org/plugins\\\",\\\"slug\\\":\\\"woocommerce\\\"},\\\"options\\\":{\\\"activate\\\":true}},{\\\"step\\\":\\\"installPlugin\\\",\\\"pluginZipFile\\\":{\\\"resource\\\":\\\"wordpress.org/plugins\\\",\\\"slug\\\":\\\"woocommerce-multilingual\\\"},\\\"options\\\":{\\\"activate\\\":true}},{\\\"step\\\":\\\"installPlugin\\\",\\\"pluginZipFile\\\":{\\\"resource\\\":\\\"wordpress.org/plugins\\\",\\\"slug\\\":\\\"polylang\\\"},\\\"options\\\":{\\\"activate\\\":true}},{\\\"step\\\":\\\"setSiteOptions\\\",\\\"options\\\":{\\\"woocommerce\\\\_currency\\\":\\\"EUR\\\",\\\"woocommerce\\\\_weight\\\\_unit\\\":\\\"kg\\\",\\\"woocommerce\\\\_dimension\\\\_unit\\\":\\\"cm\\\",\\\"woocommerce\\\\_default\\\\_country\\\":\\\"PT\\\",\\\"woocommerce\\\\_allowed\\\\_countries\\\":\\\"specific\\\",\\\"woocommerce\\\\_specific\\\\_allowed\\\\_countries\\\":[\\\"PT\\\",\\\"ES\\\"}}},{\\\"step\\\":\\\"setSiteLocale\\\",\\\"locale\\\":\\\"pt_PT\\\"},{\\\"step\\\":\\\"createTerm\\\",\\\"taxonomy\\\":\\\"product_cat\\\",\\\"term\\\":\\\"Marmalades\\\",\\\"description\\\":\\\"Homemade marmalades\\\"},{\\\"step\\\":\\\"createTerm\\\",\\\"taxonomy\\\":\\\"product_cat\\\",\\\"term\\\":\\\"Fruit Preserves\\\",\\\"description\\\":\\\"Traditional fruit preserves\\\"},{\\\"step\\\":\\\"setTheme\\\",\\\"theme\\\":\\\"storefront\\\"},{\\\"step\\\":\\\"setSiteTitle\\\",\\\"title\\\":\\\"Artisanal Portuguese Marmalades\\\"},{\\\"step\\\":\\\"setSiteDescription\\\",\\\"description\\\":\\\"Handcrafted marmalades shipped across Portugal and Spain\\\"}]}","action":"GENERATE_BLUEPRINT","inReplyTo":"6a3db51d-407d-0953-adcc-2f04b22f1148"}`;
+const sampleEntry = `{
+  "text": "I've generated a blueprint for your store with all the essential configurations!",
+  "action": "GENERATE_BLUEPRINT",
+  "normalized": "GENERATE_BLUEPRINT",
+  "shouldHandle": true,
+  "blueprint": {
+    "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+    "meta": {
+      "title": "Portuguese Marmalade Shop",
+      "description": "WooCommerce store for selling homemade marmalades in Portugal and Spain",
+      "author": "WooGuide",
+      "categories": ["ecommerce", "food"]
+    },
+    "landingPage": "/shop",
+    "preferredVersions": {
+      "php": "8.2",
+      "wp": "6.4"
+    },
+    "features": {
+      "networking": true
+    },
+    "steps": [
+      {
+        "step": "resetData"
+      },
+      {
+        "step": "installPlugin",
+        "pluginData": {
+          "resource": "wordpress.org/plugins",
+          "slug": "woocommerce"
+        }
+      },
+      {
+        "step": "activatePlugin",
+        "pluginPath": "woocommerce/woocommerce.php"
+      },
+      {
+        "step": "installPlugin",
+        "pluginData": {
+          "resource": "wordpress.org/plugins",
+          "slug": "polylang"
+        }
+      },
+      {
+        "step": "activatePlugin",
+        "pluginPath": "polylang/polylang.php"
+      },
+      {
+        "step": "installPlugin",
+        "pluginData": {
+          "resource": "wordpress.org/plugins",
+          "slug": "woocommerce-eu-vat-assistant"
+        }
+      },
+      {
+        "step": "activatePlugin",
+        "pluginPath": "woocommerce-eu-vat-assistant/woocommerce-eu-vat-assistant.php"
+      },
+      {
+        "step": "setSiteOptions",
+        "options": {
+          "woocommerce_currency": "EUR",
+          "woocommerce_weight_unit": "kg",
+          "woocommerce_dimension_unit": "cm",
+          "woocommerce_default_country": "PT",
+          "woocommerce_allowed_countries": "specific",
+          "woocommerce_specific_allowed_countries": ["PT", "ES"]
+        }
+      },
+      {
+        "step": "setSiteLocale",
+        "locale": "pt_PT"
+      }
+    ]
+  }
+}`;
 
 testBlueprintExtraction(sampleEntry);
 

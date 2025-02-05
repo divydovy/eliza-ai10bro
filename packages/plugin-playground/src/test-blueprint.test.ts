@@ -5,15 +5,92 @@ import { BlueprintData } from "./actions/generate-blueprint";
 describe('Blueprint Extraction', () => {
   it('should extract valid JSON from blueprint field', () => {
     // New format with blueprint field
-    const rawEntry = `{"text":"I've generated a blueprint for your store with all the essential configurations!\\n\\n{\\n  \\"$schema\\": \\"https://playground.wordpress.net/blueprint-schema.json\\",\\n  \\"meta\\": {\\n    \\"title\\": \\"Artisanal Marmalade Store\\",\\n    \\"description\\": \\"Portuguese Handmade Marmalades Shop for Portugal & Spain\\",\\n    \\"author\\": \\"WooGuide\\",\\n    \\"categories\\": \\"ecommerce, food, multilingual\\"\\n  },\\n  \\"landingPage\\": \\"/shop\\",\\n  \\"preferredVersions\\": {\\n    \\"php\\": \\"8.2\\",\\n    \\"wp\\": \\"6.4\\"\\n  },\\n  \\"features\\": {\\n    \\"networking\\": true\\n  },\\n  \\"steps\\": [\\n    {\\n      \\"step\\": \\"resetData\\",\\n      \\"options\\": {}\\n    },\\n    {\\n      \\"step\\": \\"setSiteOptions\\",\\n      \\"options\\": {\\n        \\"blogname\\": \\"Artisanal Marmalade Store\\",\\n        \\"blogdescription\\": \\"Handcrafted Portuguese Marmalades\\",\\n        \\"woocommerce_currency\\": \\"EUR\\",\\n        \\"woocommerce_default_country\\": \\"PT\\",\\n        \\"woocommerce_weight_unit\\": \\"kg\\",\\n        \\"woocommerce_dimension_unit\\": \\"cm\\",\\n        \\"woocommerce_allowed_countries\\": \\"specific\\",\\n        \\"woocommerce_specific_allowed_countries\\": [\\n          \\"PT\\",\\n          \\"ES\\"\\n        ],\\n        \\"woocommerce_enable_reviews\\": true,\\n        \\"woocommerce_tax_classes\\": \\"Reduced Rate\\\\nZero Rate\\",\\n        \\"woocommerce_prices_include_tax\\": \\"yes\\"\\n      }\\n    },\\n    {\\n      \\"step\\": \\"installPlugin\\",\\n      \\"pluginZipFile\\": {\\n        \\"resource\\": \\"wordpress.org/plugins\\",\\n        \\"slug\\": \\"woocommerce\\"\\n      },\\n      \\"options\\": {\\n        \\"activate\\": true\\n      }\\n    },\\n    {\\n      \\"step\\": \\"installPlugin\\",\\n      \\"pluginZipFile\\": {\\n        \\"resource\\": \\"wordpress.org/plugins\\",\\n        \\"slug\\": \\"polylang\\"\\n      },\\n      \\"options\\": {\\n        \\"activate\\": true\\n      }\\n    },\\n    {\\n      \\"step\\": \\"installPlugin\\",\\n      \\"pluginZipFile\\": {\\n        \\"resource\\": \\"wordpress.org/plugins\\",\\n        \\"slug\\": \\"woocommerce-product-addons\\"\\n      },\\n      \\"options\\": {\\n        \\"activate\\": true\\n      }\\n    }\\n  ]\\n}\\n\\n\\nWould you like me to:\\n\\n1. Explain any part of the setup\\n2. Create a playground to test it out\\n3. Help you with the next steps like adding products","action":"GENERATE_BLUEPRINT","normalized":"GENERATE_BLUEPRINT","shouldHandle":true,"blueprint":"{\\"$schema\\":\\"https://playground.wordpress.net/blueprint-schema.json\\",\\"meta\\":{\\"title\\":\\"Artisanal Marmalade Store\\",\\"description\\":\\"Portuguese Handmade Marmalades Shop for Portugal & Spain\\",\\"author\\":\\"WooGuide\\",\\"categories\\":\\"ecommerce, food, multilingual\\"},\\"landingPage\\":\\"/shop\\",\\"preferredVersions\\":{\\"php\\":\\"8.2\\",\\"wp\\":\\"6.4\\"},\\"features\\":{\\"networking\\":true},\\"steps\\":[{\\"step\\":\\"resetData\\",\\"options\\":{}},{\\"step\\":\\"setSiteOptions\\",\\"options\\":{\\"blogname\\":\\"Artisanal Marmalade Store\\",\\"blogdescription\\":\\"Handcrafted Portuguese Marmalades\\",\\"woocommerce_currency\\":\\"EUR\\",\\"woocommerce_default_country\\":\\"PT\\",\\"woocommerce_weight_unit\\":\\"kg\\",\\"woocommerce_dimension_unit\\":\\"cm\\",\\"woocommerce_allowed_countries\\":\\"specific\\",\\"woocommerce_specific_allowed_countries\\":[\\"PT\\",\\"ES\\"],\\"woocommerce_enable_reviews\\":true,\\"woocommerce_tax_classes\\":\\"Reduced Rate\\\\nZero Rate\\",\\"woocommerce_prices_include_tax\\":\\"yes\\"}},{\\"step\\":\\"installPlugin\\",\\"pluginZipFile\\":{\\"resource\\":\\"wordpress.org/plugins\\",\\"slug\\":\\"woocommerce\\"},\\"options\\":{\\"activate\\":true}},{\\"step\\":\\"installPlugin\\",\\"pluginZipFile\\":{\\"resource\\":\\"wordpress.org/plugins\\",\\"slug\\":\\"polylang\\"},\\"options\\":{\\"activate\\":true}},{\\"step\\":\\"installPlugin\\",\\"pluginZipFile\\":{\\"resource\\":\\"wordpress.org/plugins\\",\\"slug\\":\\"woocommerce-product-addons\\"},\\"options\\":{\\"activate\\":true}}]}","inReplyTo":"5d83daca-3088-02a9-9d19-3dbeff584fa9"}`;
+    const rawEntry = `{
+      "text": "I've generated a blueprint for your store with all the essential configurations!",
+      "action": "GENERATE_BLUEPRINT",
+      "normalized": "GENERATE_BLUEPRINT",
+      "shouldHandle": true,
+      "blueprint": {
+        "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+        "meta": {
+          "title": "Artisanal Marmalade Store",
+          "description": "Portuguese Handmade Marmalades Shop for Portugal & Spain",
+          "author": "WooGuide",
+          "categories": "ecommerce, food, multilingual"
+        },
+        "landingPage": "/shop",
+        "preferredVersions": {
+          "php": "8.2",
+          "wp": "6.4"
+        },
+        "features": {
+          "networking": true
+        },
+        "steps": [
+          {
+            "step": "resetData",
+            "options": {}
+          },
+          {
+            "step": "setSiteOptions",
+            "options": {
+              "blogname": "Artisanal Marmalade Store",
+              "blogdescription": "Handcrafted Portuguese Marmalades",
+              "woocommerce_currency": "EUR",
+              "woocommerce_default_country": "PT",
+              "woocommerce_weight_unit": "kg",
+              "woocommerce_dimension_unit": "cm",
+              "woocommerce_allowed_countries": "specific",
+              "woocommerce_specific_allowed_countries": ["PT", "ES"],
+              "woocommerce_enable_reviews": true,
+              "woocommerce_tax_classes": "Reduced Rate\\nZero Rate",
+              "woocommerce_prices_include_tax": "yes"
+            }
+          },
+          {
+            "step": "installPlugin",
+            "pluginZipFile": {
+              "resource": "wordpress.org/plugins",
+              "slug": "woocommerce"
+            },
+            "options": {
+              "activate": true
+            }
+          },
+          {
+            "step": "installPlugin",
+            "pluginZipFile": {
+              "resource": "wordpress.org/plugins",
+              "slug": "polylang"
+            },
+            "options": {
+              "activate": true
+            }
+          },
+          {
+            "step": "installPlugin",
+            "pluginZipFile": {
+              "resource": "wordpress.org/plugins",
+              "slug": "woocommerce-product-addons"
+            },
+            "options": {
+              "activate": true
+            }
+          }
+        ]
+      }
+    }`;
 
     const result = testBlueprintExtraction(rawEntry) as BlueprintData | null;
     expect(result).not.toBeNull();
     if (result) {
-      // Just verify we have a valid blueprint with the required fields
+      // Verify we have a valid blueprint with the required fields
       expect(result.$schema).toBe("https://playground.wordpress.net/blueprint-schema.json");
       expect(result.meta).toBeDefined();
       expect(Array.isArray(result.steps)).toBe(true);
+      expect(result.steps.length).toBeGreaterThan(0);
+      // Verify first step is properly formatted
+      expect(result.steps[0]).toHaveProperty('step');
     }
   });
 });

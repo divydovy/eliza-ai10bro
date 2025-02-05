@@ -1,5 +1,6 @@
 import { Action, IAgentRuntime, Memory, elizaLogger, State, HandlerCallback, composeContext, generateText, ModelClass } from "@elizaos/core";
 import Ajv from "ajv";
+import { blueprintSchema, BlueprintData } from "../schema/blueprint";
 
 // Initialize AJV with enhanced features
 const ajv = new Ajv({
@@ -11,75 +12,6 @@ const ajv = new Ajv({
     verbose: true             // Include detailed error info
 });
 
-// Define the blueprint schema
-const blueprintSchema = {
-    type: "object",
-    required: ["$schema", "meta", "landingPage", "preferredVersions", "features", "steps"],
-    properties: {
-        $schema: {
-            type: "string",
-            const: "https://playground.wordpress.net/blueprint-schema.json"
-        },
-        meta: {
-            type: "object",
-            required: ["title", "description", "author", "categories"],
-            properties: {
-                title: { type: "string" },
-                description: { type: "string" },
-                author: { type: "string" },
-                categories: {
-                    type: ["array", "string"],
-                    items: { type: "string" },
-                    default: ["ecommerce"]
-                }
-            }
-        },
-        landingPage: { type: "string", default: "/shop" },
-        preferredVersions: {
-            type: "object",
-            required: ["php", "wp"],
-            properties: {
-                php: { type: "string", default: "8.2" },
-                wp: { type: "string", default: "6.4" }
-            }
-        },
-        features: {
-            type: "object",
-            required: ["networking"],
-            properties: {
-                networking: { type: "boolean", default: true }
-            }
-        },
-        steps: {
-            type: "array",
-            items: {
-                type: "object",
-                required: ["step"],
-                properties: {
-                    step: { type: "string" },
-                    options: {
-                        type: "object",
-                        properties: {
-                            woocommerce_specific_allowed_countries: {
-                                type: "array",
-                                items: { type: "string" }
-                            }
-                        },
-                        additionalProperties: true
-                    },
-                    pluginZipFile: {
-                        type: "object",
-                        properties: {
-                            resource: { type: "string" },
-                            slug: { type: "string" }
-                        }
-                    }
-                }
-            }
-        }
-    }
-};
-
 // Compile the schema
 const validateBlueprint = ajv.compile(blueprintSchema);
 
@@ -90,20 +22,81 @@ Generate a WordPress Blueprint JSON that follows the playground.wordpress.net sc
 
 CRITICAL FORMAT RULES - YOUR OUTPUT MUST FOLLOW THESE EXACTLY:
 
-1. Steps MUST be in an array with square brackets:
-   "steps": [
-     {"step": "resetData"},
-     {"step": "setSiteOptions"},
-     {"step": "installPlugin"}
-   ]
+1. ONLY these step types are allowed:
+   - activatePlugin (requires pluginPath)
+   - activateTheme
+   - cp
+   - defineSiteUrl
+   - defineWpConfigConsts
+   - enableMultisite
+   - importThemeStarterContent
+   - importWordPressFiles
+   - importWxr
+   - installPlugin (requires pluginData)
+   - installTheme
+   - login
+   - mkdir
+   - mv
+   - request
+   - resetData
+   - rm
+   - rmdir
+   - runPHP
+   - runPHPWithOptions
+   - runSql
+   - runWpInstallationWizard
+   - setSiteLanguage
+   - setSiteOptions
+   - unzip
+   - updateUserMeta
+   - wp-cli
+   - writeFile
+   - writeFiles
 
-2. Categories MUST be in ONE of these formats:
-   "categories": "ecommerce, food, multilingual"
-   OR
+2. Required properties for specific steps:
+   For installPlugin steps:
+   {
+     "step": "installPlugin",
+     "pluginData": {
+       "resource": "wordpress.org/plugins",
+       "slug": "plugin-name"
+     }
+   }
+
+   For activatePlugin steps:
+   {
+     "step": "activatePlugin",
+     "pluginPath": "plugin-name/plugin-name.php"
+   }
+
+   For setSiteLanguage steps:
+   {
+     "step": "setSiteLanguage",
+     "language": "en_US"  // MUST use 'language', NOT 'locale'
+   }
+
+3. Categories MUST be an array:
    "categories": ["ecommerce", "food", "multilingual"]
 
-3. Country arrays must be properly formatted:
+4. Country arrays must be properly formatted:
    "woocommerce_specific_allowed_countries": ["PT", "ES"]
+
+5. Options object can ONLY contain these properties:
+   - slug (string)
+   - blogname (string)
+   - blogdescription (string)
+   - woocommerce_currency (string)
+   - woocommerce_default_country (string)
+   - woocommerce_weight_unit (string)
+   - woocommerce_dimension_unit (string)
+   - woocommerce_allowed_countries (string)
+   - woocommerce_specific_allowed_countries (array of strings)
+   - woocommerce_enable_reviews (boolean)
+   - woocommerce_tax_display_shop (string)
+   - woocommerce_tax_display_cart (string)
+   - woocommerce_prices_include_tax (string)
+   - timezone_string (string)
+   - WPLANG (string)
 
 Example blueprint (COPY THIS FORMAT EXACTLY):
 {
@@ -112,7 +105,7 @@ Example blueprint (COPY THIS FORMAT EXACTLY):
     "title": "Store Name",
     "description": "Store Description",
     "author": "WooGuide",
-    "categories": "ecommerce, food, multilingual"
+    "categories": ["ecommerce"]
   },
   "landingPage": "/shop",
   "preferredVersions": {
@@ -124,36 +117,42 @@ Example blueprint (COPY THIS FORMAT EXACTLY):
   },
   "steps": [
     {
-      "step": "resetData",
-      "options": {}
+      "step": "resetData"
+    },
+    {
+      "step": "installPlugin",
+      "pluginData": {
+        "resource": "wordpress.org/plugins",
+        "slug": "woocommerce"
+      }
+    },
+    {
+      "step": "activatePlugin",
+      "pluginPath": "woocommerce/woocommerce.php"
     },
     {
       "step": "setSiteOptions",
       "options": {
         "blogname": "Store Name",
         "blogdescription": "Store Description",
-        "woocommerce_currency": "EUR",
-        "woocommerce_default_country": "PT",
-        "woocommerce_weight_unit": "kg",
-        "woocommerce_dimension_unit": "cm",
+        "woocommerce_currency": "USD",
+        "woocommerce_default_country": "US",
         "woocommerce_allowed_countries": "specific",
-        "woocommerce_specific_allowed_countries": ["PT", "ES"]
+        "woocommerce_specific_allowed_countries": ["US"],
+        "woocommerce_enable_reviews": true,
+        "woocommerce_tax_display_shop": "incl",
+        "woocommerce_tax_display_cart": "incl",
+        "woocommerce_prices_include_tax": "yes"
       }
     },
     {
-      "step": "installPlugin",
-      "pluginZipFile": {
-        "resource": "wordpress.org/plugins",
-        "slug": "woocommerce"
-      },
-      "options": {
-        "activate": true
-      }
+      "step": "setSiteLanguage",
+      "language": "en_US"
     }
   ]
 }
 
-IMPORTANT: Your response must be ONLY the JSON blueprint with NO additional text or formatting. Follow the example format EXACTLY, especially for steps array and categories.`;
+IMPORTANT: Your response must be ONLY the JSON blueprint with NO additional text or formatting. Follow the example format EXACTLY. DO NOT add any custom steps or properties that are not shown in the example above.`;
 
 const generateBlueprintAction: Action = {
     name: "GENERATE_BLUEPRINT",
@@ -259,6 +258,19 @@ const generateBlueprintAction: Action = {
                             });
                         }
                         return true;
+                    } else {
+                        // Log validation errors with more detail
+                        const errors = validateBlueprint.errors?.map(e => ({
+                            path: e.instancePath,
+                            message: e.message,
+                            allowedValues: e.params.allowedValues,
+                            invalidValue: e.data
+                        }));
+                        elizaLogger.error('Blueprint validation failed:', {
+                            errors,
+                            steps: parsed.steps.map((s, i) => `Step ${i}: ${s.step}`),
+                            blueprint: JSON.stringify(parsed, null, 2)
+                        });
                     }
                 } catch (error) {
                     elizaLogger.info('Failed to parse/validate JSON:', {
@@ -289,33 +301,8 @@ export interface BlueprintContext {
   sessionId: string;
 }
 
-export interface BlueprintData {
-  $schema: string;
-  meta: {
-    title: string;
-    description: string;
-    author: string;
-    categories: string | string[];
-  };
-  landingPage: string;
-  preferredVersions: {
-    php: string;
-    wp: string;
-  };
-  features: {
-    networking: boolean;
-  };
-  steps: Array<{
-    step: string;
-    options?: {
-      [key: string]: any;
-    };
-    pluginZipFile?: {
-      resource: string;
-      slug: string;
-    };
-  }>;
-}
+// Remove the local BlueprintData interface since we're importing it
+export { BlueprintData } from "../schema/blueprint";
 
 export const generateBlueprint = async (
   input: string,
