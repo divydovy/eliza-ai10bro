@@ -1,76 +1,245 @@
-import { Action, IAgentRuntime, Memory, elizaLogger } from "@elizaos/core";
+import { Action, IAgentRuntime, Memory, elizaLogger, State, HandlerCallback } from "@elizaos/core";
 import { generateBlueprintAction } from "./generate-blueprint";
 import axios from "axios";
+import Ajv from "ajv";
+import addFormats from "ajv-formats";
+
+// Initialize AJV with standard options
+const ajv = new Ajv({
+    removeAdditional: true,    // Remove properties not in schema
+    useDefaults: true,         // Apply default values from schema
+    coerceTypes: true,         // Add type coercion
+    strict: false,             // Allow some flexibility in validation
+    allErrors: true,           // Collect all errors, not just the first one
+    verbose: true             // Include detailed error info
+});
+
+addFormats(ajv);
+
+// Define the blueprint schema
+const blueprintSchema = {
+    type: "object",
+    required: ["$schema", "meta", "landingPage", "preferredVersions", "features", "steps"],
+    properties: {
+        $schema: {
+            type: "string",
+            const: "https://playground.wordpress.net/blueprint-schema.json"
+        },
+        meta: {
+            type: "object",
+            required: ["title", "description", "author", "categories"],
+            properties: {
+                title: { type: "string" },
+                description: { type: "string" },
+                author: { type: "string" },
+                categories: {
+                    type: ["array", "string"],
+                    items: { type: "string" },
+                    default: ["ecommerce"]
+                }
+            }
+        },
+        landingPage: { type: "string", default: "/shop" },
+        preferredVersions: {
+            type: "object",
+            required: ["php", "wp"],
+            properties: {
+                php: { type: "string", default: "8.2" },
+                wp: { type: "string", default: "6.4" }
+            }
+        },
+        features: {
+            type: "object",
+            required: ["networking"],
+            properties: {
+                networking: { type: "boolean", default: true }
+            }
+        },
+        steps: {
+            type: "array",
+            items: {
+                type: "object",
+                required: ["step"],
+                properties: {
+                    step: { type: "string" },
+                    options: {
+                        type: "object",
+                        properties: {
+                            woocommerce_specific_allowed_countries: {
+                                type: "array",
+                                items: { type: "string" }
+                            }
+                        },
+                        additionalProperties: true
+                    },
+                    pluginZipFile: {
+                        type: "object",
+                        properties: {
+                            resource: { type: "string" },
+                            slug: { type: "string" }
+                        }
+                    }
+                }
+            }
+        }
+    }
+};
+
+// Compile the schema
+const validateBlueprint = ajv.compile(blueprintSchema);
 
 const extractBlueprintFromMessage = (text: string): string | null => {
     try {
-        elizaLogger.info('Attempting to extract blueprint from message:', { messageLength: text.length });
-
-        // Try to find a JSON object in the text
-        const matches = text.match(/(\{[\s\S]*\})/g);
-        elizaLogger.info('JSON-like matches found:', {
-            matchCount: matches?.length || 0
+        elizaLogger.info('Attempting to extract blueprint from message:', {
+            messageLength: text.length,
+            messagePreview: text.substring(0, 100)
         });
 
-        if (!matches) return null;
+        let messageObj;
+        try {
+            // First try to parse as JSON
+            messageObj = JSON.parse(text);
+        } catch (parseError) {
+            // If not JSON, treat as plain text
+            elizaLogger.info('Message is not JSON, treating as plain text');
+            messageObj = { text };
+        }
 
-        // Try each match to find valid JSON with required blueprint fields
-        for (const match of matches) {
+        // Check for blueprint field (new format)
+        if (messageObj.blueprint) {
+            elizaLogger.info('Found blueprint in blueprint field');
             try {
-                elizaLogger.info('Attempting to parse potential JSON match:', {
-                    matchLength: match.length,
-                    preview: match.substring(0, 100) + '...'
+                // If it's a string, parse it to ensure it's valid JSON
+                const parsed = typeof messageObj.blueprint === 'string'
+                    ? JSON.parse(messageObj.blueprint)
+                    : messageObj.blueprint;
+
+                elizaLogger.info('Parsed blueprint structure:', {
+                    hasSchema: !!parsed.$schema,
+                    hasMeta: !!parsed.meta,
+                    hasSteps: !!parsed.steps,
+                    stepsLength: Array.isArray(parsed.steps) ? parsed.steps.length : 'not array'
                 });
 
-                const parsed = JSON.parse(match);
-                elizaLogger.info('Successfully parsed JSON, checking blueprint structure:', {
-                    hasSchema: Boolean(parsed.$schema),
-                    schemaValue: parsed.$schema,
-                    hasMeta: Boolean(parsed.meta),
-                    hasSteps: Boolean(parsed.steps),
-                    stepsIsArray: Array.isArray(parsed.steps)
-                });
-
-                // Validate it has the required blueprint structure
-                if (
-                    parsed.$schema?.includes('playground.wordpress.net') &&
-                    parsed.meta &&
-                    parsed.steps &&
-                    Array.isArray(parsed.steps)
-                ) {
-                    elizaLogger.info('Valid blueprint found!');
-                    return match;
+                // Validate the blueprint
+                const valid = validateBlueprint(parsed);
+                if (valid) {
+                    elizaLogger.info('Successfully validated blueprint from blueprint field');
+                    return JSON.stringify(parsed);
+                } else {
+                    const errors = validateBlueprint.errors?.map(e => `${e.instancePath} ${e.message}`);
+                    elizaLogger.error('Blueprint validation failed:', { errors });
                 }
             } catch (error) {
-                elizaLogger.info('Failed to parse JSON match:', {
-                    error: error instanceof Error ? error.message : 'Unknown error'
+                elizaLogger.error('Failed to parse/validate blueprint:', {
+                    error: error instanceof Error ? error.message : 'Unknown error',
+                    blueprintPreview: typeof messageObj.blueprint === 'string'
+                        ? messageObj.blueprint.substring(0, 100)
+                        : JSON.stringify(messageObj.blueprint).substring(0, 100)
                 });
-                continue;
             }
         }
-        elizaLogger.info('No valid blueprint found in any JSON matches');
+
+        // Look for JSON in text content
+        const textContent = messageObj.text;
+        if (textContent) {
+            // Look for JSON code blocks
+            const codeBlockMatch = textContent.match(/```(?:json)?\n?([\s\S]*?)\n?```/);
+            if (codeBlockMatch) {
+                elizaLogger.info('Found JSON code block in text');
+                try {
+                    const parsed = JSON.parse(codeBlockMatch[1]);
+                    const valid = validateBlueprint(parsed);
+                    if (valid) {
+                        elizaLogger.info('Successfully validated blueprint from code block');
+                        return JSON.stringify(parsed);
+                    }
+                } catch (error) {
+                    elizaLogger.error('Failed to parse JSON from code block:', error);
+                }
+            }
+
+            // Try to find any JSON object in the text
+            const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                elizaLogger.info('Found JSON object in text');
+                try {
+                    const parsed = JSON.parse(jsonMatch[0]);
+                    const valid = validateBlueprint(parsed);
+                    if (valid) {
+                        elizaLogger.info('Successfully validated blueprint from text JSON');
+                        return JSON.stringify(parsed);
+                    }
+                } catch (error) {
+                    elizaLogger.error('Failed to parse JSON from text:', error);
+                }
+            }
+        }
+
+        elizaLogger.info('No valid blueprint found in message');
         return null;
+
     } catch (error) {
-        elizaLogger.error('Error in extractBlueprintFromMessage:', error);
+        elizaLogger.error('Error in extractBlueprintFromMessage:', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : 'No stack trace'
+        });
         return null;
     }
 };
 
-const uploadToTransferSh = async (blueprint: string): Promise<string> => {
+const uploadBlueprint = async (runtime: IAgentRuntime, blueprint: string): Promise<string> => {
     try {
-        const response = await axios.put(
-            'https://transfer.sh/blueprint.json',
-            blueprint,
+        const jsonbinKey = runtime.character.settings?.secrets?.JSONBIN_API_KEY;
+        if (!jsonbinKey) {
+            throw new Error('JSONBin API key not found in character settings');
+        }
+
+        elizaLogger.info('Attempting to validate blueprint:', {
+            blueprintLength: blueprint.length,
+            preview: blueprint.substring(0, 100)
+        });
+
+        // Parse and validate the blueprint
+        const parsed = JSON.parse(blueprint);
+        const valid = validateBlueprint(parsed);
+
+        if (!valid) {
+            const errors = validateBlueprint.errors?.map(e => `${e.instancePath} ${e.message}`);
+            elizaLogger.error('Blueprint validation failed:', { errors });
+            throw new Error(`Invalid blueprint format: ${errors?.join(', ')}`);
+        }
+
+        elizaLogger.info('Sending request to JSONBin');
+        const response = await axios.post(
+            'https://api.jsonbin.io/v3/b',
+            parsed,
             {
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-Master-Key': jsonbinKey,
+                    'X-Bin-Private': 'false',
+                    'X-JSON-Path': '$'  // Return raw JSON without wrapper
                 }
             }
         );
-        return response.data.trim(); // transfer.sh returns the URL directly
+
+        const binId = response.data.metadata.id;
+        // Use the raw endpoint to get direct JSON without wrapper
+        const publicUrl = `https://api.jsonbin.io/v3/b/${binId}/latest?meta=false`;
+        elizaLogger.info('Blueprint uploaded to JSONBin:', { url: publicUrl });
+        return publicUrl;
     } catch (error) {
-        elizaLogger.error('Error uploading to transfer.sh:', error);
-        throw new Error('Failed to upload blueprint');
+        elizaLogger.error('Error uploading blueprint:', {
+            error: error instanceof Error ? {
+                message: error.message,
+                stack: error.stack,
+                name: error.name
+            } : error,
+            axiosError: error?.response?.data || 'No response data',
+            blueprint: blueprint.substring(0, 200) + '...'
+        });
+        throw new Error(`Failed to upload blueprint: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 };
 
@@ -95,70 +264,139 @@ const createPlaygroundAction: Action = {
                text.includes("launch") ||
                text.includes("preview");
     },
-    handler: async (runtime: IAgentRuntime, message: Memory) => {
+    handler: async (runtime: IAgentRuntime, message: Memory, state?: State, options?: { [key: string]: unknown }, callback?: HandlerCallback): Promise<boolean> => {
         elizaLogger.info("Handling CREATE_PLAYGROUND request");
 
-        // Get recent messages from the conversation
-        const recentMessages = await runtime.messageManager.getMemories({
-            roomId: message.roomId,
-            count: 10,
-            unique: false
-        });
+        try {
+            // Get recent messages from the conversation
+            const recentMessages = await runtime.messageManager.getMemories({
+                roomId: message.roomId,
+                count: 10,
+                unique: false
+            });
 
-        elizaLogger.info('Searching through recent messages:', {
-            messageCount: recentMessages.length,
-            roomId: message.roomId
-        });
+            elizaLogger.info('Searching through recent messages:', {
+                messageCount: recentMessages.length,
+                roomId: message.roomId
+            });
 
-        // Look for blueprint in recent messages
-        let blueprint: string | null = null;
-        for (const msg of recentMessages.reverse()) {
-            if (msg.content.text) {
-                elizaLogger.info('Checking message for blueprint:', {
-                    messageId: msg.id,
-                    messageLength: msg.content.text.length,
-                    preview: msg.content.text.substring(0, 100) + '...'
-                });
-
-                blueprint = extractBlueprintFromMessage(msg.content.text);
-                if (blueprint) {
-                    elizaLogger.info('Blueprint found in message:', {
+            // Look for blueprint in recent messages
+            let blueprint: string | null = null;
+            for (const msg of recentMessages.reverse()) {
+                if (msg.content.text) {
+                    elizaLogger.info('Checking message for blueprint:', {
                         messageId: msg.id,
-                        blueprintLength: blueprint.length,
-                        blueprintPreview: blueprint.substring(0, 100) + '...'
+                        messageLength: msg.content.text.length,
+                        preview: msg.content.text.substring(0, 100) + '...'
                     });
-                    break;
+
+                    blueprint = extractBlueprintFromMessage(msg.content.text);
+                    if (blueprint) {
+                        elizaLogger.info('Blueprint found in message:', {
+                            messageId: msg.id,
+                            blueprintLength: blueprint.length,
+                            blueprintPreview: blueprint.substring(0, 100) + '...'
+                        });
+                        break;
+                    }
                 }
             }
-        }
 
-        // If no blueprint found, suggest generating one
-        if (!blueprint) {
-            return {
-                response: "I couldn't find a recent blueprint. Would you like me to help you generate one first? Just let me know what kind of store you'd like to create.",
-                // Let the agent handle this naturally through examples
-                // nextAction: generateBlueprintAction.name
-            };
-        }
+            // If no blueprint found, suggest generating one
+            if (!blueprint) {
+                if (callback) {
+                    callback({
+                        text: "I couldn't find a recent blueprint. Would you like me to help you generate one first? Just let me know what kind of store you'd like to create."
+                    });
+                }
+                return true;
+            }
 
-        try {
-            // Upload blueprint to transfer.sh
-            const uploadedUrl = await uploadToTransferSh(blueprint);
+            elizaLogger.info('Found blueprint, attempting upload:', {
+                blueprintLength: blueprint.length,
+                preview: blueprint.substring(0, 100)
+            });
+
+            // Upload blueprint to JSONBin
+            const uploadedUrl = await uploadBlueprint(runtime, blueprint);
 
             // Create playground URL
             const playgroundUrl = `https://playground.wordpress.net?blueprint-url=${encodeURIComponent(uploadedUrl)}`;
 
-            return {
-                response: `I've created a playground instance with your blueprint! You can access it here:\n\n${playgroundUrl}\n\nThe playground will load with all your specified configurations. Feel free to explore and test everything.`
-            };
+            if (callback) {
+                callback({
+                    text: `I've created a playground instance with your blueprint! You can access it here:\n\n${playgroundUrl}\n\nThe playground will load with all your specified configurations. Feel free to explore and test everything.`,
+                    action: "CREATE_PLAYGROUND"
+                });
+            }
+
+            return true;
         } catch (error) {
-            elizaLogger.error('Error in CREATE_PLAYGROUND:', error);
-            return {
-                response: "I encountered an error while setting up the playground. Please try again in a few moments."
-            };
+            elizaLogger.error('Error in CREATE_PLAYGROUND:', {
+                error: error instanceof Error ? {
+                    message: error.message,
+                    stack: error.stack,
+                    name: error.name
+                } : error,
+                fullError: error
+            });
+            if (callback) {
+                callback({
+                    text: `I encountered an error while setting up the playground: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again in a few moments.`
+                });
+            }
+            return false;
         }
     }
 };
 
+// Test function for blueprint extraction and validation
+const testBlueprintExtraction = (rawEntry: string) => {
+    elizaLogger.info('Testing blueprint extraction with raw entry');
+
+    // Step 1: Try to extract blueprint
+    const blueprint = extractBlueprintFromMessage(rawEntry);
+    if (!blueprint) {
+        elizaLogger.error('Failed to extract blueprint from message');
+        return null;
+    }
+
+    elizaLogger.info('Successfully extracted blueprint:', {
+        length: blueprint.length,
+        preview: blueprint.substring(0, 100)
+    });
+
+    // Step 2: Try to parse and validate
+    try {
+        const parsed = JSON.parse(blueprint);
+        elizaLogger.info('Successfully parsed JSON:', {
+            hasSchema: !!parsed.$schema,
+            hasMeta: !!parsed.meta,
+            preview: JSON.stringify(parsed).substring(0, 100)
+        });
+
+        // Step 3: Validate against schema
+        const valid = validateBlueprint(parsed);
+        if (!valid) {
+            const errors = validateBlueprint.errors?.map(e => `${e.instancePath} ${e.message}`);
+            elizaLogger.error('Blueprint validation failed:', { errors });
+            return null;
+        } else {
+            elizaLogger.info('Blueprint validation successful');
+            return parsed;
+        }
+    } catch (error) {
+        elizaLogger.error('Error parsing blueprint:', {
+            error: error instanceof Error ? error.message : 'Unknown error'
+        });
+        return null;
+    }
+};
+
+// Run test with sample data
+const sampleEntry = `{"text":"{\\\"$schema\\\":\\\"https://playground.wordpress.net/blueprint-schema.json\\\",\\\"meta\\\":{\\\"title\\\":\\\"Portuguese Marmalade Shop\\\",\\\"description\\\":\\\"WooCommerce store for selling homemade marmalades in Portugal and Spain\\\",\\\"author\\\":\\\"WooGuide\\\",\\\"categories\\\":\\\"ecommerce\\\",\\\"food\\\"},\\\"landingPage\\\":\\\"/shop\\\",\\\"preferredVersions\\\":{\\\"php\\\":\\\"8.2\\\",\\\"wp\\\":\\\"6.4\\\"},\\\"features\\\":{\\\"networking\\\":true},\\\"steps\\\":{\\\"step\\\":\\\"resetData\\\"},{\\\"step\\\":\\\"installPlugin\\\",\\\"pluginZipFile\\\":{\\\"resource\\\":\\\"wordpress.org/plugins\\\",\\\"slug\\\":\\\"woocommerce\\\"},\\\"options\\\":{\\\"activate\\\":true}},{\\\"step\\\":\\\"installPlugin\\\",\\\"pluginZipFile\\\":{\\\"resource\\\":\\\"wordpress.org/plugins\\\",\\\"slug\\\":\\\"woocommerce-multilingual\\\"},\\\"options\\\":{\\\"activate\\\":true}},{\\\"step\\\":\\\"installPlugin\\\",\\\"pluginZipFile\\\":{\\\"resource\\\":\\\"wordpress.org/plugins\\\",\\\"slug\\\":\\\"polylang\\\"},\\\"options\\\":{\\\"activate\\\":true}},{\\\"step\\\":\\\"setSiteOptions\\\",\\\"options\\\":{\\\"woocommerce\\\\_currency\\\":\\\"EUR\\\",\\\"woocommerce\\\\_weight\\\\_unit\\\":\\\"kg\\\",\\\"woocommerce\\\\_dimension\\\\_unit\\\":\\\"cm\\\",\\\"woocommerce\\\\_default\\\\_country\\\":\\\"PT\\\",\\\"woocommerce\\\\_allowed\\\\_countries\\\":\\\"specific\\\",\\\"woocommerce\\\\_specific\\\\_allowed\\\\_countries\\\":[\\\"PT\\\",\\\"ES\\\"}}},{\\\"step\\\":\\\"setSiteLocale\\\",\\\"locale\\\":\\\"pt_PT\\\"},{\\\"step\\\":\\\"createTerm\\\",\\\"taxonomy\\\":\\\"product_cat\\\",\\\"term\\\":\\\"Marmalades\\\",\\\"description\\\":\\\"Homemade marmalades\\\"},{\\\"step\\\":\\\"createTerm\\\",\\\"taxonomy\\\":\\\"product_cat\\\",\\\"term\\\":\\\"Fruit Preserves\\\",\\\"description\\\":\\\"Traditional fruit preserves\\\"},{\\\"step\\\":\\\"setTheme\\\",\\\"theme\\\":\\\"storefront\\\"},{\\\"step\\\":\\\"setSiteTitle\\\",\\\"title\\\":\\\"Artisanal Portuguese Marmalades\\\"},{\\\"step\\\":\\\"setSiteDescription\\\",\\\"description\\\":\\\"Handcrafted marmalades shipped across Portugal and Spain\\\"}]}","action":"GENERATE_BLUEPRINT","inReplyTo":"6a3db51d-407d-0953-adcc-2f04b22f1148"}`;
+
+testBlueprintExtraction(sampleEntry);
+
 export const actions = [createPlaygroundAction];
-export { createPlaygroundAction };
+export { createPlaygroundAction, testBlueprintExtraction };
