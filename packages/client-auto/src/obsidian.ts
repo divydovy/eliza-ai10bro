@@ -18,10 +18,14 @@ export class ObsidianAutoClient {
 
     constructor(runtime: IAgentRuntime) {
         this.runtime = runtime;
-        this.startAllProcesses();
+        // Add delay before starting processes to ensure agent is ready
+        setTimeout(() => {
+            this.startAllProcesses();
+        }, 10000); // 10 second delay
     }
 
     private startAllProcesses() {
+        elizaLogger.log("Starting auto client processes...");
         // Start knowledge update process (every 10 minutes)
         this.runKnowledgeUpdate();
         this.knowledgeInterval = setInterval(() => {
@@ -66,26 +70,23 @@ export class ObsidianAutoClient {
         elizaLogger.log("Running Obsidian knowledge update...");
         this.isKnowledgeUpdateRunning = true;
 
-        // Extract port from runtime's serverUrl
-        const serverUrl = new URL(this.runtime.serverUrl);
-        const port = serverUrl.port;
-
         return new Promise((resolve) => {
-            exec(`cd ${projectRoot} && SERVER_PORT=${port} pnpm tsx ${scriptPath} ${characterPath}`, (error, stdout, stderr) => {
-                this.isKnowledgeUpdateRunning = false;
+            exec(`cd ${projectRoot} && pnpm tsx ${scriptPath} ${characterPath}`,
+                { maxBuffer: 1024 * 1024 * 10 }, // 10MB buffer
+                (error, stdout, stderr) => {
+                    this.isKnowledgeUpdateRunning = false;
 
-                if (error) {
-                    elizaLogger.error(`Error executing knowledge update script: ${error}`);
                     if (stderr) elizaLogger.error(stderr);
-                    resolve(false);
-                    return;
-                }
+                    if (stdout) elizaLogger.log(stdout);
 
-                if (stderr) elizaLogger.error(stderr);
-                if (stdout) elizaLogger.log(stdout);
+                    if (error) {
+                        elizaLogger.error(`Error executing knowledge update script: ${error}`);
+                        resolve(false);
+                        return;
+                    }
 
-                elizaLogger.log("Obsidian knowledge update completed");
-                resolve(true);
+                    elizaLogger.log("Obsidian knowledge update completed");
+                    resolve(true);
             });
         });
     }
@@ -103,21 +104,22 @@ export class ObsidianAutoClient {
         this.isBroadcastCreateRunning = true;
 
         return new Promise((resolve) => {
-            exec(`cd ${projectRoot} && pnpm tsx ${scriptPath} ${characterName}`, (error, stdout, stderr) => {
-                this.isBroadcastCreateRunning = false;
+            exec(`cd ${projectRoot} && pnpm tsx ${scriptPath} ${characterName}`,
+                { maxBuffer: 1024 * 1024 * 10 }, // 10MB buffer
+                (error, stdout, stderr) => {
+                    this.isBroadcastCreateRunning = false;
 
-                if (error) {
-                    elizaLogger.error(`Error executing broadcast creation script: ${error}`);
                     if (stderr) elizaLogger.error(stderr);
-                    resolve(false);
-                    return;
-                }
+                    if (stdout) elizaLogger.log(stdout);
 
-                if (stderr) elizaLogger.error(stderr);
-                if (stdout) elizaLogger.log(stdout);
+                    if (error) {
+                        elizaLogger.error(`Error executing broadcast creation script: ${error}`);
+                        resolve(false);
+                        return;
+                    }
 
-                elizaLogger.log("Broadcast message creation completed");
-                resolve(true);
+                    elizaLogger.log("Broadcast message creation completed");
+                    resolve(true);
             });
         });
     }
@@ -135,21 +137,22 @@ export class ObsidianAutoClient {
         this.isQueueProcessRunning = true;
 
         return new Promise((resolve) => {
-            exec(`cd ${projectRoot} && pnpm tsx ${scriptPath} ${characterName}`, (error, stdout, stderr) => {
-                this.isQueueProcessRunning = false;
+            exec(`cd ${projectRoot} && pnpm tsx ${scriptPath} ${characterName}`,
+                { maxBuffer: 1024 * 1024 * 10 }, // 10MB buffer
+                (error, stdout, stderr) => {
+                    this.isQueueProcessRunning = false;
 
-                if (error) {
-                    elizaLogger.error(`Error executing queue processing script: ${error}`);
                     if (stderr) elizaLogger.error(stderr);
-                    resolve(false);
-                    return;
-                }
+                    if (stdout) elizaLogger.log(stdout);
 
-                if (stderr) elizaLogger.error(stderr);
-                if (stdout) elizaLogger.log(stdout);
+                    if (error) {
+                        elizaLogger.error(`Error executing queue processing script: ${error}`);
+                        resolve(false);
+                        return;
+                    }
 
-                elizaLogger.log("Broadcast queue processing completed");
-                resolve(true);
+                    elizaLogger.log("Broadcast queue processing completed");
+                    resolve(true);
             });
         });
     }
