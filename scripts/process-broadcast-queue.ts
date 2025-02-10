@@ -79,8 +79,13 @@ function getNextPendingBroadcast(): (Broadcast & { content: string }) | undefine
     return db.prepare(`
         SELECT b.*, m.content
         FROM broadcasts b
-        JOIN memories m ON m.id = b.documentId
+        JOIN memories m ON m.id = b.messageId
         WHERE b.status = 'pending'
+        AND NOT EXISTS (
+            SELECT 1 FROM broadcasts b2
+            WHERE b2.documentId = b.documentId
+            AND b2.status = 'sent'
+        )
         ORDER BY b.createdAt ASC
         LIMIT 1
     `).get() as (Broadcast & { content: string }) | undefined;
