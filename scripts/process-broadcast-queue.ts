@@ -141,8 +141,8 @@ async function processNextBroadcast(characterName: string) {
 
         let messageText = messageContent.text;
 
-        // If source document has nsource, append it to the message
-        if (sourceDoc) {
+        // If source document has nsource and message doesn't already have a source URL, append it
+        if (sourceDoc && !messageText.includes('Source:')) {
             const sourceContent = JSON.parse(sourceDoc.content);
             const sourceUrl = sourceContent.metadata?.frontmatter?.source;
             if (sourceUrl) {
