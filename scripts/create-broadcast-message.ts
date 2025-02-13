@@ -77,7 +77,7 @@ async function getNextUnbroadcastDocument(): Promise<DatabaseMemory | undefined>
         SELECT m1.id, m1.content, m1.createdAt
         FROM memories m1
         WHERE m1.type = 'documents'
-        AND json_extract(m1.content, '$.source') = 'obsidian'
+        AND json_extract(m1.content, '$.metadata.frontmatter.source') IS NOT NULL
         AND json_extract(m1.content, '$.text') NOT LIKE '%ACTION: CREATE_KNOWLEDGE%'
         AND json_extract(m1.content, '$.text') NOT LIKE '%system%'
         AND json_extract(m1.content, '$.metadata.action') IS NULL
@@ -441,13 +441,20 @@ Content: ${subChunk}`;
         });
 
         // Get final summary from combined chunk summaries
-        const finalSummaryPrompt = `Create a focused, specific 280-character summary that would work well as a social media post. Use these section summaries as input, but ensure the final summary:
+        const finalSummaryPrompt = `Create a concise, investment-focused insight in exactly this format:
 
-1. Starts by clearly identifying the source document/report
-2. Focuses on one specific, concrete insight or finding
-3. Includes specific numbers, facts, or details if available
-4. Explains why this insight matters
-5. Maintains a professional tone while being engaging
+[Specific fact/metric about technological trend], mirroring [natural system parallel]. Like [deeper nature analogy], this [what it means for the future]. Strategic implication: [clear investment takeaway].
+
+Requirements:
+- Start with a concrete metric or specific fact
+- Draw a clear parallel to a natural system
+- Expand the nature analogy to explain significance
+- End with an actionable investment insight
+- Focus on exponential growth and emerging patterns
+- Keep total response under 280 chars
+- Write in a clear, direct style
+- Do not include "Key insight from" or other prefixes
+- Do not include the source URL (it will be added automatically)
 
 Here are the section summaries:
 ${combinedSummary}`;
@@ -502,15 +509,28 @@ ${combinedSummary}`;
 
         const finalSummaryData = await finalSummaryResponse.json();
         const summary = finalSummaryData.content[0].text;
-        const truncatedSummary = summary.slice(0, 500) + (summary.length > 500 ? '...' : '');
-        console.log('Summary stats:', {
-            originalLength: summary.length,
-            truncatedLength: truncatedSummary.length,
-            wasTruncated: summary.length > 500
-        });
 
-        // After getting the final summary, save it directly
-        const broadcastText = `${truncatedSummary}\n\nSource: ${documentContent.metadata?.frontmatter?.source || documentContent.source || 'Unknown'}`;
+        // Remove any unwanted prefixes
+        const cleanSummary = summary
+            .replace(/^Here(?:'s| is) a \d+-character summary.*?:\s*/i, '')
+            .replace(/^Summary:?\s*/i, '')
+            .replace(/^Here are the key insights.*?:\s*/i, '')
+            .replace(/^Here is a summary.*?:\s*/i, '')
+            .trim();
+
+        const truncatedSummary = cleanSummary.slice(0, 500) + (cleanSummary.length > 500 ? '...' : '');
+
+        // Get the actual source from frontmatter or content
+        const sourceUrl = documentContent.metadata?.frontmatter?.source || documentContent.source || 'Unknown';
+        const sourceName = documentContent.metadata?.frontmatter?.title ||
+                         documentContent.metadata?.frontmatter?.newsletter ||
+                         documentContent.title ||
+                         (sourceUrl.includes('exponentialview.co') ? 'Exponential View' : 'Unknown');
+
+        // Format broadcast text with source in the desired style
+        const broadcastText = sourceUrl === 'Unknown'
+            ? truncatedSummary
+            : `${truncatedSummary} Source: ${sourceName} [${sourceUrl}]`;
 
         // Save directly to memories
         const messageId = await saveMessageToMemories(broadcastText);

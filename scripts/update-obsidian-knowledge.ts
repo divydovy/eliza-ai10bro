@@ -1,59 +1,47 @@
 import fs from 'fs';
 import fetch from 'node-fetch';
-import net from 'net';
-
-// Function to check if a port is in use
-async function isPortInUse(port: number): Promise<boolean> {
-    return new Promise((resolve) => {
-        const server = net.createServer()
-            .once('error', () => resolve(true))
-            .once('listening', () => {
-                server.close();
-                resolve(false);
-            })
-            .listen(port);
-    });
-}
-
-// Function to find the active agent port
-async function findActivePort(startPort: number = 3000, endPort: number = 3010): Promise<number> {
-    console.log('Scanning for active agent port...');
-    for (let port = startPort; port <= endPort; port++) {
-        if (await isPortInUse(port)) {
-            console.log(`Found active port: ${port}`);
-            return port;
-        }
-    }
-    console.log('No active port found, using default port 3000');
-    return startPort;
-}
+import path from 'path';
 
 async function sendMessageToAgent(characterName: string, message: any) {
+    // Always use character settings for server URL
+    const characterPath = path.join(process.cwd(), 'characters', `${characterName}.character.json`);
+    const characterSettings = JSON.parse(fs.readFileSync(characterPath, 'utf-8'));
+    const serverPort = characterSettings.settings?.serverPort || 3005;
+    const serverUrl = `http://localhost:${serverPort}`;
+
+    console.log('\nUsing server URL from character settings:', {
+        serverPort,
+        serverUrl,
+        characterName
+    });
+
+    console.log('\nFinal server URL configuration:', {
+        serverUrl,
+        characterName,
+        messageType: message.type
+    });
+
     console.log('\nSending message to agent:', {
         characterName,
         messageType: message.type,
-        messageText: message.text,
-        metadata: message.metadata
+        messageLength: message.text.length,
+        metadata: message.metadata,
+        serverUrl
     });
-
-    // Find the active port
-    const port = await findActivePort();
-    const serverUrl = process.env.SERVER_URL || `http://localhost:${port}`;
-    console.log(`\nUsing server URL: ${serverUrl}`);
 
     const response = await fetch(`${serverUrl}/${characterName}/message`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-Message-Type': 'system',  // Add header to identify system messages
-            'X-Exclude-History': 'true'  // Add header to exclude from history
+            'X-Message-Type': 'system',
+            'X-Exclude-History': 'true'
         },
         body: JSON.stringify({
             ...message,
             metadata: {
                 ...message.metadata,
-                excludeFromHistory: true,  // Add metadata to exclude from history
-                systemMessage: true        // Add metadata to identify system messages
+                excludeFromHistory: true,
+                systemMessage: true
             }
         })
     });
@@ -100,10 +88,10 @@ async function updateObsidianKnowledge() {
             userId: "system",
             userName: "system",
             metadata: {
-                silent: true,  // Indicate this message should not be broadcast
+                silent: true,
                 action: "CREATE_KNOWLEDGE",
-                excludeFromHistory: true,  // Add metadata to exclude from history
-                systemMessage: true        // Add metadata to identify system messages
+                excludeFromHistory: true,
+                systemMessage: true
             }
         });
 
