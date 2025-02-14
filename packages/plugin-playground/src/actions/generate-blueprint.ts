@@ -1,6 +1,7 @@
 import { Action, IAgentRuntime, Memory, elizaLogger, State, HandlerCallback, composeContext, generateText, ModelClass } from "@elizaos/core";
 import Ajv from "ajv";
 import { blueprintSchema, BlueprintData } from "../schema/blueprint";
+import axios from "axios";
 
 // Initialize AJV with enhanced features
 const ajv = new Ajv({
@@ -249,13 +250,22 @@ const generateBlueprintAction: Action = {
                                 preview: formattedJson.substring(0, 100)
                             });
 
-                            callback({
-                                text: `I've generated a blueprint for your store with all the essential configurations!\n\n\`\`\`json\n${formattedJson}\n\`\`\`\n\nWould you like me to:\n\n1. Explain any part of the setup\n2. Create a playground to test it out\n3. Help you with the next steps like adding products`,
-                                action: "GENERATE_BLUEPRINT",
-                                normalized: "GENERATE_BLUEPRINT",
-                                shouldHandle: true,
-                                blueprint: formattedJson  // Store unencoded but formatted JSON
-                            });
+                            try {
+                                // Upload blueprint to JSONBin
+                                const uploadedUrl = await uploadBlueprint(runtime, formattedJson);
+
+                                // Get client-specific message
+                                const clientType = runtime.character.clients?.[0] || 'telegram';
+                                const response = getClientSpecificMessage(clientType, formattedJson, uploadedUrl);
+
+                                callback(response);
+                            } catch (error) {
+                                elizaLogger.error('Error uploading blueprint:', error);
+                                callback({
+                                    text: "I encountered an error while uploading the blueprint. Please try again."
+                                });
+                                return false;
+                            }
                         }
                         return true;
                     } else {
@@ -340,3 +350,84 @@ export const generateBlueprint = async (
     throw new Error('Invalid blueprint format');
   }
 }
+
+// Add uploadBlueprint function from create-playground.ts
+const uploadBlueprint = async (runtime: IAgentRuntime, blueprint: string): Promise<string> => {
+    try {
+        const jsonbinKey = runtime.character.settings?.secrets?.JSONBIN_API_KEY;
+        if (!jsonbinKey) {
+            throw new Error('JSONBin API key not found in character settings');
+        }
+
+        elizaLogger.info('Attempting to validate blueprint:', {
+            blueprintLength: blueprint.length,
+            preview: blueprint.substring(0, 100)
+        });
+
+        // Parse and validate the blueprint
+        const parsed = JSON.parse(blueprint);
+        const valid = validateBlueprint(parsed);
+
+        if (!valid) {
+            const errors = validateBlueprint.errors?.map(e => `${e.instancePath} ${e.message}`);
+            elizaLogger.error('Blueprint validation failed:', { errors });
+            throw new Error(`Invalid blueprint format: ${errors?.join(', ')}`);
+        }
+
+        elizaLogger.info('Sending request to JSONBin');
+        const response = await axios.post(
+            'https://api.jsonbin.io/v3/b',
+            parsed,
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Master-Key': jsonbinKey,
+                    'X-Bin-Private': 'false',
+                    'X-JSON-Path': '$'  // Return raw JSON without wrapper
+                }
+            }
+        );
+
+        const binId = response.data.metadata.id;
+        // Use the raw endpoint to get direct JSON without wrapper
+        const publicUrl = `https://api.jsonbin.io/v3/b/${binId}/latest?meta=false`;
+        elizaLogger.info('Blueprint uploaded to JSONBin:', { url: publicUrl });
+        return publicUrl;
+    } catch (error) {
+        elizaLogger.error('Error uploading blueprint:', {
+            error: error instanceof Error ? {
+                message: error.message,
+                stack: error.stack,
+                name: error.name
+            } : error,
+            axiosError: error?.response?.data || 'No response data',
+            blueprint: blueprint.substring(0, 200) + '...'
+        });
+        throw new Error(`Failed to upload blueprint: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+};
+
+// Add helper function for client-specific messages
+const getClientSpecificMessage = (client: string, formattedJson: string, uploadedUrl: string) => {
+    switch (client) {
+        case 'twitter':
+            return {
+                text: `Blueprint ready! Get it at: ${uploadedUrl}\nWhat next?\n1) Explain setup\n2) Create playground\n3) Help with next steps`,
+                action: "GENERATE_BLUEPRINT",
+                normalized: "GENERATE_BLUEPRINT",
+                shouldHandle: true,
+                blueprint: formattedJson,
+                blueprintUrl: uploadedUrl
+            };
+        case 'telegram':
+        default:
+            return {
+                text: `I've generated a blueprint for your store with all the essential configurations!\n\nBlueprint URL: ${uploadedUrl}\n\n\`\`\`json\n${formattedJson}\n\`\`\`\n\nWould you like me to:\n\n1. Explain any part of the setup\n2. Create a playground to test it out\n3. Help you with the next steps like adding products`,
+                action: "GENERATE_BLUEPRINT",
+                normalized: "GENERATE_BLUEPRINT",
+                shouldHandle: true,
+                blueprint: formattedJson,
+                blueprintUrl: uploadedUrl
+            };
+    }
+};

@@ -20,7 +20,7 @@ addFormats(ajv);
 // Compile the schema
 const validateBlueprint = ajv.compile(blueprintSchema);
 
-const extractBlueprintFromMessage = (text: string): string | null => {
+const extractBlueprintFromMessage = (text: string): { blueprint: string | null, url: string | null } => {
     try {
         elizaLogger.info('Attempting to extract blueprint from message:', {
             messageLength: text.length,
@@ -57,7 +57,10 @@ const extractBlueprintFromMessage = (text: string): string | null => {
                 const valid = validateBlueprint(parsed);
                 if (valid) {
                     elizaLogger.info('Successfully validated blueprint from blueprint field');
-                    return JSON.stringify(parsed);
+                    return {
+                        blueprint: JSON.stringify(parsed),
+                        url: messageObj.blueprintUrl || null
+                    };
                 } else {
                     const errors = validateBlueprint.errors?.map(e => `${e.instancePath} ${e.message}`);
                     elizaLogger.error('Blueprint validation failed:', { errors });
@@ -84,7 +87,10 @@ const extractBlueprintFromMessage = (text: string): string | null => {
                     const valid = validateBlueprint(parsed);
                     if (valid) {
                         elizaLogger.info('Successfully validated blueprint from code block');
-                        return JSON.stringify(parsed);
+                        return {
+                            blueprint: JSON.stringify(parsed),
+                            url: null
+                        };
                     }
                 } catch (error) {
                     elizaLogger.error('Failed to parse JSON from code block:', error);
@@ -100,7 +106,10 @@ const extractBlueprintFromMessage = (text: string): string | null => {
                     const valid = validateBlueprint(parsed);
                     if (valid) {
                         elizaLogger.info('Successfully validated blueprint from text JSON');
-                        return JSON.stringify(parsed);
+                        return {
+                            blueprint: JSON.stringify(parsed),
+                            url: null
+                        };
                     }
                 } catch (error) {
                     elizaLogger.error('Failed to parse JSON from text:', error);
@@ -109,69 +118,31 @@ const extractBlueprintFromMessage = (text: string): string | null => {
         }
 
         elizaLogger.info('No valid blueprint found in message');
-        return null;
+        return { blueprint: null, url: null };
 
     } catch (error) {
         elizaLogger.error('Error in extractBlueprintFromMessage:', {
             error: error instanceof Error ? error.message : 'Unknown error',
             stack: error instanceof Error ? error.stack : 'No stack trace'
         });
-        return null;
+        return { blueprint: null, url: null };
     }
 };
 
-const uploadBlueprint = async (runtime: IAgentRuntime, blueprint: string): Promise<string> => {
-    try {
-        const jsonbinKey = runtime.character.settings?.secrets?.JSONBIN_API_KEY;
-        if (!jsonbinKey) {
-            throw new Error('JSONBin API key not found in character settings');
-        }
-
-        elizaLogger.info('Attempting to validate blueprint:', {
-            blueprintLength: blueprint.length,
-            preview: blueprint.substring(0, 100)
-        });
-
-        // Parse and validate the blueprint
-        const parsed = JSON.parse(blueprint);
-        const valid = validateBlueprint(parsed);
-
-        if (!valid) {
-            const errors = validateBlueprint.errors?.map(e => `${e.instancePath} ${e.message}`);
-            elizaLogger.error('Blueprint validation failed:', { errors });
-            throw new Error(`Invalid blueprint format: ${errors?.join(', ')}`);
-        }
-
-        elizaLogger.info('Sending request to JSONBin');
-        const response = await axios.post(
-            'https://api.jsonbin.io/v3/b',
-            parsed,
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Master-Key': jsonbinKey,
-                    'X-Bin-Private': 'false',
-                    'X-JSON-Path': '$'  // Return raw JSON without wrapper
-                }
-            }
-        );
-
-        const binId = response.data.metadata.id;
-        // Use the raw endpoint to get direct JSON without wrapper
-        const publicUrl = `https://api.jsonbin.io/v3/b/${binId}/latest?meta=false`;
-        elizaLogger.info('Blueprint uploaded to JSONBin:', { url: publicUrl });
-        return publicUrl;
-    } catch (error) {
-        elizaLogger.error('Error uploading blueprint:', {
-            error: error instanceof Error ? {
-                message: error.message,
-                stack: error.stack,
-                name: error.name
-            } : error,
-            axiosError: error?.response?.data || 'No response data',
-            blueprint: blueprint.substring(0, 200) + '...'
-        });
-        throw new Error(`Failed to upload blueprint: ${error instanceof Error ? error.message : 'Unknown error'}`);
+// Add helper function for client-specific messages
+const getClientSpecificMessage = (client: string, playgroundUrl: string) => {
+    switch (client) {
+        case 'twitter':
+            return {
+                text: `Your WooCommerce playground is ready! Access it here: ${playgroundUrl}`,
+                action: "CREATE_PLAYGROUND"
+            };
+        case 'telegram':
+        default:
+            return {
+                text: `I've created a playground instance with your blueprint! You can access it here:\n\n${playgroundUrl}\n\nThe playground will load with all your specified configurations. Feel free to explore and test everything.`,
+                action: "CREATE_PLAYGROUND"
+            };
     }
 };
 
@@ -215,7 +186,7 @@ const createPlaygroundAction: Action = {
             });
 
             // Look for blueprint in recent messages
-            let blueprint: string | null = null;
+            let blueprintData: { blueprint: string | null, url: string | null } = { blueprint: null, url: null };
             for (const msg of recentMessages.reverse()) {
                 if (msg.content.text) {
                     elizaLogger.info('Checking message for blueprint:', {
@@ -224,12 +195,13 @@ const createPlaygroundAction: Action = {
                         preview: msg.content.text.substring(0, 100) + '...'
                     });
 
-                    blueprint = extractBlueprintFromMessage(msg.content.text);
-                    if (blueprint) {
+                    blueprintData = extractBlueprintFromMessage(msg.content.text);
+                    if (blueprintData.blueprint) {
                         elizaLogger.info('Blueprint found in message:', {
                             messageId: msg.id,
-                            blueprintLength: blueprint.length,
-                            blueprintPreview: blueprint.substring(0, 100) + '...'
+                            blueprintLength: blueprintData.blueprint.length,
+                            blueprintPreview: blueprintData.blueprint.substring(0, 100) + '...',
+                            hasUrl: !!blueprintData.url
                         });
                         break;
                     }
@@ -237,7 +209,7 @@ const createPlaygroundAction: Action = {
             }
 
             // If no blueprint found, suggest generating one
-            if (!blueprint) {
+            if (!blueprintData.blueprint) {
                 if (callback) {
                     callback({
                         text: "I couldn't find a recent blueprint. Would you like me to help you generate one first? Just let me know what kind of store you'd like to create."
@@ -246,22 +218,25 @@ const createPlaygroundAction: Action = {
                 return true;
             }
 
-            elizaLogger.info('Found blueprint, attempting upload:', {
-                blueprintLength: blueprint.length,
-                preview: blueprint.substring(0, 100)
-            });
-
-            // Upload blueprint to JSONBin
-            const uploadedUrl = await uploadBlueprint(runtime, blueprint);
+            // Use the stored URL if available
+            const uploadedUrl = blueprintData.url;
+            if (!uploadedUrl) {
+                if (callback) {
+                    callback({
+                        text: "I found a blueprint but it hasn't been uploaded yet. Please try generating a new blueprint first."
+                    });
+                }
+                return true;
+            }
 
             // Create playground URL
             const playgroundUrl = `https://playground.wordpress.net?blueprint-url=${encodeURIComponent(uploadedUrl)}`;
 
             if (callback) {
-                callback({
-                    text: `I've created a playground instance with your blueprint! You can access it here:\n\n${playgroundUrl}\n\nThe playground will load with all your specified configurations. Feel free to explore and test everything.`,
-                    action: "CREATE_PLAYGROUND"
-                });
+                // Get client-specific message
+                const clientType = runtime.character.clients?.[0] || 'telegram';
+                const response = getClientSpecificMessage(clientType, playgroundUrl);
+                callback(response);
             }
 
             return true;
@@ -289,20 +264,20 @@ const testBlueprintExtraction = (rawEntry: string) => {
     elizaLogger.info('Testing blueprint extraction with raw entry');
 
     // Step 1: Try to extract blueprint
-    const blueprint = extractBlueprintFromMessage(rawEntry);
-    if (!blueprint) {
+    const blueprintData = extractBlueprintFromMessage(rawEntry);
+    if (!blueprintData.blueprint) {
         elizaLogger.error('Failed to extract blueprint from message');
         return null;
     }
 
     elizaLogger.info('Successfully extracted blueprint:', {
-        length: blueprint.length,
-        preview: blueprint.substring(0, 100)
+        length: blueprintData.blueprint.length,
+        preview: blueprintData.blueprint.substring(0, 100)
     });
 
     // Step 2: Try to parse and validate
     try {
-        const parsed = JSON.parse(blueprint);
+        const parsed = JSON.parse(blueprintData.blueprint);
         elizaLogger.info('Successfully parsed JSON:', {
             hasSchema: !!parsed.$schema,
             hasMeta: !!parsed.meta,
