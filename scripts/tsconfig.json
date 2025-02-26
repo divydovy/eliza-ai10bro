@@ -1,25 +1,21 @@
 {
     "compilerOptions": {
         "target": "ES2020",
-        "module": "ESNext",
+        "module": "commonjs",
         "moduleResolution": "node",
         "esModuleInterop": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
+        "strict": true,
         "outDir": "dist",
-        "baseUrl": "..",
-        "paths": {
-            "@elizaos/*": [
-                "packages/*/src"
-            ]
-        },
-        "strict": true
+        "rootDir": ".",
+        "baseUrl": ".",
+        "declaration": true
     },
     "include": [
-        "./**/*.ts"
+        "./**/*"
     ],
     "exclude": [
-        "node_modules",
         "dist"
     ]
 }
