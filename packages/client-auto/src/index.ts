@@ -28,5 +28,6 @@ export const AutoClientInterface: Client = {
 };
 
 export { ObsidianAutoClient, ObsidianAutoClientInterface } from "./obsidian";
+export { GitHubAutoClient, GitHubAutoClientInterface } from "./github";
 
 export default AutoClientInterface;

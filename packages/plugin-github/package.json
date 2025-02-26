@@ -1,0 +1,27 @@
+{
+  "name": "@elizaos/plugin-github",
+  "version": "0.1.0",
+  "description": "GitHub integration plugin for ElizaOS",
+  "main": "dist/index.js",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@elizaos/core": "workspace:*",
+    "@octokit/rest": "^20.0.2",
+    "@octokit/auth-token": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.16",
+    "typescript": "^5.3.3"
+  }
+}
