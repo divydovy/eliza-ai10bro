@@ -1,10 +1,12 @@
-import fs from 'fs';
-import path from 'path';
+// @ts-check
+/* tsconfig options */
+import fs from 'node:fs';
+import path from 'node:path';
 import Database from 'better-sqlite3';
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { encodingForModel } from "js-tiktoken";
 import fetch from 'node-fetch';
-import { getEmbeddingZeroVector } from "../packages/core/src/embedding.js";
+import { getEmbeddingZeroVector, generateText, ModelProviderName, ModelClass, Character, embed } from "@elizaos/core";
 
 console.log('Starting broadcast message creation...');
 
@@ -61,16 +63,16 @@ interface CharacterSettings {
 
 function countTokens(text: string): number {
     try {
-        const encoding = encodingForModel("gpt-4");
-        return encoding.encode(text).length;
-    } catch (error) {
-        // Fallback to rough estimation if tokenizer fails
+        // Use Claude's tokenizer which is roughly 1 token per 4 characters
         return Math.ceil(text.length / 4);
+    } catch (error) {
+        // Fallback to even more conservative estimation if tokenizer fails
+        return Math.ceil(text.length / 3);
     }
 }
 
 async function getNextUnbroadcastDocument(): Promise<DatabaseMemory | undefined> {
-    console.log('Looking for next unbroadcast document...');
+    console.log('\n=== Finding Next Document ===');
 
     // Find the oldest document that hasn't been broadcast yet and isn't already being processed
     const nextDocument = db.prepare(`
@@ -78,9 +80,15 @@ async function getNextUnbroadcastDocument(): Promise<DatabaseMemory | undefined>
         FROM memories m1
         WHERE m1.type = 'documents'
         AND json_extract(m1.content, '$.metadata.frontmatter.source') IS NOT NULL
-        AND json_extract(m1.content, '$.text') NOT LIKE '%ACTION: CREATE_KNOWLEDGE%'
+        AND json_extract(m1.content, '$.text') NOT LIKE '%ACTION:%'
+        AND json_extract(m1.content, '$.text') NOT LIKE '%Instructions:%'
         AND json_extract(m1.content, '$.text') NOT LIKE '%system%'
+        AND json_extract(m1.content, '$.text') NOT LIKE '%Response format%'
+        AND json_extract(m1.content, '$.text') NOT LIKE '%\`\`\`json%'
+        AND json_extract(m1.content, '$.text') NOT LIKE '%<sup>%'
+        AND json_extract(m1.content, '$.text') NOT LIKE '%###%'
         AND json_extract(m1.content, '$.metadata.action') IS NULL
+        AND length(json_extract(m1.content, '$.text')) < 50000
         AND NOT EXISTS (
             SELECT 1 FROM broadcasts b
             WHERE b.documentId = m1.id
@@ -91,13 +99,29 @@ async function getNextUnbroadcastDocument(): Promise<DatabaseMemory | undefined>
     `).get() as DatabaseMemory | undefined;
 
     if (nextDocument) {
-        console.log(`Found document from ${new Date(nextDocument.createdAt).toISOString()}`);
         const content = JSON.parse(nextDocument.content);
-        console.log('Document summary:', {
+        const text = content.text || '';
+        const tokenCount = countTokens(text);
+
+        console.log('\nDocument found:', {
             id: nextDocument.id,
+            createdAt: new Date(nextDocument.createdAt).toISOString(),
             title: content.title || 'No title',
-            textLength: content.text?.length || 0
+            textLength: text.length,
+            tokenCount,
+            hasMetadata: !!content.metadata,
+            hasFrontmatter: !!content.metadata?.frontmatter,
+            source: content.metadata?.frontmatter?.source || content.source || 'Unknown'
         });
+
+        // Skip if token count is too high
+        if (tokenCount > 100000) {
+            console.log('Document token count too high, skipping');
+            return undefined;
+        }
+
+        // Log first 200 chars of content to see what we're dealing with
+        console.log('\nContent preview:', text.slice(0, 200) + '...');
     } else {
         console.log('No unbroadcast documents found');
     }
@@ -256,283 +280,328 @@ async function sendMessageToAgent(characterName: string, message: any, document:
 
 async function createBroadcastMessage(characterName: string = 'c3po') {
     try {
-        console.log(`\n=== Starting broadcast creation for character: ${characterName} ===`);
+        console.log(`\n🔊 BROADCAST MESSAGE CREATION STARTING 🔊`);
+        console.log(`====================================`);
+        console.log(`Process ID: ${process.pid}`);
+        console.log(`Timestamp: ${new Date().toISOString()}`);
+        console.log(`Character: ${characterName}`);
+        console.log(`====================================\n`);
 
         // Load character settings
         const characterPath = path.join(process.cwd(), 'characters', `${characterName}.character.json`);
-        console.log('Looking for character settings at:', characterPath);
+        console.log('📂 Looking for character settings at:', characterPath);
         const characterSettings: CharacterSettings = JSON.parse(fs.readFileSync(characterPath, 'utf-8'));
-        console.log('Successfully loaded character settings');
+        console.log('✅ Successfully loaded character settings');
 
         // Get next document to broadcast
         const document = await getNextUnbroadcastDocument();
         if (!document) {
-            console.log('No documents to broadcast');
+            console.log('❌ No documents to broadcast');
             return [];
         }
 
         const documentContent = JSON.parse(document.content);
 
-        // Log document stats before truncation
-        console.log('\nDocument stats before truncation:', {
-            title: documentContent.metadata?.frontmatter?.title || documentContent.title || 'Untitled',
-            source: documentContent.metadata?.frontmatter?.source || documentContent.source || 'Unknown',
+        console.log('\n🔍 PROCESSING DOCUMENT');
+        console.log('=====================');
+        console.log('Document ID:', document.id);
+        console.log('Initial content stats:', {
+            totalLength: documentContent.text?.length || 0,
+            estimatedTokens: countTokens(documentContent.text || ''),
+            containsAction: documentContent.text?.includes('ACTION:'),
+            containsInstructions: documentContent.text?.includes('Instructions:'),
+            containsSystem: documentContent.text?.includes('system'),
+            containsJson: documentContent.text?.includes('```json')
+        });
+
+        // Filter out action commands and system content from the text
+        const cleanedText = documentContent.text
+            .split('\n')
+            .filter((line: string) => {
+                const l = line.trim().toLowerCase();
+                const keep = !l.startsWith('action:') &&
+                       !l.startsWith('instructions:') &&
+                       !l.includes('response format') &&
+                       !l.includes('```json') &&
+                       !l.includes('system message');
+
+                if (!keep) {
+                    console.log('Filtering out line:', line.slice(0, 100) + '...');
+                }
+                return keep;
+            })
+            .join('\n');
+
+        console.log('\nAfter filtering:', {
             originalLength: documentContent.text?.length || 0,
-            hasMetadata: !!documentContent.metadata,
-            hasFrontmatter: !!documentContent.metadata?.frontmatter
+            cleanedLength: cleanedText.length,
+            removedCharacters: (documentContent.text?.length || 0) - cleanedText.length
         });
 
-        // Truncate document content if it's too long (limit to ~5k tokens which is roughly 20k characters)
-        const maxContentLength = 20000;
-        const truncatedText = documentContent.text.length > maxContentLength
-            ? documentContent.text.slice(0, maxContentLength) + "... [truncated due to length]"
-            : documentContent.text;
+        // Split into paragraphs/sections
+        const sections = cleanedText.split('\n\n').filter((s: string) => s.trim().length > 0);
+        console.log(`\nSplit into ${sections.length} sections`);
 
-        console.log('Document stats after truncation:', {
-            finalLength: truncatedText.length,
-            wasTruncated: truncatedText.length !== documentContent.text.length,
-            truncatedAmount: documentContent.text.length - truncatedText.length,
-            estimatedTokens: countTokens(truncatedText)
+        // Create runtime object for embeddings
+        const runtime = {
+            agentId: crypto.randomUUID(),
+            serverUrl: process.env.AGENT_SERVER_URL || 'http://localhost:3000',
+            databaseAdapter: null as any,
+            token: null,
+            modelProvider: ModelProviderName.ANTHROPIC,
+            imageModelProvider: ModelProviderName.ANTHROPIC,
+            imageVisionModelProvider: ModelProviderName.ANTHROPIC,
+            character: {
+                name: characterName,
+                modelProvider: ModelProviderName.ANTHROPIC,
+                bio: "",
+                lore: [],
+                messageExamples: [],
+                postExamples: [],
+                topics: [],
+                adjectives: [],
+                clients: [],
+                plugins: [],
+                style: {
+                    all: [],
+                    chat: [],
+                    post: []
+                }
+            },
+            providers: [],
+            actions: [],
+            evaluators: [],
+            plugins: [],
+            fetch: fetch as any,
+            messageManager: null as any,
+            descriptionManager: null as any,
+            documentsManager: null as any,
+            knowledgeManager: null as any,
+            ragKnowledgeManager: null as any,
+            loreManager: null as any,
+            cacheManager: null as any,
+            services: new Map(),
+            clients: {},
+            initialize: async () => {},
+            registerMemoryManager: () => {},
+            getMemoryManager: () => null,
+            getService: () => null,
+            registerService: () => {},
+            getSetting: (key: string): string | null => {
+                if (key === "ANTHROPIC_API_KEY") {
+                    const apiKey = characterSettings.settings?.secrets?.ANTHROPIC_API_KEY;
+                    return apiKey || null;
+                }
+                return null;
+            },
+            getConversationLength: () => 0,
+            processActions: async () => {},
+            evaluate: async () => null,
+            ensureParticipantExists: async () => {},
+            ensureUserExists: async () => {},
+            registerAction: () => {},
+            ensureConnection: async () => {},
+            ensureParticipantInRoom: async () => {},
+            ensureRoomExists: async () => {},
+            composeState: async () => ({
+                bio: "",
+                lore: "",
+                messageDirections: "",
+                postDirections: "",
+                roomId: crypto.randomUUID(),
+                actors: "",
+                recentMessages: "",
+                recentMessagesData: []
+            }),
+            updateRecentMessageState: async () => ({
+                bio: "",
+                lore: "",
+                messageDirections: "",
+                postDirections: "",
+                roomId: crypto.randomUUID(),
+                actors: "",
+                recentMessages: "",
+                recentMessagesData: []
+            })
+        };
+
+        // Generate embeddings for each section
+        console.log('\n=== Generating Section Embeddings ===');
+        const sectionEmbeddings = await Promise.all(
+            sections.map(async (section: string) => {
+                const embedding = await embed(runtime, section);
+                return {
+                    text: section,
+                    embedding
+                };
+            })
+        );
+
+        // Generate embedding for entire document to use as reference
+        console.log('\nGenerating document-level embedding');
+        const documentEmbedding = await embed(runtime, cleanedText);
+
+        // Calculate similarity scores between document and each section
+        const sectionScores = sectionEmbeddings.map((section, index) => {
+            const similarity = cosineSimilarity(documentEmbedding, section.embedding);
+            return {
+                index,
+                text: section.text,
+                similarity,
+                length: section.text.length
+            };
         });
 
-        // First, get a concise summary from Claude directly
-        console.log('\nPreparing Claude summary request...');
+        // Sort sections by similarity score
+        const sortedSections = sectionScores
+            .sort((a, b) => b.similarity - a.similarity)
+            .slice(0, 5); // Take top 5 most relevant sections
+
+        console.log('\n=== Most Relevant Sections ===');
+        sortedSections.forEach((section, i) => {
+            console.log(`\nSection ${i + 1}:`, {
+                similarity: section.similarity,
+                length: section.length,
+                preview: section.text.slice(0, 100) + '...'
+            });
+        });
+
+        // Combine top sections into a summary
+        const relevantContent = sortedSections
+            .map(s => s.text)
+            .join('\n\n');
+
+        // Calculate tokens for relevant content
+        const contentTokens = countTokens(relevantContent);
+        console.log('\nToken count breakdown:', {
+            relevantContentLength: relevantContent.length,
+            relevantContentTokens: contentTokens,
+            sectionsCount: sortedSections.length,
+            sectionsLengths: sortedSections.map(s => s.text.length),
+            sectionsTokenCounts: sortedSections.map(s => countTokens(s.text))
+        });
+
+        // If content is too long, take only the most relevant sections that fit within limits
+        let truncatedContent = relevantContent;
+        if (contentTokens > 10000) { // More conservative limit for Claude
+            console.log('Content too long, truncating to fit token limits...');
+            truncatedContent = sortedSections
+                .reduce((acc, section) => {
+                    const potentialContent = acc + '\n\n' + section.text;
+                    const potentialTokens = countTokens(potentialContent);
+                    console.log('Section addition check:', {
+                        currentLength: acc.length,
+                        sectionLength: section.text.length,
+                        potentialLength: potentialContent.length,
+                        currentTokens: countTokens(acc),
+                        sectionTokens: countTokens(section.text),
+                        potentialTokens
+                    });
+                    if (potentialTokens < 10000) { // More conservative limit
+                        return potentialContent;
+                    }
+                    return acc;
+                }, '');
+            console.log('Truncation results:', {
+                originalLength: relevantContent.length,
+                truncatedLength: truncatedContent.length,
+                originalTokens: contentTokens,
+                truncatedTokens: countTokens(truncatedContent)
+            });
+        }
+
+        console.log('\n=== Creating Final Summary ===');
         const apiKey = characterSettings.settings?.secrets?.ANTHROPIC_API_KEY;
         if (!apiKey) {
             throw new Error('No Anthropic API key found in character settings');
         }
 
-        // Split content into smaller chunks for summarization (about 1k tokens per chunk)
-        const chunkSize = 4000;
-        const chunks = [];
-        for (let i = 0; i < truncatedText.length; i += chunkSize) {
-            chunks.push(truncatedText.slice(i, i + chunkSize));
-        }
-        console.log(`Split content into ${chunks.length} chunks for summarization`);
+        // Use our core text generation with proper token management
+        const finalPrompt = `Create a concise insight in exactly 250 characters that captures the key points from this content:
 
-        // Get summary for each chunk
-        const chunkSummaries = [];
-        for (let i = 0; i < chunks.length; i++) {
-            console.log(`\nProcessing chunk ${i + 1} of ${chunks.length}`);
-            const chunk = chunks[i];
-
-            const chunkPrompt = `Analyze this document section and extract a specific, investment-relevant insight in exactly 150 characters. Focus on the convergence of natural wisdom and technological innovation.
-
-Title: ${documentContent.metadata?.frontmatter?.title || documentContent.title || 'Untitled'}
-Source: ${documentContent.metadata?.frontmatter?.source || documentContent.source || 'Unknown'}
-Content: ${chunk}
+${truncatedContent}
 
 Requirements:
-1. Identify specific market opportunities, trends, or technological breakthroughs
-2. Highlight how this connects to natural systems or sustainable principles
-3. Include concrete metrics, growth rates, or market sizes when available
-4. Frame the insight in terms of investment potential or strategic importance
-5. Reference the specific source document/report`;
+- Focus on specific facts and metrics
+- Keep it clear and direct
+- Do not include any prefixes or source information`;
 
-            const promptTokens = countTokens(chunkPrompt);
-            console.log('Chunk summary request stats:', {
-                promptLength: chunkPrompt.length,
-                chunkLength: chunk.length,
-                estimatedTokens: promptTokens,
-                isWithinLimit: promptTokens < 15000
+        // Double check token count before sending
+        const promptTokens = countTokens(finalPrompt);
+        console.log('\nFinal prompt analysis:', {
+            promptLength: finalPrompt.length,
+            promptTokens,
+            contentLength: truncatedContent.length,
+            contentTokens: countTokens(truncatedContent),
+            requirementsLength: finalPrompt.length - truncatedContent.length,
+            requirementsTokens: countTokens(finalPrompt.slice(truncatedContent.length))
+        });
+
+        if (promptTokens > 10000) {
+            console.log('Warning: Prompt still too long, truncating further...');
+            truncatedContent = truncatedContent.slice(0, 40000); // Roughly 10000 tokens
+            console.log('Further truncation results:', {
+                newLength: truncatedContent.length,
+                newTokens: countTokens(truncatedContent)
             });
+        }
 
-            if (promptTokens >= 15000) {
-                console.log('Warning: Chunk too large, splitting further');
-                const subChunks = [];
-                const subChunkSize = chunk.length / 2;
-                for (let j = 0; j < chunk.length; j += subChunkSize) {
-                    subChunks.push(chunk.slice(j, j + subChunkSize));
-                }
+        console.log('\nGenerating summary using text generation...');
+        try {
+            console.log('Runtime settings:', {
+                modelProvider: runtime.modelProvider,
+                maxInputTokens: runtime.getSetting('maxInputTokens'),
+                maxOutputTokens: runtime.getSetting('maxOutputTokens'),
+                temperature: runtime.getSetting('temperature'),
+                maxPromptTokens: runtime.getSetting('maxPromptTokens')
+            });
+            console.log('Prompt length:', finalPrompt.length);
+            console.log('Estimated tokens:', countTokens(finalPrompt));
 
-                for (const subChunk of subChunks) {
-                    const subPrompt = `Summarize this section of the document in exactly 75 characters. Focus on key insights and facts. Here's the section:
-
-Title: ${documentContent.metadata?.frontmatter?.title || documentContent.title || 'Untitled'}
-Source: ${documentContent.metadata?.frontmatter?.source || documentContent.source || 'Unknown'}
-Content: ${subChunk}`;
-
-                    const subResponse = await fetch('https://api.anthropic.com/v1/messages', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'x-api-key': apiKey,
-                            'anthropic-version': '2023-06-01'
-                        },
-                        body: JSON.stringify({
-                            model: 'claude-3-sonnet-20240229',
-                            max_tokens: 100,
-                            messages: [{
-                                role: 'user',
-                                content: subPrompt
-                            }]
-                        })
-                    });
-
-                    if (!subResponse.ok) {
-                        throw new Error(`Claude API error: ${subResponse.status} ${subResponse.statusText}`);
-                    }
-
-                    const subSummaryData = await subResponse.json();
-                    chunkSummaries.push(subSummaryData.content[0].text);
-                }
-                continue;
-            }
-
-            const summaryResponse = await fetch('https://api.anthropic.com/v1/messages', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': apiKey,
-                    'anthropic-version': '2023-06-01'
+            const finalSummary = await generateText({
+                runtime: {
+                    ...runtime,
+                    agentId: crypto.randomUUID() // Generate a new agent ID for this call
                 },
-                body: JSON.stringify({
-                    model: 'claude-3-sonnet-20240229',
-                    max_tokens: 200,
-                    messages: [{
-                        role: 'user',
-                        content: chunkPrompt
-                    }]
-                })
+                context: finalPrompt,
+                modelClass: ModelClass.SMALL,
+                maxSteps: 1
             });
-
-            if (!summaryResponse.ok) {
-                const errorText = await summaryResponse.text();
-                let parsedError;
-                try {
-                    parsedError = JSON.parse(errorText);
-                } catch {
-                    parsedError = { raw: errorText.slice(0, 500) + '...' }; // Truncate raw error text
+            console.log('Summary generation successful:', {
+                summaryLength: finalSummary.length,
+                summaryTokens: countTokens(finalSummary)
+            });
+        } catch (error) {
+            console.error('Error in generateText:', error);
+            console.error('Error context:', {
+                promptLength: finalPrompt.length,
+                promptTokens: countTokens(finalPrompt),
+                truncatedContentLength: truncatedContent.length,
+                truncatedContentTokens: countTokens(truncatedContent),
+                runtimeSettings: {
+                    modelProvider: runtime.modelProvider,
+                    maxInputTokens: runtime.getSetting('maxInputTokens'),
+                    maxOutputTokens: runtime.getSetting('maxOutputTokens'),
+                    temperature: runtime.getSetting('temperature'),
+                    maxPromptTokens: runtime.getSetting('maxPromptTokens')
                 }
-
-                // Create a sanitized version of the error details
-                const sanitizedError = {
-                    status: summaryResponse.status,
-                    statusText: summaryResponse.statusText,
-                    headers: Object.fromEntries(
-                        Object.entries(Object.fromEntries(summaryResponse.headers.entries()))
-                            .filter(([key]) => !key.toLowerCase().includes('authorization'))
-                    ),
-                    error: typeof parsedError.error === 'string'
-                        ? parsedError.error.slice(0, 500) + '...'
-                        : parsedError.error
-                };
-
-                console.error('\nClaude API Error Details:', sanitizedError);
-                throw new Error(`Claude API error (${summaryResponse.status}): ${sanitizedError.error || summaryResponse.statusText}`);
-            }
-
-            const summaryData = await summaryResponse.json();
-            const chunkSummary = summaryData.content[0].text;
-            chunkSummaries.push(chunkSummary);
-
-            // Add a small delay between chunks to avoid rate limiting
-            if (i < chunks.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
+            });
+            throw error;
         }
 
-        // Combine chunk summaries and get final summary
-        const combinedSummary = chunkSummaries.join('\n\n');
-        console.log('\nChunk summaries combined:', {
-            numberOfChunks: chunkSummaries.length,
-            totalLength: combinedSummary.length,
-            estimatedTokens: countTokens(combinedSummary)
-        });
-
-        // Get final summary from combined chunk summaries
-        const finalSummaryPrompt = `Create a concise, investment-focused insight in exactly this format:
-
-[Specific fact/metric about technological trend], mirroring [natural system parallel]. Like [deeper nature analogy], this [what it means for the future]. Strategic implication: [clear investment takeaway].
-
-Requirements:
-- Start with a concrete metric or specific fact
-- Draw a clear parallel to a natural system
-- Expand the nature analogy to explain significance
-- End with an actionable investment insight
-- Focus on exponential growth and emerging patterns
-- Keep total response under 280 chars
-- Write in a clear, direct style
-- Do not include "Key insight from" or other prefixes
-- Do not include the source URL (it will be added automatically)
-
-Here are the section summaries:
-${combinedSummary}`;
-
-        console.log('\nFinal summary request stats:', {
-            promptLength: finalSummaryPrompt.length,
-            estimatedTokens: countTokens(finalSummaryPrompt)
-        });
-
-        const finalSummaryResponse = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': apiKey,
-                'anthropic-version': '2023-06-01'
-            },
-            body: JSON.stringify({
-                model: 'claude-3-sonnet-20240229',
-                max_tokens: 500,
-                messages: [{
-                    role: 'user',
-                    content: finalSummaryPrompt
-                }]
-            })
-        });
-
-        if (!finalSummaryResponse.ok) {
-            const errorText = await finalSummaryResponse.text();
-            let parsedError;
-            try {
-                parsedError = JSON.parse(errorText);
-            } catch {
-                parsedError = { raw: errorText.slice(0, 500) + '...' }; // Truncate raw error text
-            }
-
-            // Create a sanitized version of the error details
-            const sanitizedError = {
-                status: finalSummaryResponse.status,
-                statusText: finalSummaryResponse.statusText,
-                headers: Object.fromEntries(
-                    Object.entries(Object.fromEntries(finalSummaryResponse.headers.entries()))
-                        .filter(([key]) => !key.toLowerCase().includes('authorization'))
-                ),
-                error: typeof parsedError.error === 'string'
-                    ? parsedError.error.slice(0, 500) + '...'
-                    : parsedError.error
-            };
-
-            console.error('\nClaude API Error Details:', sanitizedError);
-            throw new Error(`Claude API error (${finalSummaryResponse.status}): ${sanitizedError.error || finalSummaryResponse.statusText}`);
-        }
-
-        const finalSummaryData = await finalSummaryResponse.json();
-        const summary = finalSummaryData.content[0].text;
-
-        // Remove any unwanted prefixes
-        const cleanSummary = summary
-            .replace(/^Here(?:'s| is) a \d+-character summary.*?:\s*/i, '')
-            .replace(/^Summary:?\s*/i, '')
-            .replace(/^Here are the key insights.*?:\s*/i, '')
-            .replace(/^Here is a summary.*?:\s*/i, '')
-            .trim();
-
-        const truncatedSummary = cleanSummary.slice(0, 500) + (cleanSummary.length > 500 ? '...' : '');
-
-        // Get the actual source from frontmatter or content
+        // Get the source information
         const sourceUrl = documentContent.metadata?.frontmatter?.source || documentContent.source || 'Unknown';
         const sourceName = documentContent.metadata?.frontmatter?.title ||
                          documentContent.metadata?.frontmatter?.newsletter ||
                          documentContent.title ||
                          (sourceUrl.includes('exponentialview.co') ? 'Exponential View' : 'Unknown');
 
-        // Format broadcast text with source in the desired style
+        // Format broadcast text with source
         const broadcastText = sourceUrl === 'Unknown'
-            ? truncatedSummary
-            : `${truncatedSummary} Source: ${sourceName} [${sourceUrl}]`;
+            ? truncatedContent
+            : `${truncatedContent} Source: ${sourceName} [${sourceUrl}]`;
 
-        // Save directly to memories
+        // Save to memories
         const messageId = await saveMessageToMemories(broadcastText);
         await recordBroadcast(document.id, messageId);
 
@@ -552,9 +621,23 @@ ${combinedSummary}`;
             }
         }];
     } catch (error) {
-        console.error("\nERROR in createBroadcastMessage:", error instanceof Error ? error.message : 'Unknown error');
+        console.error("\n❌ ERROR IN BROADCAST MESSAGE CREATION ❌");
+        console.error("==========================================");
+        console.error("Process ID:", process.pid);
+        console.error("Timestamp:", new Date().toISOString());
+        console.error("Error:", error instanceof Error ? error.message : 'Unknown error');
+        console.error("Stack:", error instanceof Error ? error.stack : 'No stack trace');
+        console.error("==========================================\n");
         throw error;
     }
+}
+
+// Helper function to calculate cosine similarity between embeddings
+function cosineSimilarity(embedding1: number[], embedding2: number[]): number {
+    const dotProduct = embedding1.reduce((sum, a, i) => sum + a * embedding2[i], 0);
+    const norm1 = Math.sqrt(embedding1.reduce((sum, a) => sum + a * a, 0));
+    const norm2 = Math.sqrt(embedding2.reduce((sum, a) => sum + a * a, 0));
+    return dotProduct / (norm1 * norm2);
 }
 
 // Get character name from command line arguments
