@@ -94,7 +94,7 @@ export const models: Models = {
                 name:
                     settings.SMALL_ANTHROPIC_MODEL || "claude-3-haiku-20240307",
                 stop: [],
-                maxInputTokens: 200000,
+                maxInputTokens: 100000,
                 maxOutputTokens: 4096,
                 frequency_penalty: 0.4,
                 presence_penalty: 0.4,
@@ -105,7 +105,7 @@ export const models: Models = {
                     settings.MEDIUM_ANTHROPIC_MODEL ||
                     "claude-3-5-sonnet-20241022",
                 stop: [],
-                maxInputTokens: 200000,
+                maxInputTokens: 100000,
                 maxOutputTokens: 4096,
                 frequency_penalty: 0.4,
                 presence_penalty: 0.4,
@@ -117,7 +117,7 @@ export const models: Models = {
                     settings.LARGE_ANTHROPIC_MODEL ||
                     "claude-3-5-sonnet-20241022",
                 stop: [],
-                maxInputTokens: 200000,
+                maxInputTokens: 100000,
                 maxOutputTokens: 4096,
                 frequency_penalty: 0.4,
                 presence_penalty: 0.4,
