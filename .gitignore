@@ -66,3 +66,7 @@ eliza.sig
 
 # Ignore all character files
 characters/*.character.json
+
+# Editor/IDE files
+.cursor/
+.specstory/
