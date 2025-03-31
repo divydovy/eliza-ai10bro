@@ -6,7 +6,7 @@ import Database from 'better-sqlite3';
 import crypto from 'node:crypto';
 import { encodingForModel } from "js-tiktoken";
 import fetch from 'node-fetch';
-import { getEmbeddingZeroVector, generateText, ModelProviderName, ModelClass, Character, embed } from "@elizaos/core";
+import { getEmbeddingZeroVector, generateText, ModelProviderName, ModelClass, Character, embed } from "../packages/core/dist/index.js";
 
 console.log('Starting broadcast message creation...');
 
@@ -52,12 +52,30 @@ interface BroadcastMessage {
 
 interface CharacterSettings {
     name: string;
+    modelProvider?: ModelProviderName;
+    bio?: string[];
+    lore?: string[];
+    messageExamples?: any[];
+    postExamples?: string[];
+    topics?: string[];
+    adjectives?: string[];
+    clients?: string[];
+    plugins?: string[];
+    style?: {
+        all: string[];
+        chat: string[];
+        post: string[];
+    };
     settings?: {
         broadcastPrompt?: string;
         secrets?: {
             ANTHROPIC_API_KEY?: string;
         };
         serverPort?: number;
+        maxInputTokens?: number;
+        maxOutputTokens?: number;
+        temperature?: number;
+        maxPromptTokens?: number;
     };
 }
 
@@ -293,6 +311,12 @@ async function createBroadcastMessage(characterName: string = 'c3po') {
         const characterSettings: CharacterSettings = JSON.parse(fs.readFileSync(characterPath, 'utf-8'));
         console.log('✅ Successfully loaded character settings');
 
+        // Set the Anthropic API key from character settings
+        if (characterSettings.settings?.secrets?.ANTHROPIC_API_KEY) {
+            process.env.ANTHROPIC_API_KEY = characterSettings.settings.secrets.ANTHROPIC_API_KEY;
+            console.log('✅ Successfully set Anthropic API key from character settings');
+        }
+
         // Get next document to broadcast
         const document = await getNextUnbroadcastDocument();
         if (!document) {
@@ -348,21 +372,21 @@ async function createBroadcastMessage(characterName: string = 'c3po') {
             serverUrl: process.env.AGENT_SERVER_URL || 'http://localhost:3000',
             databaseAdapter: null as any,
             token: null,
-            modelProvider: ModelProviderName.ANTHROPIC,
-            imageModelProvider: ModelProviderName.ANTHROPIC,
-            imageVisionModelProvider: ModelProviderName.ANTHROPIC,
+            modelProvider: characterSettings.modelProvider || ModelProviderName.ANTHROPIC,
+            imageModelProvider: characterSettings.modelProvider || ModelProviderName.ANTHROPIC,
+            imageVisionModelProvider: characterSettings.modelProvider || ModelProviderName.ANTHROPIC,
             character: {
                 name: characterName,
-                modelProvider: ModelProviderName.ANTHROPIC,
-                bio: "",
-                lore: [],
-                messageExamples: [],
-                postExamples: [],
-                topics: [],
-                adjectives: [],
-                clients: [],
-                plugins: [],
-                style: {
+                modelProvider: characterSettings.modelProvider || ModelProviderName.ANTHROPIC,
+                bio: characterSettings.bio || "",
+                lore: characterSettings.lore || [],
+                messageExamples: characterSettings.messageExamples || [],
+                postExamples: characterSettings.postExamples || [],
+                topics: characterSettings.topics || [],
+                adjectives: characterSettings.adjectives || [],
+                clients: characterSettings.clients || [],
+                plugins: characterSettings.plugins || [],
+                style: characterSettings.style || {
                     all: [],
                     chat: [],
                     post: []
@@ -373,7 +397,37 @@ async function createBroadcastMessage(characterName: string = 'c3po') {
             evaluators: [],
             plugins: [],
             fetch: fetch as any,
-            messageManager: null as any,
+            messageManager: {
+                getCachedEmbeddings: async (input: string) => {
+                    return [{
+                        embedding: getEmbeddingZeroVector(),
+                        levenshtein_score: 0
+                    }];
+                },
+                setCachedEmbeddings: async () => {},
+                runtime: {} as any,
+                tableName: 'messages',
+                addEmbeddingToMemory: async () => ({
+                    id: crypto.randomUUID(),
+                    type: 'messages',
+                    content: '',
+                    createdAt: Date.now(),
+                    embedding: getEmbeddingZeroVector()
+                }),
+                getMemoryById: async () => null,
+                getMemories: async () => [],
+                getMemory: async () => null,
+                saveMemory: async () => null,
+                updateMemory: async () => null,
+                deleteMemory: async () => null,
+                searchMemories: async () => [],
+                searchMemoriesByEmbedding: async () => [],
+                getMemoriesByRoomIds: async () => [],
+                createMemory: async () => {},
+                removeMemory: async () => {},
+                removeAllMemories: async () => {},
+                countMemories: async () => 0
+            },
             descriptionManager: null as any,
             documentsManager: null as any,
             knowledgeManager: null as any,
@@ -389,8 +443,19 @@ async function createBroadcastMessage(characterName: string = 'c3po') {
             registerService: () => {},
             getSetting: (key: string): string | null => {
                 if (key === "ANTHROPIC_API_KEY") {
-                    const apiKey = characterSettings.settings?.secrets?.ANTHROPIC_API_KEY;
-                    return apiKey || null;
+                    return characterSettings.settings?.secrets?.ANTHROPIC_API_KEY || null;
+                }
+                if (key === "maxInputTokens") {
+                    return characterSettings.settings?.maxInputTokens?.toString() || null;
+                }
+                if (key === "maxOutputTokens") {
+                    return characterSettings.settings?.maxOutputTokens?.toString() || null;
+                }
+                if (key === "temperature") {
+                    return characterSettings.settings?.temperature?.toString() || null;
+                }
+                if (key === "maxPromptTokens") {
+                    return characterSettings.settings?.maxPromptTokens?.toString() || null;
                 }
                 return null;
             },
@@ -429,7 +494,7 @@ async function createBroadcastMessage(characterName: string = 'c3po') {
         console.log('\n=== Generating Section Embeddings ===');
         const sectionEmbeddings = await Promise.all(
             sections.map(async (section: string) => {
-                const embedding = await embed(runtime, section);
+                const embedding = await embed(runtime as any, section);
                 return {
                     text: section,
                     embedding
@@ -439,7 +504,7 @@ async function createBroadcastMessage(characterName: string = 'c3po') {
 
         // Generate embedding for entire document to use as reference
         console.log('\nGenerating document-level embedding');
-        const documentEmbedding = await embed(runtime, cleanedText);
+        const documentEmbedding = await embed(runtime as any, cleanedText);
 
         // Calculate similarity scores between document and each section
         const sectionScores = sectionEmbeddings.map((section, index) => {
@@ -562,7 +627,7 @@ Requirements:
                 runtime: {
                     ...runtime,
                     agentId: crypto.randomUUID() // Generate a new agent ID for this call
-                },
+                } as any,
                 context: finalPrompt,
                 modelClass: ModelClass.SMALL,
                 maxSteps: 1

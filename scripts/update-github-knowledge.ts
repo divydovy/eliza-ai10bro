@@ -31,8 +31,8 @@ async function main() {
 
         // Check GitHub repository settings
         const githubToken = characterSettings.settings?.secrets?.GITHUB_TOKEN;
-        const githubRepoUrl = characterSettings.settings?.secrets?.GITHUB_REPO_URL;
-        const githubTargetPath = characterSettings.settings?.secrets?.GITHUB_TARGET_PATH;
+        const githubRepoUrl = characterSettings.settings?.GITHUB_REPO_URL;
+        const githubTargetPath = characterSettings.settings?.GITHUB_TARGET_PATH;
 
         console.log('GitHub settings:', {
             hasToken: !!githubToken,
