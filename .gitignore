@@ -70,3 +70,7 @@ characters/*.character.json
 # Editor/IDE files
 .cursor/
 .specstory/
+
+# Dashboard state files
+.eliza/
+agent/rag-state/
