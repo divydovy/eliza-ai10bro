@@ -7,6 +7,7 @@ import crypto from 'node:crypto';
 import { encodingForModel } from "js-tiktoken";
 import fetch from 'node-fetch';
 import { getEmbeddingZeroVector, generateText, ModelProviderName, ModelClass, Character, embed } from "../packages/core/dist/index.js";
+import { Anthropic } from "@anthropic-ai/sdk";
 
 console.log('Starting broadcast message creation...');
 
@@ -15,20 +16,27 @@ console.log('Database path:', dbPath);
 const db = new Database(dbPath);
 console.log('Successfully connected to database');
 
-// Ensure broadcasts table exists
+// Ensure broadcasts table exists with new schema
 await db.exec(`
-  CREATE TABLE IF NOT EXISTS broadcasts (
-    id TEXT PRIMARY KEY,
-    documentId TEXT NOT NULL,
-    createdAt INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    messageId TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'pending',
-    FOREIGN KEY (documentId) REFERENCES memories(id)
-  );
+    DROP TABLE IF EXISTS broadcasts;
 
-  CREATE INDEX IF NOT EXISTS idx_broadcasts_documentid ON broadcasts(documentId);
-  CREATE INDEX IF NOT EXISTS idx_broadcasts_status ON broadcasts(status);
-  CREATE INDEX IF NOT EXISTS idx_broadcasts_createdat ON broadcasts(createdAt);
+    CREATE TABLE IF NOT EXISTS broadcasts (
+        id TEXT PRIMARY KEY,
+        documentId TEXT NOT NULL,
+        createdAt INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
+        telegram_message_id TEXT,
+        telegram_status TEXT DEFAULT 'pending',
+        telegram_sent_at INTEGER,
+        twitter_message_id TEXT,
+        twitter_status TEXT DEFAULT 'pending',
+        twitter_sent_at INTEGER,
+        FOREIGN KEY (documentId) REFERENCES memories(id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_broadcasts_documentid ON broadcasts(documentId);
+    CREATE INDEX IF NOT EXISTS idx_broadcasts_telegram_status ON broadcasts(telegram_status);
+    CREATE INDEX IF NOT EXISTS idx_broadcasts_twitter_status ON broadcasts(twitter_status);
+    CREATE INDEX IF NOT EXISTS idx_broadcasts_createdat ON broadcasts(createdAt);
 `);
 
 interface MessageContent {
@@ -79,6 +87,45 @@ interface CharacterSettings {
     };
 }
 
+interface Memory {
+    type: 'messages' | 'documents' | 'fragments';
+    content: string;
+}
+
+interface PlatformMessage {
+    telegram?: {
+        text: string;
+        format: 'markdown' | 'html' | 'plain';
+    };
+    twitter?: {
+        text: string;
+        threadId?: string;
+    };
+}
+
+interface BroadcastResult {
+    telegramId?: string;
+    twitterId?: string;
+}
+
+interface BroadcastRecord {
+    id: string;
+    documentId: string;
+    platforms: {
+        telegram?: {
+            messageId: string;
+            status: 'pending' | 'sent' | 'failed';
+            sentAt?: number;
+        };
+        twitter?: {
+            messageId: string;
+            status: 'pending' | 'sent' | 'failed';
+            sentAt?: number;
+        };
+    };
+    createdAt: number;
+}
+
 function countTokens(text: string): number {
     try {
         // Use Claude's tokenizer which is roughly 1 token per 4 characters
@@ -89,211 +136,115 @@ function countTokens(text: string): number {
     }
 }
 
-async function getNextUnbroadcastDocument(): Promise<DatabaseMemory | undefined> {
-    console.log('\n=== Finding Next Document ===');
-
-    // Find the oldest document that hasn't been broadcast yet and isn't already being processed
-    const nextDocument = db.prepare(`
-        SELECT m1.id, m1.content, m1.createdAt
-        FROM memories m1
-        WHERE m1.type = 'documents'
-        AND json_extract(m1.content, '$.metadata.frontmatter.source') IS NOT NULL
-        AND json_extract(m1.content, '$.text') NOT LIKE '%ACTION:%'
-        AND json_extract(m1.content, '$.text') NOT LIKE '%Instructions:%'
-        AND json_extract(m1.content, '$.text') NOT LIKE '%system%'
-        AND json_extract(m1.content, '$.text') NOT LIKE '%Response format%'
-        AND json_extract(m1.content, '$.text') NOT LIKE '%\`\`\`json%'
-        AND json_extract(m1.content, '$.text') NOT LIKE '%<sup>%'
-        AND json_extract(m1.content, '$.text') NOT LIKE '%###%'
-        AND json_extract(m1.content, '$.metadata.action') IS NULL
-        AND length(json_extract(m1.content, '$.text')) < 50000
+function getNextUnbroadcastDocument(): DatabaseMemory | undefined {
+    // Get the oldest document that hasn't been broadcast yet and isn't currently being processed
+    const doc = db.prepare(`
+        SELECT m.* FROM memories m
+        WHERE m.type = 'documents'
+        AND json_valid(m.content)
+        AND json_extract(m.content, '$.metadata.frontmatter') IS NOT NULL
+        AND json_extract(m.content, '$.metadata.frontmatter.title') IS NOT NULL
+        AND json_extract(m.content, '$.metadata.frontmatter.source') IS NOT NULL
+        AND json_extract(m.content, '$.text') NOT LIKE '%This is a test document%'
         AND NOT EXISTS (
             SELECT 1 FROM broadcasts b
-            WHERE b.documentId = m1.id
-            AND (b.status = 'pending' OR b.status = 'sent')
+            WHERE b.documentId = m.id
+            AND (b.telegram_status = 'pending' OR b.telegram_status = 'sent'
+                 OR b.twitter_status = 'pending' OR b.twitter_status = 'sent')
         )
-        ORDER BY m1.createdAt ASC
+        ORDER BY m.createdAt ASC
         LIMIT 1
     `).get() as DatabaseMemory | undefined;
 
-    if (nextDocument) {
-        const content = JSON.parse(nextDocument.content);
-        const text = content.text || '';
-        const tokenCount = countTokens(text);
-
-        console.log('\nDocument found:', {
-            id: nextDocument.id,
-            createdAt: new Date(nextDocument.createdAt).toISOString(),
-            title: content.title || 'No title',
-            textLength: text.length,
-            tokenCount,
-            hasMetadata: !!content.metadata,
-            hasFrontmatter: !!content.metadata?.frontmatter,
-            source: content.metadata?.frontmatter?.source || content.source || 'Unknown'
-        });
-
-        // Skip if token count is too high
-        if (tokenCount > 100000) {
-            console.log('Document token count too high, skipping');
-            return undefined;
-        }
-
-        // Log first 200 chars of content to see what we're dealing with
-        console.log('\nContent preview:', text.slice(0, 200) + '...');
-    } else {
-        console.log('No unbroadcast documents found');
-    }
-
-    return nextDocument;
+    return doc;
 }
 
-async function saveMessageToMemories(text: string): Promise<string> {
-    console.log('\nSaving message to memories...');
+async function generatePlatformMessages(content: string, metadata: any): Promise<PlatformMessage> {
+    const sourceUrl = metadata?.frontmatter?.source || metadata.source || 'Unknown';
+
+    // For Telegram, we can include more formatting and detail
+    const telegramText = content + (sourceUrl !== 'Unknown' ? `\n\n🔗 [Read more](${sourceUrl})` : '');
+
+    // For Twitter, we need to ensure we're within limits
+    const twitterMaxLength = 280 - (sourceUrl !== 'Unknown' ? sourceUrl.length + 1 : 0);
+    let twitterText = content;
+    if (sourceUrl !== 'Unknown') {
+        if (twitterText.length > twitterMaxLength) {
+            twitterText = twitterText.slice(0, twitterMaxLength - 4) + '... ' + sourceUrl;
+        } else {
+            twitterText = twitterText + ' ' + sourceUrl;
+        }
+    }
+
+    return {
+        telegram: {
+            text: telegramText,
+            format: 'markdown'
+        },
+        twitter: {
+            text: twitterText
+        }
+    };
+}
+
+async function saveMessageToMemories(message: Memory): Promise<string> {
     const id = crypto.randomUUID();
-    const content = JSON.stringify({
-        text,
-        type: 'broadcast',
-        source: 'agent'
-    });
-
-    // Use the core utility function for zero embeddings
-    const zeroEmbedding = getEmbeddingZeroVector();
-
     db.prepare(`
         INSERT INTO memories (id, type, content, createdAt, embedding)
-        VALUES (?, 'messages', ?, unixepoch() * 1000, ?)
-    `).run(id, content, JSON.stringify(zeroEmbedding));
-
-    console.log('Successfully saved message to memories');
+        VALUES (?, ?, ?, ?, ?)
+    `).run(id, message.type, message.content, Date.now(), JSON.stringify(getEmbeddingZeroVector()));
     return id;
 }
 
-async function recordBroadcast(documentId: string, messageId: string) {
-    console.log('\nRecording broadcast in database...');
-    const id = crypto.randomUUID();
+async function savePlatformMessages(messages: PlatformMessage): Promise<BroadcastResult> {
+    const result: BroadcastResult = {};
 
-    db.prepare(`
-        INSERT INTO broadcasts (id, documentId, messageId)
-        VALUES (?, ?, ?)
-    `).run(id, documentId, messageId);
-
-    console.log('Successfully recorded broadcast');
-}
-
-async function sendMessageToAgent(characterName: string, message: any, document: DatabaseMemory) {
-    let serverUrl = process.env.AGENT_SERVER_URL;
-    console.log('\nServer URL debug:', {
-        fromEnv: process.env.AGENT_SERVER_URL,
-        envVars: process.env
-    });
-
-    if (!serverUrl) {
-        // Only use character settings if no AGENT_SERVER_URL is provided
-        const characterPath = path.join(process.cwd(), 'characters', `${characterName}.character.json`);
-        const characterSettings = JSON.parse(fs.readFileSync(characterPath, 'utf-8'));
-        const serverPort = characterSettings.settings?.serverPort || 3000;
-        serverUrl = `http://localhost:${serverPort}`;
-        console.log('\nUsing fallback server URL from character settings:', {
-            serverPort,
-            serverUrl
+    if (messages.telegram) {
+        result.telegramId = await saveMessageToMemories({
+            type: 'messages',
+            content: JSON.stringify({
+                text: messages.telegram.text,
+                format: messages.telegram.format
+            })
         });
     }
 
-    console.log('\nFinal server URL configuration:', {
-        serverUrl,
-        characterName,
-        messageType: message.type
-    });
-
-    console.log('\nSending message to agent:', {
-        characterName,
-        messageType: message.type,
-        messageLength: message.text.length,
-        metadata: message.metadata,
-        serverUrl
-    });
-
-    const response = await fetch(`${serverUrl}/${characterName}/message`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Message-Type': 'system',
-            'X-Exclude-History': 'true'
-        },
-        body: JSON.stringify(message)
-    });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        let parsedError;
-        try {
-            parsedError = JSON.parse(errorText);
-            // Extract just the essential error info
-            const errorMessage = parsedError.error?.message || parsedError.message || 'Unknown error';
-            const errorType = parsedError.error?.type || parsedError.type || 'error';
-            console.error('\nAgent API Error:', {
-                status: response.status,
-                type: errorType,
-                message: errorMessage.slice(0, 200) // Truncate long error messages
-            });
-        } catch {
-            // If JSON parsing fails, just show truncated error text
-            console.error('\nAgent API Error:', {
-                status: response.status,
-                text: errorText.slice(0, 200) + '...'
-            });
-        }
-        throw new Error(`Agent API error (${response.status}): ${response.statusText}`);
+    if (messages.twitter) {
+        result.twitterId = await saveMessageToMemories({
+            type: 'messages',
+            content: JSON.stringify({
+                text: messages.twitter.text,
+                threadId: messages.twitter.threadId
+            })
+        });
     }
 
-    const data = await response.json();
-    console.log('\nReceived response:', {
-        status: response.status,
-        responseLength: data.length,
-        messages: data.map((msg: any) => ({
-            textLength: msg.text?.length,
-            type: msg.type,
-            metadata: msg.metadata,
-            messageId: msg.messageId,
-            id: msg.id
-        }))
-    });
+    return result;
+}
 
-    if (data && Array.isArray(data) && data.length > 0) {
-        console.log("\nBroadcast message created successfully");
+async function recordBroadcast(documentId: string, messageIds: BroadcastResult): Promise<string> {
+    const broadcastId = crypto.randomUUID();
+    db.prepare(`
+        INSERT INTO broadcasts (
+            id,
+            documentId,
+            telegram_message_id,
+            twitter_message_id,
+            telegram_status,
+            twitter_status,
+            createdAt
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+        broadcastId,
+        documentId,
+        messageIds.telegramId,
+        messageIds.twitterId,
+        messageIds.telegramId ? 'pending' : 'failed',
+        messageIds.twitterId ? 'pending' : 'failed',
+        Date.now()
+    );
 
-        // Find the first valid message with text
-        const validMessage = data.find(msg => msg && msg.text && msg.text.trim().length > 0);
-
-        if (validMessage) {
-            console.log("Message text:", validMessage.text);
-
-            // Find the newly created message in the memories table
-            const broadcastMessage = db.prepare(`
-                SELECT id
-                FROM memories
-                WHERE type = 'messages'
-                AND json_extract(content, '$.text') LIKE ?
-                ORDER BY createdAt DESC
-                LIMIT 1
-            `).get(`%${validMessage.text}%`) as BroadcastMessage;
-
-            if (!broadcastMessage) {
-                throw new Error("Could not find broadcast message in memories table");
-            }
-
-            await recordBroadcast(document.id, broadcastMessage.id);
-            return data;
-        } else {
-            console.error("\nERROR: No valid message text found in response");
-            console.error("Response data:", JSON.stringify(data, null, 2));
-            throw new Error("No valid message text in response");
-        }
-    } else {
-        console.error("\nERROR: Invalid or empty response from agent");
-        console.error("Response data:", JSON.stringify(data, null, 2));
-        throw new Error("Invalid or empty response from agent");
-    }
+    return broadcastId;
 }
 
 async function createBroadcastMessage(characterName: string = 'c3po') {
@@ -318,371 +269,71 @@ async function createBroadcastMessage(characterName: string = 'c3po') {
         }
 
         // Get next document to broadcast
-        const document = await getNextUnbroadcastDocument();
+        const document = getNextUnbroadcastDocument();
         if (!document) {
             console.log('❌ No documents to broadcast');
             return [];
         }
 
         const documentContent = JSON.parse(document.content);
+        const broadcastId = crypto.randomUUID();
 
-        console.log('\n🔍 PROCESSING DOCUMENT');
-        console.log('=====================');
-        console.log('Document ID:', document.id);
-        console.log('Initial content stats:', {
-            totalLength: documentContent.text?.length || 0,
-            estimatedTokens: countTokens(documentContent.text || ''),
-            containsAction: documentContent.text?.includes('ACTION:'),
-            containsInstructions: documentContent.text?.includes('Instructions:'),
-            containsSystem: documentContent.text?.includes('system'),
-            containsJson: documentContent.text?.includes('```json')
+        // Use the character's broadcast prompt
+        const broadcastPrompt = characterSettings.settings?.broadcastPrompt ||
+            'Create a focused message (under 280 characters) about the key insight from this content. Be specific about what was learned, why it matters, and what it suggests.';
+
+        const prompt = `${broadcastPrompt.replace('[BROADCAST_REQUEST:id]', `[BROADCAST_REQUEST:${broadcastId}]`)}
+
+Content to analyze:
+${documentContent.text}
+
+Source: ${documentContent.metadata?.frontmatter?.source || documentContent.source || 'Unknown'}`;
+
+        // Let Claude generate the message directly
+        const anthropic = new Anthropic({
+            apiKey: characterSettings.settings?.secrets?.ANTHROPIC_API_KEY
         });
 
-        // Filter out action commands and system content from the text
-        const cleanedText = documentContent.text
-            .split('\n')
-            .filter((line: string) => {
-                const l = line.trim().toLowerCase();
-                const keep = !l.startsWith('action:') &&
-                       !l.startsWith('instructions:') &&
-                       !l.includes('response format') &&
-                       !l.includes('```json') &&
-                       !l.includes('system message');
-
-                if (!keep) {
-                    console.log('Filtering out line:', line.slice(0, 100) + '...');
-                }
-                return keep;
-            })
-            .join('\n');
-
-        console.log('\nAfter filtering:', {
-            originalLength: documentContent.text?.length || 0,
-            cleanedLength: cleanedText.length,
-            removedCharacters: (documentContent.text?.length || 0) - cleanedText.length
+        const response = await anthropic.messages.create({
+            model: "claude-3-sonnet-20240229",
+            max_tokens: 1024,
+            temperature: 0.3,
+            messages: [{ role: "user", content: prompt }]
         });
 
-        // Split into paragraphs/sections
-        const sections = cleanedText.split('\n\n').filter((s: string) => s.trim().length > 0);
-        console.log(`\nSplit into ${sections.length} sections`);
+        // Handle the response content type correctly
+        const content = response.content[0];
+        const summary = content.type === 'text' ? content.text : '';
 
-        // Create runtime object for embeddings
-        const runtime = {
-            agentId: crypto.randomUUID(),
-            serverUrl: process.env.AGENT_SERVER_URL || 'http://localhost:3000',
-            databaseAdapter: null as any,
-            token: null,
-            modelProvider: characterSettings.modelProvider || ModelProviderName.ANTHROPIC,
-            imageModelProvider: characterSettings.modelProvider || ModelProviderName.ANTHROPIC,
-            imageVisionModelProvider: characterSettings.modelProvider || ModelProviderName.ANTHROPIC,
-            character: {
-                name: characterName,
-                modelProvider: characterSettings.modelProvider || ModelProviderName.ANTHROPIC,
-                bio: characterSettings.bio || "",
-                lore: characterSettings.lore || [],
-                messageExamples: characterSettings.messageExamples || [],
-                postExamples: characterSettings.postExamples || [],
-                topics: characterSettings.topics || [],
-                adjectives: characterSettings.adjectives || [],
-                clients: characterSettings.clients || [],
-                plugins: characterSettings.plugins || [],
-                style: characterSettings.style || {
-                    all: [],
-                    chat: [],
-                    post: []
-                }
-            },
-            providers: [],
-            actions: [],
-            evaluators: [],
-            plugins: [],
-            fetch: fetch as any,
-            messageManager: {
-                getCachedEmbeddings: async (input: string) => {
-                    return [{
-                        embedding: getEmbeddingZeroVector(),
-                        levenshtein_score: 0
-                    }];
-                },
-                setCachedEmbeddings: async () => {},
-                runtime: {} as any,
-                tableName: 'messages',
-                addEmbeddingToMemory: async () => ({
-                    id: crypto.randomUUID(),
-                    type: 'messages',
-                    content: '',
-                    createdAt: Date.now(),
-                    embedding: getEmbeddingZeroVector()
-                }),
-                getMemoryById: async () => null,
-                getMemories: async () => [],
-                getMemory: async () => null,
-                saveMemory: async () => null,
-                updateMemory: async () => null,
-                deleteMemory: async () => null,
-                searchMemories: async () => [],
-                searchMemoriesByEmbedding: async () => [],
-                getMemoriesByRoomIds: async () => [],
-                createMemory: async () => {},
-                removeMemory: async () => {},
-                removeAllMemories: async () => {},
-                countMemories: async () => 0
-            },
-            descriptionManager: null as any,
-            documentsManager: null as any,
-            knowledgeManager: null as any,
-            ragKnowledgeManager: null as any,
-            loreManager: null as any,
-            cacheManager: null as any,
-            services: new Map(),
-            clients: {},
-            initialize: async () => {},
-            registerMemoryManager: () => {},
-            getMemoryManager: () => null,
-            getService: () => null,
-            registerService: () => {},
-            getSetting: (key: string): string | null => {
-                if (key === "ANTHROPIC_API_KEY") {
-                    return characterSettings.settings?.secrets?.ANTHROPIC_API_KEY || null;
-                }
-                if (key === "maxInputTokens") {
-                    return characterSettings.settings?.maxInputTokens?.toString() || null;
-                }
-                if (key === "maxOutputTokens") {
-                    return characterSettings.settings?.maxOutputTokens?.toString() || null;
-                }
-                if (key === "temperature") {
-                    return characterSettings.settings?.temperature?.toString() || null;
-                }
-                if (key === "maxPromptTokens") {
-                    return characterSettings.settings?.maxPromptTokens?.toString() || null;
-                }
-                return null;
-            },
-            getConversationLength: () => 0,
-            processActions: async () => {},
-            evaluate: async () => null,
-            ensureParticipantExists: async () => {},
-            ensureUserExists: async () => {},
-            registerAction: () => {},
-            ensureConnection: async () => {},
-            ensureParticipantInRoom: async () => {},
-            ensureRoomExists: async () => {},
-            composeState: async () => ({
-                bio: "",
-                lore: "",
-                messageDirections: "",
-                postDirections: "",
-                roomId: crypto.randomUUID(),
-                actors: "",
-                recentMessages: "",
-                recentMessagesData: []
-            }),
-            updateRecentMessageState: async () => ({
-                bio: "",
-                lore: "",
-                messageDirections: "",
-                postDirections: "",
-                roomId: crypto.randomUUID(),
-                actors: "",
-                recentMessages: "",
-                recentMessagesData: []
-            })
-        };
+        // Extract the broadcast message if using the ID format
+        const broadcastMatch = summary.match(/\[BROADCAST:.*?\](.*?)(?=\[|$)/s);
+        const cleanSummary = (broadcastMatch ? broadcastMatch[1] : summary).trim();
 
-        // Generate embeddings for each section
-        console.log('\n=== Generating Section Embeddings ===');
-        const sectionEmbeddings = await Promise.all(
-            sections.map(async (section: string) => {
-                const embedding = await embed(runtime as any, section);
-                return {
-                    text: section,
-                    embedding
-                };
-            })
-        );
+        // Generate platform-specific messages
+        const platformMessages = await generatePlatformMessages(cleanSummary, documentContent.metadata);
 
-        // Generate embedding for entire document to use as reference
-        console.log('\nGenerating document-level embedding');
-        const documentEmbedding = await embed(runtime as any, cleanedText);
-
-        // Calculate similarity scores between document and each section
-        const sectionScores = sectionEmbeddings.map((section, index) => {
-            const similarity = cosineSimilarity(documentEmbedding, section.embedding);
-            return {
-                index,
-                text: section.text,
-                similarity,
-                length: section.text.length
-            };
-        });
-
-        // Sort sections by similarity score
-        const sortedSections = sectionScores
-            .sort((a, b) => b.similarity - a.similarity)
-            .slice(0, 5); // Take top 5 most relevant sections
-
-        console.log('\n=== Most Relevant Sections ===');
-        sortedSections.forEach((section, i) => {
-            console.log(`\nSection ${i + 1}:`, {
-                similarity: section.similarity,
-                length: section.length,
-                preview: section.text.slice(0, 100) + '...'
-            });
-        });
-
-        // Combine top sections into a summary
-        const relevantContent = sortedSections
-            .map(s => s.text)
-            .join('\n\n');
-
-        // Calculate tokens for relevant content
-        const contentTokens = countTokens(relevantContent);
-        console.log('\nToken count breakdown:', {
-            relevantContentLength: relevantContent.length,
-            relevantContentTokens: contentTokens,
-            sectionsCount: sortedSections.length,
-            sectionsLengths: sortedSections.map(s => s.text.length),
-            sectionsTokenCounts: sortedSections.map(s => countTokens(s.text))
-        });
-
-        // If content is too long, take only the most relevant sections that fit within limits
-        let truncatedContent = relevantContent;
-        if (contentTokens > 10000) { // More conservative limit for Claude
-            console.log('Content too long, truncating to fit token limits...');
-            truncatedContent = sortedSections
-                .reduce((acc, section) => {
-                    const potentialContent = acc + '\n\n' + section.text;
-                    const potentialTokens = countTokens(potentialContent);
-                    console.log('Section addition check:', {
-                        currentLength: acc.length,
-                        sectionLength: section.text.length,
-                        potentialLength: potentialContent.length,
-                        currentTokens: countTokens(acc),
-                        sectionTokens: countTokens(section.text),
-                        potentialTokens
-                    });
-                    if (potentialTokens < 10000) { // More conservative limit
-                        return potentialContent;
-                    }
-                    return acc;
-                }, '');
-            console.log('Truncation results:', {
-                originalLength: relevantContent.length,
-                truncatedLength: truncatedContent.length,
-                originalTokens: contentTokens,
-                truncatedTokens: countTokens(truncatedContent)
-            });
-        }
-
-        console.log('\n=== Creating Final Summary ===');
-        const apiKey = characterSettings.settings?.secrets?.ANTHROPIC_API_KEY;
-        if (!apiKey) {
-            throw new Error('No Anthropic API key found in character settings');
-        }
-
-        // Use our core text generation with proper token management
-        const finalPrompt = `Create a concise insight in exactly 250 characters that captures the key points from this content:
-
-${truncatedContent}
-
-Requirements:
-- Focus on specific facts and metrics
-- Keep it clear and direct
-- Do not include any prefixes or source information`;
-
-        // Double check token count before sending
-        const promptTokens = countTokens(finalPrompt);
-        console.log('\nFinal prompt analysis:', {
-            promptLength: finalPrompt.length,
-            promptTokens,
-            contentLength: truncatedContent.length,
-            contentTokens: countTokens(truncatedContent),
-            requirementsLength: finalPrompt.length - truncatedContent.length,
-            requirementsTokens: countTokens(finalPrompt.slice(truncatedContent.length))
-        });
-
-        if (promptTokens > 10000) {
-            console.log('Warning: Prompt still too long, truncating further...');
-            truncatedContent = truncatedContent.slice(0, 40000); // Roughly 10000 tokens
-            console.log('Further truncation results:', {
-                newLength: truncatedContent.length,
-                newTokens: countTokens(truncatedContent)
-            });
-        }
-
-        console.log('\nGenerating summary using text generation...');
-        try {
-            console.log('Runtime settings:', {
-                modelProvider: runtime.modelProvider,
-                maxInputTokens: runtime.getSetting('maxInputTokens'),
-                maxOutputTokens: runtime.getSetting('maxOutputTokens'),
-                temperature: runtime.getSetting('temperature'),
-                maxPromptTokens: runtime.getSetting('maxPromptTokens')
-            });
-            console.log('Prompt length:', finalPrompt.length);
-            console.log('Estimated tokens:', countTokens(finalPrompt));
-
-            const finalSummary = await generateText({
-                runtime: {
-                    ...runtime,
-                    agentId: crypto.randomUUID() // Generate a new agent ID for this call
-                } as any,
-                context: finalPrompt,
-                modelClass: ModelClass.SMALL,
-                maxSteps: 1
-            });
-            console.log('Summary generation successful:', {
-                summaryLength: finalSummary.length,
-                summaryTokens: countTokens(finalSummary)
-            });
-        } catch (error) {
-            console.error('Error in generateText:', error);
-            console.error('Error context:', {
-                promptLength: finalPrompt.length,
-                promptTokens: countTokens(finalPrompt),
-                truncatedContentLength: truncatedContent.length,
-                truncatedContentTokens: countTokens(truncatedContent),
-                runtimeSettings: {
-                    modelProvider: runtime.modelProvider,
-                    maxInputTokens: runtime.getSetting('maxInputTokens'),
-                    maxOutputTokens: runtime.getSetting('maxOutputTokens'),
-                    temperature: runtime.getSetting('temperature'),
-                    maxPromptTokens: runtime.getSetting('maxPromptTokens')
-                }
-            });
-            throw error;
-        }
-
-        // Get the source information
-        const sourceUrl = documentContent.metadata?.frontmatter?.source || documentContent.source || 'Unknown';
-        const sourceName = documentContent.metadata?.frontmatter?.title ||
-                         documentContent.metadata?.frontmatter?.newsletter ||
-                         documentContent.title ||
-                         (sourceUrl.includes('exponentialview.co') ? 'Exponential View' : 'Unknown');
-
-        // Format broadcast text with source
-        const broadcastText = sourceUrl === 'Unknown'
-            ? truncatedContent
-            : `${truncatedContent} Source: ${sourceName} [${sourceUrl}]`;
-
-        // Save to memories
-        const messageId = await saveMessageToMemories(broadcastText);
-        await recordBroadcast(document.id, messageId);
+        // Save to memories and record broadcast
+        const messageIds = await savePlatformMessages(platformMessages);
+        await recordBroadcast(document.id, messageIds);
 
         console.log('Successfully created broadcast:', {
             documentId: document.id,
-            messageId,
-            textLength: broadcastText.length
+            messageIds,
+            telegramLength: platformMessages.telegram?.text.length,
+            twitterLength: platformMessages.twitter?.text.length
         });
 
         return [{
-            text: broadcastText,
+            text: platformMessages.telegram?.text || platformMessages.twitter?.text || '',
             type: 'broadcast',
             metadata: {
                 messageType: 'broadcast',
                 status: 'pending',
-                sourceMemoryId: document.id
+                sourceMemoryId: document.id,
+                platforms: {
+                    telegram: messageIds.telegramId ? { status: 'pending' } : undefined,
+                    twitter: messageIds.twitterId ? { status: 'pending' } : undefined
+                }
             }
         }];
     } catch (error) {
