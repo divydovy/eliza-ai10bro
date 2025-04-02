@@ -57,6 +57,7 @@
         "@0glabs/0g-ts-sdk": "0.2.1",
         "@coinbase/coinbase-sdk": "0.10.0",
         "@deepgram/sdk": "^3.9.0",
+        "@elizaos/plugin-github": "workspace:*",
         "@elizaos/plugin-obsidian": "^0.1.9",
         "@elizaos/plugin-playground": "link:packages/plugin-playground",
         "@vitest/eslint-plugin": "1.0.1",
