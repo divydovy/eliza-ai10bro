@@ -1,0 +1,23 @@
+{
+  "name": "@elizaos/plugin-dashboard",
+  "version": "0.1.0",
+  "description": "Dashboard plugin for monitoring Eliza plugins",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rimraf dist",
+    "test": "vitest run",
+    "test:watch": "vitest watch"
+  },
+  "dependencies": {
+    "@elizaos/core": "workspace:*"
+  },
+  "devDependencies": {
+    "rimraf": "^5.0.1",
+    "tsup": "^8.0.1",
+    "typescript": "^5.2.2",
+    "vitest": "^1.1.0"
+  }
+}
