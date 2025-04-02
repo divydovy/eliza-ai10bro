@@ -59,3 +59,4 @@ coverage
 .eslintcache
 
 agent/content
+.specstory/
