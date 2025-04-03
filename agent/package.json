@@ -44,6 +44,7 @@
         "@elizaos/plugin-flow": "workspace:*",
         "@elizaos/plugin-fuel": "workspace:*",
         "@elizaos/plugin-gitbook": "workspace:*",
+        "@elizaos/plugin-github": "workspace:*",
         "@elizaos/plugin-goat": "workspace:*",
         "@elizaos/plugin-icp": "workspace:*",
         "@elizaos/plugin-image-generation": "workspace:*",
