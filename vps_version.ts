@@ -230,16 +230,7 @@ export class GitHubClient {
         runtime: AgentRuntime,
         dashboardConfig?: DashboardConfig
     ) {
-        this.octokit = new Octokit({
-            auth: token,
-            baseUrl: 'https://api.github.com',
-            request: {
-                timeout: 5000
-            },
-            headers: {
-                'X-GitHub-Api-Version': '2022-11-28'
-            }
-        });
+        this.octokit = new Octokit({ auth: token });
         this.runtime = runtime;
         this.dashboardState = new DashboardState(dashboardConfig ?? {});
     }
@@ -392,11 +383,10 @@ export class GitHubClient {
             // Recursive function to get all Markdown files from a directory and its subdirectories
             const getMarkdownFilesRecursively = async (path: string): Promise<any[]> => {
                 elizaLogger.info(`Scanning directory: ${path}`);
-                const response = await this.octokit.rest.repos.getContent({
+                const response = await this.octokit.repos.getContent({
                     owner,
                     repo,
-                    path: path || '',
-                    ref: 'main'
+                    path
                 });
 
                 if (!Array.isArray(response.data)) {

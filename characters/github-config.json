@@ -1,0 +1,29 @@
+{
+  "github": {
+    "token": "YOUR_GITHUB_TOKEN",
+    "repo": "ai16z/eliza"
+  },
+  "knowledge": [
+    {
+      "name": "GitHub Integration",
+      "description": "Knowledge of GitHub repository structure, API usage, and best practices for code management",
+      "topics": [
+        "GitHub API",
+        "Repository structure",
+        "Code organization",
+        "Version control",
+        "Branch management"
+      ]
+    }
+  ],
+  "message_examples": [
+    {
+      "role": "assistant",
+      "content": "I'll help you integrate the GitHub plugin. First, I'll need your GitHub personal access token to authenticate with the repository."
+    },
+    {
+      "role": "assistant",
+      "content": "I've configured the GitHub integration with the repository. We can now sync and manage code through GitHub."
+    }
+  ]
+}
