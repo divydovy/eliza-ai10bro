@@ -1,0 +1,15 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Core rules
+
+- Always use Node 23.3
+- Never modify core files without discussion
+
+# Build rules
+1. Install dependencies using pnpm install --no-frozen-lockfile
+2. Build using pnpm build
+3. Start the character using pnpm start --character="characters/ai10bro.character.json"

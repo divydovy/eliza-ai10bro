@@ -9,9 +9,12 @@ const db = new Database(dbPath);
 interface Broadcast {
     id: string;
     documentId: string;
-    messageId: string;
-    createdAt: number;
+    client: string;
+    message_id: string;
+    messageId?: string;  // For backward compatibility
     status: string;
+    sent_at: number | null;
+    createdAt: number;
 }
 
 interface Memory {
@@ -74,56 +77,49 @@ function showDatabaseState() {
     });
 }
 
-// Get next pending broadcast
-function getNextPendingBroadcast(): (Broadcast & { content: string }) | undefined {
+// Get next pending broadcast for a specific client
+function getNextPendingBroadcast(client: string): (Broadcast & { content: string }) | undefined {
     return db.prepare(`
         SELECT b.*, m.content
         FROM broadcasts b
-        JOIN memories m ON m.id = b.messageId
-        WHERE b.status = 'pending'
-        AND NOT EXISTS (
-            SELECT 1 FROM broadcasts b2
-            WHERE b2.documentId = b.documentId
-            AND b2.status = 'sent'
-        )
+        JOIN memories m ON m.id = b.message_id
+        WHERE b.client = ? AND b.status = 'pending'
         ORDER BY b.createdAt ASC
         LIMIT 1
-    `).get() as (Broadcast & { content: string }) | undefined;
+    `).get(client) as (Broadcast & { content: string }) | undefined;
 }
 
 // Mark a broadcast as sent
 function markAsSent(id: string) {
     db.prepare(`
         UPDATE broadcasts
-        SET status = 'sent'
+        SET status = 'sent',
+            sent_at = unixepoch() * 1000
         WHERE id = ?
     `).run(id);
 }
 
-// Process one message from the queue
-async function processNextBroadcast(characterName: string) {
-    const broadcast = getNextPendingBroadcast();
+// Process one message from the queue for a specific client
+async function processNextBroadcast(client: string, characterName: string) {
+    const broadcast = getNextPendingBroadcast(client);
     if (!broadcast) {
-        console.log('No pending broadcasts found');
+        console.log(`No pending broadcasts found for ${client}`);
         return false;
     }
 
     try {
-        const content = JSON.parse(broadcast.content);
-        console.log('\nProcessing broadcast:', {
+        console.log(`\nProcessing ${client} broadcast:`, {
             id: broadcast.id,
             documentId: broadcast.documentId,
             messageId: broadcast.messageId,
-            createdAt: new Date(broadcast.createdAt).toISOString(),
-            title: content.title || content.metadata?.frontmatter?.title || 'No title',
-            source: content.source || content.metadata?.frontmatter?.source || 'Unknown'
+            createdAt: new Date(broadcast.createdAt).toISOString()
         });
 
-        // Get the message content from the agent's memory
+        // Get the message content
         const message = db.prepare(`
             SELECT content FROM memories
             WHERE id = ?
-        `).get(broadcast.messageId) as Memory | undefined;
+        `).get(broadcast.message_id) as Memory | undefined;
 
         if (!message) {
             console.error('Could not find message content for broadcast');
@@ -131,8 +127,9 @@ async function processNextBroadcast(characterName: string) {
         }
 
         const messageContent = JSON.parse(message.content);
+        let success = false;
 
-        // Get the source document content to check for nsource
+        // Get the source document content to check for source
         const sourceDoc = db.prepare(`
             SELECT content
             FROM memories
@@ -141,7 +138,7 @@ async function processNextBroadcast(characterName: string) {
 
         let messageText = messageContent.text;
 
-        // If source document has nsource, append it to the message
+        // If source document has source, append it to the message
         if (sourceDoc) {
             const sourceContent = JSON.parse(sourceDoc.content);
             const sourceUrl = sourceContent.metadata?.frontmatter?.source;
@@ -150,47 +147,46 @@ async function processNextBroadcast(characterName: string) {
             }
         }
 
-        let success = true;
-
-        // Send to Telegram
-        try {
-            await broadcastToTelegram(messageText, characterName);
-            console.log('Successfully sent broadcast to Telegram');
-        } catch (error) {
-            console.error('Error sending to Telegram:', error);
-            success = false;
-        }
-
-        // Send to Twitter
-        try {
-            await broadcastToTwitter(messageText, characterName);
-            console.log('Successfully sent broadcast to Twitter');
-        } catch (error) {
-            console.error('Error sending to Twitter:', error);
-            success = false;
+        // Send to appropriate client
+        if (client === 'telegram') {
+            try {
+                await broadcastToTelegram(messageText, characterName);
+                console.log('Successfully sent broadcast to Telegram');
+                success = true;
+            } catch (error) {
+                console.error('Error sending to Telegram:', error);
+            }
+        } else if (client === 'twitter') {
+            try {
+                await broadcastToTwitter(messageText, characterName);
+                console.log('Successfully sent broadcast to Twitter');
+                success = true;
+            } catch (error) {
+                console.error('Error sending to Twitter:', error);
+            }
         }
 
         if (success) {
-            // Mark as sent only if at least one broadcast was successful
             markAsSent(broadcast.id);
-            console.log('Marked broadcast as sent');
+            console.log(`Marked ${client} broadcast as sent`);
         }
 
         return success;
     } catch (error) {
-        console.error('Error processing broadcast:', error);
+        console.error(`Error processing ${client} broadcast:`, error);
         return false;
     }
 }
 
 // Main queue processing function
 async function processQueue(characterName: string) {
-    // First show database state
-    showDatabaseState();
-
-    // Process just one message and exit
-    await processNextBroadcast(characterName);
-    console.log('Finished processing one broadcast message');
+    // Process one message for each client
+    const clients = ['telegram', 'twitter'];
+    for (const client of clients) {
+        console.log(`\nProcessing ${client} queue...`);
+        await processNextBroadcast(client, characterName);
+    }
+    console.log('\nFinished processing broadcast messages');
     process.exit(0);
 }
 

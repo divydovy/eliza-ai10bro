@@ -1,0 +1,85 @@
+---
+description: Rules for GitHub package development
+pattern: "**/packages/github/**"
+rules:
+  - name: "GitHub Package"
+    description: "Rules for GitHub package development"
+    pattern: "**/packages/github/**"
+    message: "You are working with the GitHub package. Follow these guidelines:\n\n1. Maintain clean separation of concerns\n2. Use TypeScript interfaces for all data structures\n3. Follow GitHub API best practices\n4. Document all public APIs\n5. Include proper error handling"
+---
+
+# ElizaOS GitHub Package Rules
+
+You are working with the GitHub package. Follow these guidelines:
+
+## Core Principles
+
+1. **API Integration**
+   - Follow GitHub API best practices
+   - Implement proper rate limiting
+   - Handle API errors gracefully
+   - Use appropriate authentication
+
+2. **Type Safety**
+   - Define interfaces for all API responses
+   - Use strict TypeScript types
+   - Validate API data
+   - Handle edge cases
+
+3. **Code Organization**
+   - Separate concerns (API, models, services)
+   - Use dependency injection
+   - Follow SOLID principles
+   - Maintain clean architecture
+
+4. **Error Handling**
+   - Implement proper error types
+   - Log errors appropriately
+   - Provide meaningful error messages
+   - Handle network issues
+
+## Best Practices
+
+1. **API Usage**
+   - Use appropriate API versions
+   - Implement retry mechanisms
+   - Cache responses when possible
+   - Monitor API usage
+
+2. **Security**
+   - Secure credential storage
+   - Implement proper scoping
+   - Follow OAuth best practices
+   - Regular security audits
+
+3. **Testing**
+   - Mock API responses
+   - Test error scenarios
+   - Validate data transformations
+   - Maintain test coverage
+
+4. **Documentation**
+   - Document API endpoints
+   - Provide usage examples
+   - Explain error handling
+   - Keep README updated
+
+## Git Workflow
+
+1. **Before Committing**
+   - Run type checking
+   - Test API integration
+   - Check for linting errors
+   - Review changes
+
+2. **Commit Messages**
+   - Use clear, descriptive messages
+   - Reference related issues
+   - Keep commits focused
+   - Follow conventional commits
+
+3. **Code Review**
+   - Request reviews for major changes
+   - Address feedback promptly
+   - Document review decisions
+   - Keep PRs manageable

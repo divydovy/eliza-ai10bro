@@ -60,9 +60,10 @@
         "node": "23.3.0"
     },
     "dependencies": {
-        "@0glabs/0g-ts-sdk": "0.2.1",
+        "@0glabs/0g-ts-sdk": "^0.1.0",
         "@coinbase/coinbase-sdk": "0.10.0",
         "@deepgram/sdk": "^3.9.0",
+        "@elizaos/plugin-dashboard": "workspace:*",
         "@vitest/eslint-plugin": "1.0.1",
         "amqplib": "0.10.5",
         "better-sqlite3": "11.6.0",

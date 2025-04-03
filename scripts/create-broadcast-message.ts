@@ -4,7 +4,7 @@ import Database from 'better-sqlite3';
 import crypto from 'crypto';
 import { encodingForModel } from "js-tiktoken";
 import fetch from 'node-fetch';
-import { getEmbeddingZeroVector } from "../packages/core/src/embedding.js";
+import { getEmbeddingZeroVector, generateText, ModelClass, ModelProviderName } from "@elizaos/core";
 
 console.log('Starting broadcast message creation...');
 
@@ -18,15 +18,17 @@ await db.exec(`
   CREATE TABLE IF NOT EXISTS broadcasts (
     id TEXT PRIMARY KEY,
     documentId TEXT NOT NULL,
-    createdAt INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    messageId TEXT NOT NULL,
+    client TEXT NOT NULL,
+    message_id TEXT,
     status TEXT NOT NULL DEFAULT 'pending',
+    sent_at INTEGER,
+    createdAt INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
     FOREIGN KEY (documentId) REFERENCES memories(id)
   );
 
-  CREATE INDEX IF NOT EXISTS idx_broadcasts_documentid ON broadcasts(documentId);
   CREATE INDEX IF NOT EXISTS idx_broadcasts_status ON broadcasts(status);
-  CREATE INDEX IF NOT EXISTS idx_broadcasts_createdat ON broadcasts(createdAt);
+  CREATE INDEX IF NOT EXISTS idx_broadcasts_client ON broadcasts(client);
+  CREATE INDEX IF NOT EXISTS idx_broadcasts_document_id ON broadcasts(documentId);
 `);
 
 interface MessageContent {
@@ -50,12 +52,17 @@ interface BroadcastMessage {
 
 interface CharacterSettings {
     name: string;
+    modelProvider?: ModelProviderName;
     settings?: {
         broadcastPrompt?: string;
         secrets?: {
             ANTHROPIC_API_KEY?: string;
         };
         serverPort?: number;
+        maxInputTokens?: number;
+        maxOutputTokens?: number;
+        temperature?: number;
+        maxPromptTokens?: number;
     };
 }
 
@@ -72,31 +79,31 @@ function countTokens(text: string): number {
 async function getNextUnbroadcastDocument(): Promise<DatabaseMemory | undefined> {
     console.log('Looking for next unbroadcast document...');
 
-    // Find the oldest document that hasn't been broadcast yet and isn't already being processed
+    // Find the oldest document that hasn't been broadcast yet
     const nextDocument = db.prepare(`
         SELECT m1.id, m1.content, m1.createdAt
         FROM memories m1
         WHERE m1.type = 'documents'
-        AND json_extract(m1.content, '$.source') = 'obsidian'
-        AND json_extract(m1.content, '$.text') NOT LIKE '%ACTION: CREATE_KNOWLEDGE%'
-        AND json_extract(m1.content, '$.text') NOT LIKE '%system%'
-        AND json_extract(m1.content, '$.metadata.action') IS NULL
         AND NOT EXISTS (
             SELECT 1 FROM broadcasts b
             WHERE b.documentId = m1.id
-            AND (b.status = 'pending' OR b.status = 'sent')
+            AND b.status IN ('pending', 'sent')
         )
         ORDER BY m1.createdAt ASC
         LIMIT 1
     `).get() as DatabaseMemory | undefined;
 
     if (nextDocument) {
-        console.log(`Found document from ${new Date(nextDocument.createdAt).toISOString()}`);
         const content = JSON.parse(nextDocument.content);
-        console.log('Document summary:', {
+        console.log('\nDocument found:', {
             id: nextDocument.id,
-            title: content.title || 'No title',
-            textLength: content.text?.length || 0
+            createdAt: new Date(nextDocument.createdAt).toISOString(),
+            title: content.title || content.metadata?.title || 'No title',
+            source: content.metadata?.frontmatter?.source ||
+                   content.metadata?.source ||
+                   content.source ||
+                   content.metadata?.url ||
+                   'Unknown'
         });
     } else {
         console.log('No unbroadcast documents found');
@@ -126,16 +133,16 @@ async function saveMessageToMemories(text: string): Promise<string> {
     return id;
 }
 
-async function recordBroadcast(documentId: string, messageId: string) {
-    console.log('\nRecording broadcast in database...');
+async function recordBroadcast(documentId: string, messageId: string, client: string) {
+    console.log(`\nRecording broadcast for ${client} in database...`);
     const id = crypto.randomUUID();
 
     db.prepare(`
-        INSERT INTO broadcasts (id, documentId, messageId)
-        VALUES (?, ?, ?)
-    `).run(id, documentId, messageId);
+        INSERT INTO broadcasts (id, documentId, client, message_id)
+        VALUES (?, ?, ?, ?)
+    `).run(id, documentId, client, messageId);
 
-    console.log('Successfully recorded broadcast');
+    console.log(`Successfully recorded ${client} broadcast`);
 }
 
 async function sendMessageToAgent(characterName: string, message: any, document: DatabaseMemory) {
@@ -240,7 +247,8 @@ async function sendMessageToAgent(characterName: string, message: any, document:
                 throw new Error("Could not find broadcast message in memories table");
             }
 
-            await recordBroadcast(document.id, broadcastMessage.id);
+            await recordBroadcast(document.id, broadcastMessage.id, 'telegram');
+            await recordBroadcast(document.id, broadcastMessage.id, 'twitter');
             return data;
         } else {
             console.error("\nERROR: No valid message text found in response");
@@ -256,283 +264,112 @@ async function sendMessageToAgent(characterName: string, message: any, document:
 
 async function createBroadcastMessage(characterName: string = 'c3po') {
     try {
-        console.log(`\n=== Starting broadcast creation for character: ${characterName} ===`);
+        console.log(`\n🔊 BROADCAST MESSAGE CREATION STARTING 🔊`);
+        console.log(`Character: ${characterName}`);
 
         // Load character settings
         const characterPath = path.join(process.cwd(), 'characters', `${characterName}.character.json`);
-        console.log('Looking for character settings at:', characterPath);
         const characterSettings: CharacterSettings = JSON.parse(fs.readFileSync(characterPath, 'utf-8'));
-        console.log('Successfully loaded character settings');
+
+        // Set the Anthropic API key from character settings
+        if (characterSettings.settings?.secrets?.ANTHROPIC_API_KEY) {
+            process.env.ANTHROPIC_API_KEY = characterSettings.settings.secrets.ANTHROPIC_API_KEY;
+        }
 
         // Get next document to broadcast
         const document = await getNextUnbroadcastDocument();
         if (!document) {
-            console.log('No documents to broadcast');
+            console.log('❌ No documents to broadcast');
             return [];
         }
 
         const documentContent = JSON.parse(document.content);
+        const sourceUrl = documentContent.metadata?.frontmatter?.source ||
+                         documentContent.metadata?.source ||
+                         documentContent.source ||
+                         documentContent.metadata?.url;
 
-        // Log document stats before truncation
-        console.log('\nDocument stats before truncation:', {
-            title: documentContent.metadata?.frontmatter?.title || documentContent.title || 'Untitled',
-            source: documentContent.metadata?.frontmatter?.source || documentContent.source || 'Unknown',
-            originalLength: documentContent.text?.length || 0,
-            hasMetadata: !!documentContent.metadata,
-            hasFrontmatter: !!documentContent.metadata?.frontmatter
-        });
+        // Create runtime for text generation
+        const runtime = {
+            modelProvider: characterSettings.modelProvider || ModelProviderName.ANTHROPIC,
+            getSetting: (key: string): string | null => {
+                if (key === "ANTHROPIC_API_KEY") {
+                    return characterSettings.settings?.secrets?.ANTHROPIC_API_KEY || null;
+                }
+                // Only return known settings
+                switch(key) {
+                    case "maxInputTokens":
+                    case "maxOutputTokens":
+                    case "temperature":
+                    case "maxPromptTokens":
+                        return characterSettings.settings?.[key]?.toString() || null;
+                    default:
+                        return null;
+                }
+            }
+        };
 
-        // Truncate document content if it's too long (limit to ~5k tokens which is roughly 20k characters)
-        const maxContentLength = 20000;
-        const truncatedText = documentContent.text.length > maxContentLength
-            ? documentContent.text.slice(0, maxContentLength) + "... [truncated due to length]"
-            : documentContent.text;
+        // Client-specific broadcast generation
+        const broadcasts = [];
+        const clients = ['telegram', 'twitter'] as const;
 
-        console.log('Document stats after truncation:', {
-            finalLength: truncatedText.length,
-            wasTruncated: truncatedText.length !== documentContent.text.length,
-            truncatedAmount: documentContent.text.length - truncatedText.length,
-            estimatedTokens: countTokens(truncatedText)
-        });
+        for (const client of clients) {
+            const maxLength = client === 'telegram' ? 1000 : 250;
+            const broadcastId = crypto.randomUUID();
 
-        // First, get a concise summary from Claude directly
-        console.log('\nPreparing Claude summary request...');
-        const apiKey = characterSettings.settings?.secrets?.ANTHROPIC_API_KEY;
-        if (!apiKey) {
-            throw new Error('No Anthropic API key found in character settings');
-        }
+            // Use character's broadcast prompt if available, otherwise fallback to default
+            const basePrompt = characterSettings.settings?.broadcastPrompt ||
+                `Create a single focused message about what you learned from this content. Be specific about the insight, why it matters, and what it suggests.`;
 
-        // Split content into smaller chunks for summarization (about 1k tokens per chunk)
-        const chunkSize = 4000;
-        const chunks = [];
-        for (let i = 0; i < truncatedText.length; i += chunkSize) {
-            chunks.push(truncatedText.slice(i, i + chunkSize));
-        }
-        console.log(`Split content into ${chunks.length} chunks for summarization`);
+            const prompt = `${basePrompt}
 
-        // Get summary for each chunk
-        const chunkSummaries = [];
-        for (let i = 0; i < chunks.length; i++) {
-            console.log(`\nProcessing chunk ${i + 1} of ${chunks.length}`);
-            const chunk = chunks[i];
+Content to analyze:
+${documentContent.text}
 
-            const chunkPrompt = `Analyze this document section and extract a specific, investment-relevant insight in exactly 150 characters. Focus on the convergence of natural wisdom and technological innovation.
+Additional requirements:
+- Message must be exactly ${maxLength} characters${client === 'telegram' ? '\n- You may include more detail and context' : ''}
+- If a source is available, include it at the end in brackets: ${sourceUrl || 'no source available'}
 
-Title: ${documentContent.metadata?.frontmatter?.title || documentContent.title || 'Untitled'}
-Source: ${documentContent.metadata?.frontmatter?.source || documentContent.source || 'Unknown'}
-Content: ${chunk}
+[BROADCAST_REQUEST:${broadcastId}]`;
 
-Requirements:
-1. Identify specific market opportunities, trends, or technological breakthroughs
-2. Highlight how this connects to natural systems or sustainable principles
-3. Include concrete metrics, growth rates, or market sizes when available
-4. Frame the insight in terms of investment potential or strategic importance
-5. Reference the specific source document/report`;
-
-            const promptTokens = countTokens(chunkPrompt);
-            console.log('Chunk summary request stats:', {
-                promptLength: chunkPrompt.length,
-                chunkLength: chunk.length,
-                estimatedTokens: promptTokens,
-                isWithinLimit: promptTokens < 15000
+            const broadcastText = await generateText({
+                runtime: runtime as any,
+                context: prompt,
+                modelClass: ModelClass.SMALL,
+                maxSteps: 1
             });
 
-            if (promptTokens >= 15000) {
-                console.log('Warning: Chunk too large, splitting further');
-                const subChunks = [];
-                const subChunkSize = chunk.length / 2;
-                for (let j = 0; j < chunk.length; j += subChunkSize) {
-                    subChunks.push(chunk.slice(j, j + subChunkSize));
+            // Extract the actual broadcast message from between the tags if present
+            const messageMatch = broadcastText.match(/\[BROADCAST:.*?\](.*?)(?=\[|$)/s);
+            const finalText = messageMatch ? messageMatch[1].trim() : broadcastText.trim();
+
+            const messageId = await saveMessageToMemories(finalText);
+            await recordBroadcast(document.id, messageId, client);
+
+            broadcasts.push({
+                text: finalText,
+                type: 'broadcast',
+                metadata: {
+                    messageType: 'broadcast',
+                    status: 'pending',
+                    sourceMemoryId: document.id,
+                    client,
+                    broadcastId
                 }
-
-                for (const subChunk of subChunks) {
-                    const subPrompt = `Summarize this section of the document in exactly 75 characters. Focus on key insights and facts. Here's the section:
-
-Title: ${documentContent.metadata?.frontmatter?.title || documentContent.title || 'Untitled'}
-Source: ${documentContent.metadata?.frontmatter?.source || documentContent.source || 'Unknown'}
-Content: ${subChunk}`;
-
-                    const subResponse = await fetch('https://api.anthropic.com/v1/messages', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'x-api-key': apiKey,
-                            'anthropic-version': '2023-06-01'
-                        },
-                        body: JSON.stringify({
-                            model: 'claude-3-sonnet-20240229',
-                            max_tokens: 100,
-                            messages: [{
-                                role: 'user',
-                                content: subPrompt
-                            }]
-                        })
-                    });
-
-                    if (!subResponse.ok) {
-                        throw new Error(`Claude API error: ${subResponse.status} ${subResponse.statusText}`);
-                    }
-
-                    const subSummaryData = await subResponse.json();
-                    chunkSummaries.push(subSummaryData.content[0].text);
-                }
-                continue;
-            }
-
-            const summaryResponse = await fetch('https://api.anthropic.com/v1/messages', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': apiKey,
-                    'anthropic-version': '2023-06-01'
-                },
-                body: JSON.stringify({
-                    model: 'claude-3-sonnet-20240229',
-                    max_tokens: 200,
-                    messages: [{
-                        role: 'user',
-                        content: chunkPrompt
-                    }]
-                })
             });
 
-            if (!summaryResponse.ok) {
-                const errorText = await summaryResponse.text();
-                let parsedError;
-                try {
-                    parsedError = JSON.parse(errorText);
-                } catch {
-                    parsedError = { raw: errorText.slice(0, 500) + '...' }; // Truncate raw error text
-                }
-
-                // Create a sanitized version of the error details
-                const sanitizedError = {
-                    status: summaryResponse.status,
-                    statusText: summaryResponse.statusText,
-                    headers: Object.fromEntries(
-                        Object.entries(Object.fromEntries(summaryResponse.headers.entries()))
-                            .filter(([key]) => !key.toLowerCase().includes('authorization'))
-                    ),
-                    error: typeof parsedError.error === 'string'
-                        ? parsedError.error.slice(0, 500) + '...'
-                        : parsedError.error
-                };
-
-                console.error('\nClaude API Error Details:', sanitizedError);
-                throw new Error(`Claude API error (${summaryResponse.status}): ${sanitizedError.error || summaryResponse.statusText}`);
-            }
-
-            const summaryData = await summaryResponse.json();
-            const chunkSummary = summaryData.content[0].text;
-            chunkSummaries.push(chunkSummary);
-
-            // Add a small delay between chunks to avoid rate limiting
-            if (i < chunks.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
+            console.log(`Successfully created ${client} broadcast:`, {
+                documentId: document.id,
+                client,
+                length: finalText.length,
+                text: finalText,
+                broadcastId
+            });
         }
 
-        // Combine chunk summaries and get final summary
-        const combinedSummary = chunkSummaries.join('\n\n');
-        console.log('\nChunk summaries combined:', {
-            numberOfChunks: chunkSummaries.length,
-            totalLength: combinedSummary.length,
-            estimatedTokens: countTokens(combinedSummary)
-        });
-
-        // Get final summary from combined chunk summaries
-        const finalSummaryPrompt = `Create a focused, specific 280-character summary that would work well as a social media post. Use these section summaries as input, but ensure the final summary:
-
-1. Starts by clearly identifying the source document/report
-2. Focuses on one specific, concrete insight or finding
-3. Includes specific numbers, facts, or details if available
-4. Explains why this insight matters
-5. Maintains a professional tone while being engaging
-
-Here are the section summaries:
-${combinedSummary}`;
-
-        console.log('\nFinal summary request stats:', {
-            promptLength: finalSummaryPrompt.length,
-            estimatedTokens: countTokens(finalSummaryPrompt)
-        });
-
-        const finalSummaryResponse = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': apiKey,
-                'anthropic-version': '2023-06-01'
-            },
-            body: JSON.stringify({
-                model: 'claude-3-sonnet-20240229',
-                max_tokens: 500,
-                messages: [{
-                    role: 'user',
-                    content: finalSummaryPrompt
-                }]
-            })
-        });
-
-        if (!finalSummaryResponse.ok) {
-            const errorText = await finalSummaryResponse.text();
-            let parsedError;
-            try {
-                parsedError = JSON.parse(errorText);
-            } catch {
-                parsedError = { raw: errorText.slice(0, 500) + '...' }; // Truncate raw error text
-            }
-
-            // Create a sanitized version of the error details
-            const sanitizedError = {
-                status: finalSummaryResponse.status,
-                statusText: finalSummaryResponse.statusText,
-                headers: Object.fromEntries(
-                    Object.entries(Object.fromEntries(finalSummaryResponse.headers.entries()))
-                        .filter(([key]) => !key.toLowerCase().includes('authorization'))
-                ),
-                error: typeof parsedError.error === 'string'
-                    ? parsedError.error.slice(0, 500) + '...'
-                    : parsedError.error
-            };
-
-            console.error('\nClaude API Error Details:', sanitizedError);
-            throw new Error(`Claude API error (${finalSummaryResponse.status}): ${sanitizedError.error || finalSummaryResponse.statusText}`);
-        }
-
-        const finalSummaryData = await finalSummaryResponse.json();
-        const summary = finalSummaryData.content[0].text;
-        const truncatedSummary = summary.slice(0, 500) + (summary.length > 500 ? '...' : '');
-        console.log('Summary stats:', {
-            originalLength: summary.length,
-            truncatedLength: truncatedSummary.length,
-            wasTruncated: summary.length > 500
-        });
-
-        // After getting the final summary, save it directly
-        const broadcastText = `${truncatedSummary}\n\nSource: ${documentContent.metadata?.frontmatter?.source || documentContent.source || 'Unknown'}`;
-
-        // Save directly to memories
-        const messageId = await saveMessageToMemories(broadcastText);
-        await recordBroadcast(document.id, messageId);
-
-        console.log('Successfully created broadcast:', {
-            documentId: document.id,
-            messageId,
-            textLength: broadcastText.length
-        });
-
-        return [{
-            text: broadcastText,
-            type: 'broadcast',
-            metadata: {
-                messageType: 'broadcast',
-                status: 'pending',
-                sourceMemoryId: document.id
-            }
-        }];
+        return broadcasts;
     } catch (error) {
-        console.error("\nERROR in createBroadcastMessage:", error instanceof Error ? error.message : 'Unknown error');
+        console.error("❌ ERROR:", error);
         throw error;
     }
 }
