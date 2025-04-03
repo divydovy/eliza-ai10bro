@@ -1,7 +1,9 @@
-import fs from 'fs';
-import path from 'path';
+// @ts-check
+/* tsconfig options */
+import fs from 'node:fs';
+import path from 'node:path';
 import Database from 'better-sqlite3';
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { encodingForModel } from "js-tiktoken";
 import fetch from 'node-fetch';
 import { getEmbeddingZeroVector, generateText, ModelClass, ModelProviderName } from "@elizaos/core";
@@ -13,22 +15,24 @@ console.log('Database path:', dbPath);
 const db = new Database(dbPath);
 console.log('Successfully connected to database');
 
-// Ensure broadcasts table exists
+// Ensure broadcasts table exists with new schema
 await db.exec(`
-  CREATE TABLE IF NOT EXISTS broadcasts (
-    id TEXT PRIMARY KEY,
-    documentId TEXT NOT NULL,
-    client TEXT NOT NULL,
-    message_id TEXT,
-    status TEXT NOT NULL DEFAULT 'pending',
-    sent_at INTEGER,
-    createdAt INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    FOREIGN KEY (documentId) REFERENCES memories(id)
-  );
+    DROP TABLE IF EXISTS broadcasts;
 
-  CREATE INDEX IF NOT EXISTS idx_broadcasts_status ON broadcasts(status);
-  CREATE INDEX IF NOT EXISTS idx_broadcasts_client ON broadcasts(client);
-  CREATE INDEX IF NOT EXISTS idx_broadcasts_document_id ON broadcasts(documentId);
+    CREATE TABLE IF NOT EXISTS broadcasts (
+        id TEXT PRIMARY KEY,
+        documentId TEXT NOT NULL,
+        client TEXT NOT NULL,
+        message_id TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        sent_at INTEGER,
+        createdAt INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
+        FOREIGN KEY (documentId) REFERENCES memories(id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_broadcasts_status ON broadcasts(status);
+    CREATE INDEX IF NOT EXISTS idx_broadcasts_client ON broadcasts(client);
+    CREATE INDEX IF NOT EXISTS idx_broadcasts_document_id ON broadcasts(documentId);
 `);
 
 interface MessageContent {
@@ -53,6 +57,19 @@ interface BroadcastMessage {
 interface CharacterSettings {
     name: string;
     modelProvider?: ModelProviderName;
+    bio?: string[];
+    lore?: string[];
+    messageExamples?: any[];
+    postExamples?: string[];
+    topics?: string[];
+    adjectives?: string[];
+    clients?: string[];
+    plugins?: string[];
+    style?: {
+        all: string[];
+        chat: string[];
+        post: string[];
+    };
     settings?: {
         broadcastPrompt?: string;
         secrets?: {
@@ -66,173 +83,190 @@ interface CharacterSettings {
     };
 }
 
+interface Memory {
+    type: 'messages' | 'documents' | 'fragments';
+    content: string;
+}
+
+interface PlatformMessage {
+    telegram?: {
+        text: string;
+        format: 'markdown' | 'html' | 'plain';
+    };
+    twitter?: {
+        text: string;
+        threadId?: string;
+    };
+}
+
+interface BroadcastResult {
+    telegramId?: string;
+    twitterId?: string;
+}
+
+interface BroadcastRecord {
+    id: string;
+    documentId: string;
+    platforms: {
+        telegram?: {
+            messageId: string;
+            status: 'pending' | 'sent' | 'failed';
+            sentAt?: number;
+        };
+        twitter?: {
+            messageId: string;
+            status: 'pending' | 'sent' | 'failed';
+            sentAt?: number;
+        };
+    };
+    createdAt: number;
+}
+
 function countTokens(text: string): number {
     try {
-        const encoding = encodingForModel("gpt-4");
-        return encoding.encode(text).length;
-    } catch (error) {
-        // Fallback to rough estimation if tokenizer fails
+        // Use Claude's tokenizer which is roughly 1 token per 4 characters
         return Math.ceil(text.length / 4);
+    } catch (error) {
+        // Fallback to even more conservative estimation if tokenizer fails
+        return Math.ceil(text.length / 3);
     }
 }
 
-async function getNextUnbroadcastDocument(): Promise<DatabaseMemory | undefined> {
-    console.log('Looking for next unbroadcast document...');
-
-    // Find the oldest document that hasn't been broadcast yet
-    const nextDocument = db.prepare(`
-        SELECT m1.id, m1.content, m1.createdAt
-        FROM memories m1
-        WHERE m1.type = 'documents'
+function getNextUnbroadcastDocument(): DatabaseMemory | undefined {
+    // Get the oldest document that hasn't been broadcast yet and isn't currently being processed
+    const doc = db.prepare(`
+        SELECT m.* FROM memories m
+        WHERE m.type = 'documents'
+        AND json_valid(m.content)
+        AND json_extract(m.content, '$.metadata.frontmatter') IS NOT NULL
+        AND json_extract(m.content, '$.metadata.frontmatter.title') IS NOT NULL
+        AND json_extract(m.content, '$.metadata.frontmatter.source') IS NOT NULL
+        AND json_extract(m.content, '$.text') NOT LIKE '%This is a test document%'
         AND NOT EXISTS (
             SELECT 1 FROM broadcasts b
-            WHERE b.documentId = m1.id
-            AND b.status IN ('pending', 'sent')
+            WHERE b.documentId = m.id
+            AND (b.telegram_status = 'pending' OR b.telegram_status = 'sent'
+                 OR b.twitter_status = 'pending' OR b.twitter_status = 'sent')
         )
-        ORDER BY m1.createdAt ASC
+        ORDER BY m.createdAt ASC
         LIMIT 1
     `).get() as DatabaseMemory | undefined;
 
-    if (nextDocument) {
-        const content = JSON.parse(nextDocument.content);
+    if (doc) {
+        const content = JSON.parse(doc.content);
         console.log('\nDocument found:', {
-            id: nextDocument.id,
-            createdAt: new Date(nextDocument.createdAt).toISOString(),
-            title: content.title || content.metadata?.title || 'No title',
-            source: content.metadata?.frontmatter?.source ||
-                   content.metadata?.source ||
-                   content.source ||
-                   content.metadata?.url ||
-                   'Unknown'
+            id: doc.id,
+            createdAt: new Date(doc.createdAt).toISOString(),
+            title: content.metadata?.frontmatter?.title || 'No title',
+            source: content.metadata?.frontmatter?.source || 'Unknown'
         });
     } else {
         console.log('No unbroadcast documents found');
     }
 
-    return nextDocument;
+    return doc;
 }
 
-async function saveMessageToMemories(text: string): Promise<string> {
-    console.log('\nSaving message to memories...');
+async function generatePlatformMessages(content: string, metadata: any): Promise<PlatformMessage> {
+    const sourceUrl = metadata?.frontmatter?.source || metadata.source || 'Unknown';
+
+    // For Telegram, we can include more formatting and detail
+    const telegramText = content + (sourceUrl !== 'Unknown' ? `\n\n🔗 [Read more](${sourceUrl})` : '');
+
+    // For Twitter, we need to ensure we're within limits
+    const twitterMaxLength = 280 - (sourceUrl !== 'Unknown' ? sourceUrl.length + 1 : 0);
+    let twitterText = content;
+    if (sourceUrl !== 'Unknown') {
+        if (twitterText.length > twitterMaxLength) {
+            twitterText = twitterText.slice(0, twitterMaxLength - 4) + '... ' + sourceUrl;
+        } else {
+            twitterText = twitterText + ' ' + sourceUrl;
+        }
+    }
+
+    return {
+        telegram: {
+            text: telegramText,
+            format: 'markdown'
+        },
+        twitter: {
+            text: twitterText
+        }
+    };
+}
+
+async function saveMessageToMemories(message: Memory): Promise<string> {
     const id = crypto.randomUUID();
-    const content = JSON.stringify({
-        text,
-        type: 'broadcast',
-        source: 'agent'
-    });
-
-    // Use the core utility function for zero embeddings
-    const zeroEmbedding = getEmbeddingZeroVector();
-
     db.prepare(`
         INSERT INTO memories (id, type, content, createdAt, embedding)
-        VALUES (?, 'messages', ?, unixepoch() * 1000, ?)
-    `).run(id, content, JSON.stringify(zeroEmbedding));
-
-    console.log('Successfully saved message to memories');
+        VALUES (?, ?, ?, ?, ?)
+    `).run(id, message.type, message.content, Date.now(), JSON.stringify(getEmbeddingZeroVector()));
     return id;
 }
 
-async function recordBroadcast(documentId: string, messageId: string, client: string) {
-    console.log(`\nRecording broadcast for ${client} in database...`);
-    const id = crypto.randomUUID();
+async function savePlatformMessages(messages: PlatformMessage): Promise<BroadcastResult> {
+    const result: BroadcastResult = {};
 
-    db.prepare(`
-        INSERT INTO broadcasts (id, documentId, client, message_id)
-        VALUES (?, ?, ?, ?)
-    `).run(id, documentId, client, messageId);
-
-    console.log(`Successfully recorded ${client} broadcast`);
-}
-
-async function sendMessageToAgent(characterName: string, message: any, document: DatabaseMemory) {
-    let serverUrl = process.env.AGENT_SERVER_URL;
-    console.log('\nServer URL debug:', {
-        fromEnv: process.env.AGENT_SERVER_URL,
-        envVars: process.env
-    });
-
-    if (!serverUrl) {
-        // Only use character settings if no AGENT_SERVER_URL is provided
-        const characterPath = path.join(process.cwd(), 'characters', `${characterName}.character.json`);
-        const characterSettings = JSON.parse(fs.readFileSync(characterPath, 'utf-8'));
-        const serverPort = characterSettings.settings?.serverPort || 3000;
-        serverUrl = `http://localhost:${serverPort}`;
-        console.log('\nUsing fallback server URL from character settings:', {
-            serverPort,
-            serverUrl
+    if (messages.telegram) {
+        result.telegramId = await saveMessageToMemories({
+            type: 'messages',
+            content: JSON.stringify({
+                text: messages.telegram.text,
+                format: messages.telegram.format
+            })
         });
     }
 
-    console.log('\nFinal server URL configuration:', {
-        serverUrl,
-        characterName,
-        messageType: message.type
-    });
-
-    console.log('\nSending message to agent:', {
-        characterName,
-        messageType: message.type,
-        messageLength: message.text.length,
-        metadata: message.metadata,
-        serverUrl
-    });
-
-    const response = await fetch(`${serverUrl}/${characterName}/message`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Message-Type': 'system',
-            'X-Exclude-History': 'true'
-        },
-        body: JSON.stringify(message)
-    });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        let parsedError;
-        try {
-            parsedError = JSON.parse(errorText);
-            // Extract just the essential error info
-            const errorMessage = parsedError.error?.message || parsedError.message || 'Unknown error';
-            const errorType = parsedError.error?.type || parsedError.type || 'error';
-            console.error('\nAgent API Error:', {
-                status: response.status,
-                type: errorType,
-                message: errorMessage.slice(0, 200) // Truncate long error messages
-            });
-        } catch {
-            // If JSON parsing fails, just show truncated error text
-            console.error('\nAgent API Error:', {
-                status: response.status,
-                text: errorText.slice(0, 200) + '...'
-            });
-        }
-        throw new Error(`Agent API error (${response.status}): ${response.statusText}`);
+    if (messages.twitter) {
+        result.twitterId = await saveMessageToMemories({
+            type: 'messages',
+            content: JSON.stringify({
+                text: messages.twitter.text,
+                threadId: messages.twitter.threadId
+            })
+        });
     }
 
-    const data = await response.json();
-    console.log('\nReceived response:', {
-        status: response.status,
-        responseLength: data.length,
-        messages: data.map((msg: any) => ({
-            textLength: msg.text?.length,
-            type: msg.type,
-            metadata: msg.metadata,
-            messageId: msg.messageId,
-            id: msg.id
-        }))
-    });
+    return result;
+}
 
-    if (data && Array.isArray(data) && data.length > 0) {
-        console.log("\nBroadcast message created successfully");
+async function recordBroadcast(documentId: string, messageIds: BroadcastResult): Promise<string> {
+    const broadcastId = crypto.randomUUID();
+    db.prepare(`
+        INSERT INTO broadcasts (
+            id,
+            documentId,
+            telegram_message_id,
+            twitter_message_id,
+            telegram_status,
+            twitter_status,
+            createdAt
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+        broadcastId,
+        documentId,
+        messageIds.telegramId,
+        messageIds.twitterId,
+        messageIds.telegramId ? 'pending' : 'failed',
+        messageIds.twitterId ? 'pending' : 'failed',
+        Date.now()
+    );
 
-        // Find the first valid message with text
-        const validMessage = data.find(msg => msg && msg.text && msg.text.trim().length > 0);
+    return broadcastId;
+}
 
-        if (validMessage) {
-            console.log("Message text:", validMessage.text);
+async function createBroadcastMessage(characterName: string = 'c3po') {
+    try {
+        console.log(`\n🔊 BROADCAST MESSAGE CREATION STARTING 🔊`);
+        console.log(`Character: ${characterName}`);
 
+        // Load character settings
+        const characterPath = path.join(process.cwd(), 'characters', `${characterName}.character.json`);
+        const characterSettings: CharacterSettings = JSON.parse(fs.readFileSync(characterPath, 'utf-8'));
+
+        // Set the Anthropic API key from character settings
+        if (characterSettings.settings?.secrets?.ANTHROPIC_API_KEY) {
+            process.env.ANTHROPIC_API_KEY = characterSettings.settings.secrets.ANTHROPIC_API_KEY;
             // Find the newly created message in the memories table
             const broadcastMessage = db.prepare(`
                 SELECT id
@@ -265,19 +299,26 @@ async function sendMessageToAgent(characterName: string, message: any, document:
 async function createBroadcastMessage(characterName: string = 'c3po') {
     try {
         console.log(`\n🔊 BROADCAST MESSAGE CREATION STARTING 🔊`);
+        console.log(`====================================`);
+        console.log(`Process ID: ${process.pid}`);
+        console.log(`Timestamp: ${new Date().toISOString()}`);
         console.log(`Character: ${characterName}`);
+        console.log(`====================================\n`);
 
         // Load character settings
         const characterPath = path.join(process.cwd(), 'characters', `${characterName}.character.json`);
+        console.log('📂 Looking for character settings at:', characterPath);
         const characterSettings: CharacterSettings = JSON.parse(fs.readFileSync(characterPath, 'utf-8'));
+        console.log('✅ Successfully loaded character settings');
 
         // Set the Anthropic API key from character settings
         if (characterSettings.settings?.secrets?.ANTHROPIC_API_KEY) {
             process.env.ANTHROPIC_API_KEY = characterSettings.settings.secrets.ANTHROPIC_API_KEY;
+            console.log('✅ Successfully set Anthropic API key from character settings');
         }
 
         // Get next document to broadcast
-        const document = await getNextUnbroadcastDocument();
+        const document = getNextUnbroadcastDocument();
         if (!document) {
             console.log('❌ No documents to broadcast');
             return [];
@@ -372,6 +413,14 @@ Additional requirements:
         console.error("❌ ERROR:", error);
         throw error;
     }
+}
+
+// Helper function to calculate cosine similarity between embeddings
+function cosineSimilarity(embedding1: number[], embedding2: number[]): number {
+    const dotProduct = embedding1.reduce((sum, a, i) => sum + a * embedding2[i], 0);
+    const norm1 = Math.sqrt(embedding1.reduce((sum, a) => sum + a * a, 0));
+    const norm2 = Math.sqrt(embedding2.reduce((sum, a) => sum + a * a, 0));
+    return dotProduct / (norm1 * norm2);
 }
 
 // Get character name from command line arguments

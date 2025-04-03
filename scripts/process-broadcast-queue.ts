@@ -22,59 +22,52 @@ interface Memory {
     content: string;
 }
 
+interface PlatformMessage {
+    telegram?: {
+        text: string;
+        format: 'markdown' | 'html' | 'plain';
+    };
+    twitter?: {
+        text: string;
+        threadId?: string;
+    };
+}
+
 // Debug function to show database state
 function showDatabaseState() {
     console.log('\nAnalyzing database state...');
 
-    // Check total number of broadcasts
+    // Get total count
     const totalCount = db.prepare('SELECT COUNT(*) as count FROM broadcasts').get() as { count: number };
     console.log(`Total broadcasts in database: ${totalCount.count}`);
 
-    // Look for pending broadcasts
+    // Get pending broadcasts
     console.log('\nPending broadcasts:');
     const pendingBroadcasts = db.prepare(`
-        SELECT b.*, m.content
+        SELECT b.id, b.documentId, b.telegram_status, b.twitter_status,
+               json_extract(d.content, '$.metadata.frontmatter.title') as title,
+               json_extract(d.content, '$.metadata.frontmatter.source') as source
         FROM broadcasts b
-        JOIN memories m ON m.id = b.documentId
-        WHERE b.status = 'pending'
+        JOIN memories d ON d.id = b.documentId
+        WHERE b.telegram_status = 'pending' OR b.twitter_status = 'pending'
         ORDER BY b.createdAt DESC
-        LIMIT 3
-    `).all() as (Broadcast & { content: string })[];
+    `).all() as Array<{
+        id: string;
+        documentId: string;
+        telegram_status: string;
+        twitter_status: string;
+        title: string;
+        source: string;
+    }>;
 
-    pendingBroadcasts.forEach(broadcast => {
-        const content = JSON.parse(broadcast.content);
-        console.log('\nPending Broadcast:', {
-            id: broadcast.id,
-            documentId: broadcast.documentId,
-            messageId: broadcast.messageId,
-            createdAt: new Date(broadcast.createdAt).toISOString(),
-            title: content.title || content.metadata?.frontmatter?.title || 'No title',
-            source: content.source || content.metadata?.frontmatter?.source || 'Unknown'
-        });
-    });
-
-    // Look for recently sent broadcasts
-    console.log('\nRecently sent broadcasts:');
-    const sentBroadcasts = db.prepare(`
-        SELECT b.*, m.content
-        FROM broadcasts b
-        JOIN memories m ON m.id = b.documentId
-        WHERE b.status = 'sent'
-        ORDER BY b.createdAt DESC
-        LIMIT 3
-    `).all() as (Broadcast & { content: string })[];
-
-    sentBroadcasts.forEach(broadcast => {
-        const content = JSON.parse(broadcast.content);
-        console.log('\nSent Broadcast:', {
-            id: broadcast.id,
-            documentId: broadcast.documentId,
-            messageId: broadcast.messageId,
-            createdAt: new Date(broadcast.createdAt).toISOString(),
-            title: content.title || content.metadata?.frontmatter?.title || 'No title',
-            source: content.source || content.metadata?.frontmatter?.source || 'Unknown'
-        });
-    });
+    for (const broadcast of pendingBroadcasts) {
+        console.log(`\nBroadcast ID: ${broadcast.id}`);
+        console.log(`Document ID: ${broadcast.documentId}`);
+        console.log(`Title: ${broadcast.title || 'No title'}`);
+        console.log(`Source: ${broadcast.source || 'Unknown'}`);
+        console.log(`Telegram Status: ${broadcast.telegram_status}`);
+        console.log(`Twitter Status: ${broadcast.twitter_status}`);
+    }
 }
 
 // Get next pending broadcast for a specific client
@@ -173,13 +166,16 @@ async function processNextBroadcast(client: string, characterName: string) {
 
         return success;
     } catch (error) {
-        console.error(`Error processing ${client} broadcast:`, error);
+        console.error('Error processing broadcast:', error);
         return false;
     }
 }
 
 // Main queue processing function
 async function processQueue(characterName: string) {
+    // First show database state
+    showDatabaseState();
+
     // Process one message for each client
     const clients = ['telegram', 'twitter'];
     for (const client of clients) {

@@ -4,13 +4,17 @@
     "type": "module",
     "scripts": {
         "build": "tsc",
-        "start": "node dist/create-broadcast-message.js",
-        "broadcast": "NODE_OPTIONS='--loader ts-node/esm' node create-broadcast-message.ts"
+        "start": "node --experimental-specifier-resolution=node dist/create-broadcast-message.js",
+        "broadcast": "NODE_OPTIONS='--loader ts-node/esm --experimental-specifier-resolution=node' node create-broadcast-message.ts"
     },
     "dependencies": {
         "@elizaos/core": "workspace:*",
         "@elizaos/adapter-sqlite": "workspace:*",
         "better-sqlite3": "11.6.0",
         "telegraf": "^4.15.3"
+    },
+    "devDependencies": {
+        "ts-node": "^10.9.2",
+        "typescript": "^5.0.0"
     }
 }
