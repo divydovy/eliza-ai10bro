@@ -1,0 +1,23 @@
+{
+  "name": "@elizaos/plugin-broadcast",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
+  },
+  "dependencies": {
+    "@elizaos/core": "workspace:*",
+    "@elizaos/adapter-sqlite": "workspace:*",
+    "better-sqlite3": "11.6.0",
+    "telegraf": "^4.15.3",
+    "twitter-api-v2": "^1.16.0"
+  },
+  "devDependencies": {
+    "tsup": "8.0.2",
+    "typescript": "^5.0.0"
+  }
+}
