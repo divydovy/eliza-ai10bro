@@ -38,8 +38,8 @@ const extractBlueprintFromMessage = (text: string): { blueprint: string | null, 
         }
 
         // Check for blueprint field (new format)
-        if (messageObj.blueprint) {
-            elizaLogger.info('Found blueprint in blueprint field');
+        if (messageObj.blueprint && messageObj.blueprintUrl) {
+            elizaLogger.info('Found blueprint and URL in message');
             try {
                 // If it's a string, parse it to ensure it's valid JSON
                 const parsed = typeof messageObj.blueprint === 'string'
@@ -56,10 +56,10 @@ const extractBlueprintFromMessage = (text: string): { blueprint: string | null, 
                 // Validate the blueprint
                 const valid = validateBlueprint(parsed);
                 if (valid) {
-                    elizaLogger.info('Successfully validated blueprint from blueprint field');
+                    elizaLogger.info('Successfully validated blueprint from message');
                     return {
                         blueprint: JSON.stringify(parsed),
-                        url: messageObj.blueprintUrl || null
+                        url: messageObj.blueprintUrl
                     };
                 } else {
                     const errors = validateBlueprint.errors?.map(e => `${e.instancePath} ${e.message}`);

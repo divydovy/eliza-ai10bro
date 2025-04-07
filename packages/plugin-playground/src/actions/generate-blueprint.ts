@@ -250,22 +250,29 @@ const generateBlueprintAction: Action = {
                                 preview: formattedJson.substring(0, 100)
                             });
 
-                            try {
-                                // Upload blueprint to JSONBin
-                                const uploadedUrl = await uploadBlueprint(runtime, formattedJson);
+                            // Upload the blueprint to JSONBin
+                            const uploadedUrl = await uploadBlueprint(runtime, formattedJson);
 
-                                // Get client-specific message
-                                const clientType = runtime.character.clients?.[0] || 'telegram';
-                                const response = getClientSpecificMessage(clientType, formattedJson, uploadedUrl);
+                            // Create memory with both blueprint and URL
+                            const memory: Memory = {
+                                userId: message.userId,
+                                agentId: message.agentId,
+                                roomId: message.roomId,
+                                content: {
+                                    text: JSON.stringify({
+                                        blueprint: formattedJson,
+                                        blueprintUrl: uploadedUrl
+                                    })
+                                }
+                            };
 
-                                callback(response);
-                            } catch (error) {
-                                elizaLogger.error('Error uploading blueprint:', error);
-                                callback({
-                                    text: "I encountered an error while uploading the blueprint. Please try again."
-                                });
-                                return false;
-                            }
+                            await runtime.messageManager.createMemory(memory);
+
+                            // Get client-specific message
+                            const clientType = runtime.character.clients?.[0] || 'telegram';
+                            const response = getClientSpecificMessage(clientType, formattedJson, uploadedUrl);
+
+                            callback(response);
                         }
                         return true;
                     } else {
