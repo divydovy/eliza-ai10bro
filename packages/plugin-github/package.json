@@ -6,15 +6,16 @@
   "type": "commonjs",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "import": "./dist/index.mjs"
     }
   },
   "scripts": {
-    "build": "tsup --format cjs --dts",
+    "build": "tsup --format cjs,esm --dts",
     "test": "jest",
     "clean": "rm -rf dist",
-    "dev": "tsup --format cjs --dts --watch",
+    "dev": "tsup --format cjs,esm --dts --watch",
     "lint": "eslint ."
   },
   "dependencies": {

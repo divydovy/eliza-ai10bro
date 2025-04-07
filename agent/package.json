@@ -53,7 +53,7 @@
         "@elizaos/plugin-near": "workspace:*",
         "@elizaos/plugin-nft-generation": "workspace:*",
         "@elizaos/plugin-node": "workspace:*",
-        "@elizaos/plugin-playground": "link:../packages/plugin-playground",
+        "@elizaos/plugin-playground": "workspace:*",
         "@elizaos/plugin-solana": "workspace:*",
         "@elizaos/plugin-starknet": "workspace:*",
         "@elizaos/plugin-story": "workspace:*",

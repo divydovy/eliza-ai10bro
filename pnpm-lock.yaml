@@ -195,6 +195,9 @@ importers:
       '@elizaos/plugin-gitbook':
         specifier: workspace:*
         version: link:../packages/plugin-gitbook
+      '@elizaos/plugin-github':
+        specifier: workspace:*
+        version: link:../packages/plugin-github
       '@elizaos/plugin-goat':
         specifier: workspace:*
         version: link:../packages/plugin-goat
@@ -220,7 +223,7 @@ importers:
         specifier: workspace:*
         version: link:../packages/plugin-node
       '@elizaos/plugin-playground':
-        specifier: link:../packages/plugin-playground
+        specifier: workspace:*
         version: link:../packages/plugin-playground
       '@elizaos/plugin-solana':
         specifier: workspace:*
