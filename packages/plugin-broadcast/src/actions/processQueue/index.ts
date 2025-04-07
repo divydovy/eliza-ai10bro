@@ -6,6 +6,9 @@ import { ProcessQueueParams } from "./types";
 export const processQueueAction: Action = {
     name: "PROCESS_BROADCAST_QUEUE",
     description: "Process pending broadcast messages in the queue",
+    validate: async (_runtime: IAgentRuntime, _message: Memory) => {
+        return true; // Always allow queue processing
+    },
     parameters: {
         client: {
             type: "string",

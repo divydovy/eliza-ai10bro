@@ -1,24 +1,22 @@
 {
-    "extends": "../../tsconfig.base.json",
+    "compilerOptions": {
+        "target": "ESNext",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "outDir": "./dist",
+        "rootDir": "./src",
+        "strict": false,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "declaration": true,
+        "emitDeclarationOnly": true
+    },
     "include": [
-        "src"
+        "src/**/*.ts"
     ],
     "exclude": [
         "dist",
         "build",
         "node_modules"
-    ],
-    "compilerOptions": {
-        "outDir": "./dist",
-        "rootDir": "./src",
-        "composite": true
-    },
-    "references": [
-        {
-            "path": "../core"
-        },
-        {
-            "path": "../adapter-sqlite"
-        }
     ]
 }

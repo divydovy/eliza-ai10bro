@@ -1,22 +1,22 @@
-import { Plugin } from "@elizaos/core";
+import { Plugin, IAgentRuntime } from "@elizaos/core";
 import { createMessageAction } from "./actions/createMessage";
 import { processQueueAction } from "./actions/processQueue";
 import { initializeBroadcastSchema } from "./db/schema";
 
+// Function to initialize the plugin
+export function initializePlugin(runtime: IAgentRuntime) {
+    // Access the database instance through the adapter
+    const db = runtime.databaseAdapter.db;
+    initializeBroadcastSchema(db);
+}
+
 const plugin: Plugin = {
     name: "broadcast",
-    version: "0.1.0",
+    description: "Plugin for broadcasting messages across multiple channels",
     actions: [
         createMessageAction,
         processQueueAction
-    ],
-    initialize: async (runtime) => {
-        // Initialize database schema
-        initializeBroadcastSchema(runtime.db);
-
-        runtime.logger.info("Broadcast plugin initialized");
-        return true;
-    }
+    ]
 };
 
 export default plugin;

@@ -6,6 +6,9 @@ import { CreateMessageParams } from "./types";
 export const createMessageAction: Action = {
     name: "CREATE_BROADCAST",
     description: "Creates a new broadcast message from a document",
+    validate: async (_runtime: IAgentRuntime, _message: Memory) => {
+        return true; // Always allow broadcast creation
+    },
     parameters: {
         documentId: {
             type: "string",
