@@ -14,11 +14,20 @@ export default defineConfig({
     ],
     clearScreen: false,
     build: {
+<<<<<<< HEAD
         outDir: "dist",
         minify: true,
         cssMinify: true,
         sourcemap: false,
         cssCodeSplit: true,
+=======
+        commonjsOptions: {
+            exclude: ["onnxruntime-node", "@anush008/tokenizers"],
+        },
+        rollupOptions: {
+            external: ["onnxruntime-node", "@anush008/tokenizers", "turbo-stream"],
+        },
+>>>>>>> temp-playground-changes
     },
     resolve: {
         alias: {

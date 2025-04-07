@@ -58,6 +58,7 @@ coverage
 .eslintcache
 
 agent/content
+<<<<<<< HEAD
 
 # Manifest files
 eliza.manifest
@@ -69,4 +70,6 @@ characters/*.character.json
 
 # Editor/IDE files
 .cursor/
+=======
+>>>>>>> temp-playground-changes
 .specstory/
