@@ -60,3 +60,5 @@ coverage
 
 agent/content
 .specstory/
+
+agent/rag-state/sources/
