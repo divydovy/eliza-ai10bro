@@ -22,104 +22,21 @@ const validateBlueprint = ajv.compile(blueprintSchema);
 
 const extractBlueprintFromMessage = (text: string): { blueprint: string | null, url: string | null } => {
     try {
-        elizaLogger.info('Attempting to extract blueprint from message:', {
+        elizaLogger.info('Searching for blueprint URL in message:', {
             messageLength: text.length,
             messagePreview: text.substring(0, 100)
         });
 
-        let messageObj;
-        try {
-            // First try to parse as JSON
-            messageObj = JSON.parse(text);
-        } catch (parseError) {
-            // If not JSON, treat as plain text
-            elizaLogger.info('Message is not JSON, treating as plain text');
-            messageObj = { text };
+        // Look for jsonbin.io URL in the entire content
+        const urlMatch = text.match(/(https:\/\/api\.jsonbin\.io\/v3\/b\/[a-zA-Z0-9]+\/latest\?meta=false)/);
+        if (urlMatch) {
+            const url = urlMatch[1];
+            elizaLogger.info('Found blueprint URL:', { url });
+            return { blueprint: null, url };
         }
 
-        // Check for blueprint field (new format)
-        if (messageObj.blueprint && messageObj.blueprintUrl) {
-            elizaLogger.info('Found blueprint and URL in message');
-            try {
-                // If it's a string, parse it to ensure it's valid JSON
-                const parsed = typeof messageObj.blueprint === 'string'
-                    ? JSON.parse(messageObj.blueprint)
-                    : messageObj.blueprint;
-
-                elizaLogger.info('Parsed blueprint structure:', {
-                    hasSchema: !!parsed.$schema,
-                    hasMeta: !!parsed.meta,
-                    hasSteps: !!parsed.steps,
-                    stepsLength: Array.isArray(parsed.steps) ? parsed.steps.length : 'not array'
-                });
-
-                // Validate the blueprint
-                const valid = validateBlueprint(parsed);
-                if (valid) {
-                    elizaLogger.info('Successfully validated blueprint from message');
-                    return {
-                        blueprint: JSON.stringify(parsed),
-                        url: messageObj.blueprintUrl
-                    };
-                } else {
-                    const errors = validateBlueprint.errors?.map(e => `${e.instancePath} ${e.message}`);
-                    elizaLogger.error('Blueprint validation failed:', { errors });
-                }
-            } catch (error) {
-                elizaLogger.error('Failed to parse/validate blueprint:', {
-                    error: error instanceof Error ? error.message : 'Unknown error',
-                    blueprintPreview: typeof messageObj.blueprint === 'string'
-                        ? messageObj.blueprint.substring(0, 100)
-                        : JSON.stringify(messageObj.blueprint).substring(0, 100)
-                });
-            }
-        }
-
-        // Look for JSON in text content
-        const textContent = messageObj.text;
-        if (textContent) {
-            // Look for JSON code blocks
-            const codeBlockMatch = textContent.match(/```(?:json)?\n?([\s\S]*?)\n?```/);
-            if (codeBlockMatch) {
-                elizaLogger.info('Found JSON code block in text');
-                try {
-                    const parsed = JSON.parse(codeBlockMatch[1]);
-                    const valid = validateBlueprint(parsed);
-                    if (valid) {
-                        elizaLogger.info('Successfully validated blueprint from code block');
-                        return {
-                            blueprint: JSON.stringify(parsed),
-                            url: null
-                        };
-                    }
-                } catch (error) {
-                    elizaLogger.error('Failed to parse JSON from code block:', error);
-                }
-            }
-
-            // Try to find any JSON object in the text
-            const jsonMatch = textContent.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                elizaLogger.info('Found JSON object in text');
-                try {
-                    const parsed = JSON.parse(jsonMatch[0]);
-                    const valid = validateBlueprint(parsed);
-                    if (valid) {
-                        elizaLogger.info('Successfully validated blueprint from text JSON');
-                        return {
-                            blueprint: JSON.stringify(parsed),
-                            url: null
-                        };
-                    }
-                } catch (error) {
-                    elizaLogger.error('Failed to parse JSON from text:', error);
-                }
-            }
-        }
-
-        elizaLogger.info('No valid blueprint found in message');
+        elizaLogger.info('No blueprint URL found in message');
         return { blueprint: null, url: null };
-
     } catch (error) {
         elizaLogger.error('Error in extractBlueprintFromMessage:', {
             error: error instanceof Error ? error.message : 'Unknown error',
@@ -176,7 +93,7 @@ const createPlaygroundAction: Action = {
             // Get recent messages from the conversation
             const recentMessages = await runtime.messageManager.getMemories({
                 roomId: message.roomId,
-                count: 10,
+                count: 20,
                 unique: false
             });
 
