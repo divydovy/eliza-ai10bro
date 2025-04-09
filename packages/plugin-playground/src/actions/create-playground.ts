@@ -27,63 +27,74 @@ interface BlueprintMemoryContent {
     blueprintUrl?: string;
 }
 
+interface MessageContent {
+    blueprintUrl?: string;
+    [key: string]: any;
+}
+
+function isValidCommand(message: string): boolean {
+    elizaLogger.info('Validating command:', message);
+    const normalizedMessage = message.toLowerCase().trim();
+    elizaLogger.info('Normalized command:', normalizedMessage);
+
+    const validCommands = [
+        "let's play",
+        "let's create a playground",
+        "create a playground",
+        "generate a playground",
+        "playground",
+        "play",
+        // Add underscore versions
+        "lets_play",
+        "create_playground",
+        "generate_playground"
+    ];
+
+    // First check for exact matches
+    if (validCommands.includes(normalizedMessage)) {
+        return true;
+    }
+
+    // Then check for partial matches and keywords
+    const keywords = ['play', 'playground', 'create', 'generate'];
+    return validCommands.some(cmd =>
+        normalizedMessage.includes(cmd.toLowerCase())
+    ) || keywords.some(keyword =>
+        normalizedMessage.includes(keyword)
+    );
+}
+
 async function extractBlueprintFromMessage(message: string | Memory): Promise<string | null> {
     elizaLogger.info('Searching for blueprint URL in message');
     elizaLogger.info('Message content:', message);
 
-    // Convert message to string if it's a Memory object
-    let content = '';
+    // If it's a string, check if it's a valid command
     if (typeof message === 'string') {
-        content = message;
-    } else {
-        content = JSON.stringify(message.content);
+        if (isValidCommand(message)) {
+            elizaLogger.info('Valid command detected, will generate new blueprint');
+            return null; // Return null to trigger blueprint generation
+        }
+        return null;
     }
 
-    elizaLogger.info('Content to search:', content);
-
-    // Look for JSONBin URL in the content
-    const urlMatch = content.match(/(https:\/\/api\.jsonbin\.io\/v3\/b\/[a-zA-Z0-9]+\/latest\?meta=false)/);
-    if (urlMatch) {
-        elizaLogger.info('Found blueprint URL:', urlMatch[1]);
-        return urlMatch[1];
+    // If it's a Memory object with a blueprintUrl
+    if (typeof message.content === 'object' && (message.content as MessageContent).blueprintUrl) {
+        const url = (message.content as MessageContent).blueprintUrl;
+        if (url) {
+            elizaLogger.info('Found blueprint URL in message content');
+            return url;
+        }
     }
 
-    elizaLogger.info('No blueprint URL found in message');
+    // If it's a valid command in the content
+    if (typeof message.content === 'string' && isValidCommand(message.content)) {
+        elizaLogger.info('Valid command detected in message content, will generate new blueprint');
+        return null; // Return null to trigger blueprint generation
+    }
+
+    elizaLogger.info('No valid command or blueprint URL found');
     return null;
 }
-
-// Validate the command
-const isValidCommand = (command: string): boolean => {
-    elizaLogger.info('Validating command:', command);
-    const normalizedCommand = command.toLowerCase().trim();
-    elizaLogger.info('Normalized command:', normalizedCommand);
-
-    const validCommands = [
-        'create playground',
-        'create a playground',
-        'make playground',
-        'make a playground',
-        'build playground',
-        'build a playground',
-        'deploy playground',
-        'deploy a playground',
-        'launch playground',
-        'launch a playground',
-        'start playground',
-        'start a playground',
-        'open playground',
-        'open a playground',
-        'let\'s play',
-        'lets play',
-        'play'
-    ];
-
-    elizaLogger.info('Checking against valid commands:', validCommands);
-    const isValid = validCommands.includes(normalizedCommand);
-    elizaLogger.info('Command validation result:', { command: normalizedCommand, isValid });
-
-    return isValid;
-};
 
 const createPlaygroundAction: Action = {
     name: "CREATE_PLAYGROUND",

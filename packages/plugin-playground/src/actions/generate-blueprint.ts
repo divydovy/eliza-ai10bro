@@ -175,9 +175,7 @@ const generateBlueprintAction: Action = {
     validate: async (runtime: IAgentRuntime, message: Memory) => {
         elizaLogger.info("Validating GENERATE_BLUEPRINT request");
         const text = message.content.text?.toLowerCase() || '';
-        const isGenerateBlueprint = text === "generate_blueprint" ||
-                                  text === "generate blueprint" ||
-                                  text === "GENERATE_BLUEPRINT";
+        const isGenerateBlueprint = isValidCommand(text);
         if (isGenerateBlueprint) {
             message.content = {
                 ...message.content,
@@ -278,7 +276,7 @@ const generateBlueprintAction: Action = {
                                 agentId: message.agentId,
                                 roomId: message.roomId,
                                 content: {
-                                    text: `Generated blueprint for ${parsed.meta.title}`,
+                                    text: `I've generated a blueprint for your store with all the essential configurations!`,
                                     blueprint: formattedJson,
                                     blueprintUrl: uploadedUrl
                                 },
@@ -471,3 +469,47 @@ const getClientSpecificMessage = (client: string, formattedJson: string, uploade
             };
     }
 };
+
+function isValidCommand(command: string): boolean {
+    elizaLogger.info('Validating command:', command);
+    const normalizedCommand = command.toLowerCase().trim();
+    elizaLogger.info('Normalized command:', normalizedCommand);
+
+    const validCommands = [
+        'generate blueprint',
+        'create blueprint',
+        'make blueprint',
+        'build blueprint',
+        'deploy blueprint',
+        'launch blueprint',
+        'start blueprint',
+        'open blueprint',
+        'blueprint',
+        'generate',
+        'create',
+        'make',
+        'build',
+        'deploy',
+        'launch',
+        'start',
+        'open',
+        // Add underscore versions
+        'generate_blueprint',
+        'create_blueprint',
+        'make_blueprint',
+        'build_blueprint',
+        'deploy_blueprint',
+        'launch_blueprint',
+        'start_blueprint',
+        'open_blueprint'
+    ];
+
+    // Check for exact matches first
+    if (validCommands.includes(normalizedCommand)) {
+        return true;
+    }
+
+    // Also check if the command contains any of our keywords
+    const keywords = ['blueprint', 'generate', 'create', 'make', 'build', 'deploy', 'launch', 'start', 'open'];
+    return keywords.some(keyword => normalizedCommand.includes(keyword));
+}
