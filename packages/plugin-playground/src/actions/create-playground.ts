@@ -4,6 +4,7 @@ import axios from "axios";
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
 import { blueprintSchema } from "../schema/blueprint";
+import { getClientSpecificMessage } from './utils';
 
 // Initialize AJV with standard options
 const ajv = new Ajv({
@@ -20,47 +21,68 @@ addFormats(ajv);
 // Compile the schema
 const validateBlueprint = ajv.compile(blueprintSchema);
 
-const extractBlueprintFromMessage = (text: string): { blueprint: string | null, url: string | null } => {
-    try {
-        elizaLogger.info('Searching for blueprint URL in message:', {
-            messageLength: text.length,
-            messagePreview: text.substring(0, 100)
-        });
+interface BlueprintMemoryContent {
+    text: string;
+    blueprint?: string;
+    blueprintUrl?: string;
+}
 
-        // Look for jsonbin.io URL in the entire content
-        const urlMatch = text.match(/(https:\/\/api\.jsonbin\.io\/v3\/b\/[a-zA-Z0-9]+\/latest\?meta=false)/);
-        if (urlMatch) {
-            const url = urlMatch[1];
-            elizaLogger.info('Found blueprint URL:', { url });
-            return { blueprint: null, url };
-        }
+async function extractBlueprintFromMessage(message: string | Memory): Promise<string | null> {
+    elizaLogger.info('Searching for blueprint URL in message');
+    elizaLogger.info('Message content:', message);
 
-        elizaLogger.info('No blueprint URL found in message');
-        return { blueprint: null, url: null };
-    } catch (error) {
-        elizaLogger.error('Error in extractBlueprintFromMessage:', {
-            error: error instanceof Error ? error.message : 'Unknown error',
-            stack: error instanceof Error ? error.stack : 'No stack trace'
-        });
-        return { blueprint: null, url: null };
+    // Convert message to string if it's a Memory object
+    let content = '';
+    if (typeof message === 'string') {
+        content = message;
+    } else {
+        content = JSON.stringify(message.content);
     }
-};
 
-// Add helper function for client-specific messages
-const getClientSpecificMessage = (client: string, playgroundUrl: string) => {
-    switch (client) {
-        case 'twitter':
-            return {
-                text: `Your WooCommerce playground is ready! Access it here: ${playgroundUrl}`,
-                action: "CREATE_PLAYGROUND"
-            };
-        case 'telegram':
-        default:
-            return {
-                text: `I've created a playground instance with your blueprint! You can access it here:\n\n${playgroundUrl}\n\nThe playground will load with all your specified configurations. Feel free to explore and test everything.`,
-                action: "CREATE_PLAYGROUND"
-            };
+    elizaLogger.info('Content to search:', content);
+
+    // Look for JSONBin URL in the content
+    const urlMatch = content.match(/(https:\/\/api\.jsonbin\.io\/v3\/b\/[a-zA-Z0-9]+\/latest\?meta=false)/);
+    if (urlMatch) {
+        elizaLogger.info('Found blueprint URL:', urlMatch[1]);
+        return urlMatch[1];
     }
+
+    elizaLogger.info('No blueprint URL found in message');
+    return null;
+}
+
+// Validate the command
+const isValidCommand = (command: string): boolean => {
+    elizaLogger.info('Validating command:', command);
+    const normalizedCommand = command.toLowerCase().trim();
+    elizaLogger.info('Normalized command:', normalizedCommand);
+
+    const validCommands = [
+        'create playground',
+        'create a playground',
+        'make playground',
+        'make a playground',
+        'build playground',
+        'build a playground',
+        'deploy playground',
+        'deploy a playground',
+        'launch playground',
+        'launch a playground',
+        'start playground',
+        'start a playground',
+        'open playground',
+        'open a playground',
+        'let\'s play',
+        'lets play',
+        'play'
+    ];
+
+    elizaLogger.info('Checking against valid commands:', validCommands);
+    const isValid = validCommands.includes(normalizedCommand);
+    elizaLogger.info('Command validation result:', { command: normalizedCommand, isValid });
+
+    return isValid;
 };
 
 const createPlaygroundAction: Action = {
@@ -77,56 +99,62 @@ const createPlaygroundAction: Action = {
             }
         ]
     ],
-    validate: async (runtime: IAgentRuntime, message: Memory) => {
+    validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
         elizaLogger.info("Validating CREATE_PLAYGROUND request");
-        const text = message.content.text?.toLowerCase() || '';
-        return text.includes("playground") ||
-               text.includes("launch") ||
-               text.includes("preview") ||
-               text === "let's play" ||
-               text === "lets play";
+        elizaLogger.info("Message content:", message.content);
+        elizaLogger.info("Action name:", createPlaygroundAction.name);
+        elizaLogger.info("Action similes:", createPlaygroundAction.similes);
+
+        // Handle both string and object content
+        const text = typeof message.content === 'string'
+            ? message.content
+            : message.content.text || '';
+
+        const normalizedText = text.toLowerCase().trim();
+        elizaLogger.info("Normalized text:", normalizedText);
+        const isValid = isValidCommand(normalizedText);
+
+        elizaLogger.info("Validation result:", { text: normalizedText, isValid });
+        return isValid;
     },
     handler: async (runtime: IAgentRuntime, message: Memory, state?: State, options?: { [key: string]: unknown }, callback?: HandlerCallback): Promise<boolean> => {
-        elizaLogger.info("Handling CREATE_PLAYGROUND request");
+        elizaLogger.info("Executing CREATE_PLAYGROUND handler");
+        elizaLogger.info("Message content structure:", {
+            type: typeof message.content,
+            content: message.content
+        });
 
         try {
-            // Get recent messages from the conversation
+            elizaLogger.info("Retrieving recent messages for room:", message.roomId);
             const recentMessages = await runtime.messageManager.getMemories({
                 roomId: message.roomId,
                 count: 20,
                 unique: false
             });
+            elizaLogger.info("Retrieved messages count:", recentMessages.length);
 
-            elizaLogger.info('Searching through recent messages:', {
-                messageCount: recentMessages.length,
-                roomId: message.roomId
-            });
-
-            // Look for blueprint in recent messages
             let blueprintData: { blueprint: string | null, url: string | null } = { blueprint: null, url: null };
-            for (const msg of recentMessages.reverse()) {
-                if (msg.content.text) {
-                    elizaLogger.info('Checking message for blueprint:', {
-                        messageId: msg.id,
-                        messageLength: msg.content.text.length,
-                        preview: msg.content.text.substring(0, 100) + '...'
-                    });
 
-                    blueprintData = extractBlueprintFromMessage(msg.content.text);
-                    if (blueprintData.blueprint) {
-                        elizaLogger.info('Blueprint found in message:', {
-                            messageId: msg.id,
-                            blueprintLength: blueprintData.blueprint.length,
-                            blueprintPreview: blueprintData.blueprint.substring(0, 100) + '...',
-                            hasUrl: !!blueprintData.url
-                        });
-                        break;
-                    }
+            // Search through messages in chronological order
+            for (const msg of recentMessages) {
+                // Log only relevant message info, not embeddings
+                elizaLogger.info("Processing message:", {
+                    id: msg.id,
+                    contentType: typeof msg.content,
+                    content: msg.content
+                });
+
+                elizaLogger.info('Checking message for blueprint URL');
+                const result = await extractBlueprintFromMessage(msg);
+                if (result) {
+                    elizaLogger.info('Found valid blueprint URL:', result);
+                    blueprintData = { blueprint: null, url: result };
+                    break;
                 }
             }
 
-            // If no blueprint found, suggest generating one
-            if (!blueprintData.blueprint) {
+            if (!blueprintData.url) {
+                elizaLogger.info('No valid blueprint URL found in recent messages');
                 if (callback) {
                     callback({
                         text: "I couldn't find a recent blueprint. Would you like me to help you generate one first? Just let me know what kind of store you'd like to create."
@@ -135,40 +163,44 @@ const createPlaygroundAction: Action = {
                 return true;
             }
 
-            // Use the stored URL if available
             const uploadedUrl = blueprintData.url;
-            if (!uploadedUrl) {
-                if (callback) {
-                    callback({
-                        text: "I found a blueprint but it hasn't been uploaded yet. Please try generating a new blueprint first."
-                    });
-                }
-                return true;
-            }
-
-            // Create playground URL
-            const playgroundUrl = `https://playground.wordpress.net?blueprint-url=${encodeURIComponent(uploadedUrl)}`;
+            elizaLogger.info("Constructing playground URL with blueprint:", uploadedUrl);
+            const playgroundUrl = `https://wpcalypso.wordpress.com/setup/onboarding/playground?blueprint-url=${encodeURIComponent(uploadedUrl)}`;
+            elizaLogger.info("Final playground URL:", playgroundUrl);
 
             if (callback) {
-                // Get client-specific message
                 const clientType = runtime.character.clients?.[0] || 'telegram';
+                elizaLogger.info("Sending response to client:", clientType);
                 const response = getClientSpecificMessage(clientType, playgroundUrl);
-                callback(response);
+                // Ensure response has the correct format
+                callback({
+                    text: response.text,
+                    action: createPlaygroundAction.name
+                });
             }
 
             return true;
         } catch (error) {
             elizaLogger.error('Error in CREATE_PLAYGROUND:', {
-                error: error instanceof Error ? {
-                    message: error.message,
-                    stack: error.stack,
-                    name: error.name
-                } : error,
-                fullError: error
+                error: error instanceof Error ? error.message : 'Unknown error',
+                stack: error instanceof Error ? error.stack : undefined,
+                messageContent: message.content
             });
+
             if (callback) {
+                let errorMessage = 'I encountered an error while setting up the playground.';
+                if (error instanceof Error) {
+                    if (error.message.includes('fetch')) {
+                        errorMessage = 'I had trouble connecting to the blueprint service. Please try again in a few moments.';
+                    } else if (error.message.includes('URL')) {
+                        errorMessage = 'I found a blueprint URL but it appears to be invalid. Please try generating a new blueprint.';
+                    } else {
+                        errorMessage = `I encountered an error: ${error.message}. Please try again.`;
+                    }
+                }
                 callback({
-                    text: `I encountered an error while setting up the playground: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again in a few moments.`
+                    text: errorMessage,
+                    action: createPlaygroundAction.name
                 });
             }
             return false;
@@ -177,46 +209,21 @@ const createPlaygroundAction: Action = {
 };
 
 // Test function for blueprint extraction and validation
-const testBlueprintExtraction = (rawEntry: string) => {
+const testBlueprintExtraction = async (rawEntry: string) => {
     elizaLogger.info('Testing blueprint extraction with raw entry');
 
-    // Step 1: Try to extract blueprint
-    const blueprintData = extractBlueprintFromMessage(rawEntry);
-    if (!blueprintData.blueprint) {
-        elizaLogger.error('Failed to extract blueprint from message');
+    // Step 1: Try to extract blueprint URL
+    const result = await extractBlueprintFromMessage(rawEntry);
+    if (!result) {
+        elizaLogger.error('Failed to extract blueprint URL from message');
         return null;
     }
 
-    elizaLogger.info('Successfully extracted blueprint:', {
-        length: blueprintData.blueprint.length,
-        preview: blueprintData.blueprint.substring(0, 100)
+    elizaLogger.info('Successfully extracted blueprint URL:', {
+        url: result
     });
 
-    // Step 2: Try to parse and validate
-    try {
-        const parsed = JSON.parse(blueprintData.blueprint);
-        elizaLogger.info('Successfully parsed JSON:', {
-            hasSchema: !!parsed.$schema,
-            hasMeta: !!parsed.meta,
-            preview: JSON.stringify(parsed).substring(0, 100)
-        });
-
-        // Step 3: Validate against schema
-        const valid = validateBlueprint(parsed);
-        if (!valid) {
-            const errors = validateBlueprint.errors?.map(e => `${e.instancePath} ${e.message}`);
-            elizaLogger.error('Blueprint validation failed:', { errors });
-            return null;
-        } else {
-            elizaLogger.info('Blueprint validation successful');
-            return parsed;
-        }
-    } catch (error) {
-        elizaLogger.error('Error parsing blueprint:', {
-            error: error instanceof Error ? error.message : 'Unknown error'
-        });
-        return null;
-    }
+    return result;
 };
 
 // Run test with sample data
