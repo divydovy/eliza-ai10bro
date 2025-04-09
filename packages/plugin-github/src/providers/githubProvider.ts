@@ -2,6 +2,8 @@ import { Provider, IAgentRuntime, Memory, State, elizaLogger, AgentRuntime, know
 import { Octokit } from "@octokit/rest";
 import { createHash } from "crypto";
 import { DashboardState, DashboardConfig } from '../state/dashboard.js';
+import { withRateLimit } from '../utils/rateLimit';
+import { Cache } from '../utils/cache';
 
 /**
  * Helper function to stringify any value for logging
@@ -16,6 +18,9 @@ function logSafeStringify(value: any): string {
         return `[Could not stringify: ${typeof value}]`;
     }
 }
+
+// Create a cache for GitHub API responses
+const githubCache = new Cache<any>(15 * 60 * 1000); // 15 minutes TTL
 
 export const githubProvider: Provider = {
     async get(runtime: IAgentRuntime, message: Memory, state?: State) {
@@ -55,6 +60,7 @@ export class GitHubClient {
     private runtime: AgentRuntime;
     private static instance: GitHubClient | null = null;
     private dashboardState: DashboardState;
+    private cache: Cache<any>;
 
     private constructor(
         private token: string,
@@ -75,6 +81,7 @@ export class GitHubClient {
         });
         this.runtime = runtime;
         this.dashboardState = new DashboardState(dashboardConfig ?? {});
+        this.cache = new Cache(15 * 60 * 1000); // 15 minutes TTL
     }
 
     static async create(
@@ -287,6 +294,78 @@ export class GitHubClient {
                 lastError: error instanceof Error ? error.message : String(error)
             });
 
+            throw error;
+        }
+    }
+
+    async getRepositoryContent(owner: string, repo: string, path: string): Promise<any> {
+        const cacheKey = `repo:${owner}/${repo}:${path}`;
+
+        // Try to get from cache first
+        const cached = this.cache.get(cacheKey);
+        if (cached) {
+            elizaLogger.debug(`Cache hit for ${cacheKey}`);
+            return cached;
+        }
+
+        try {
+            const content = await withRateLimit(
+                `github:${owner}/${repo}`,
+                async () => {
+                    const response = await this.octokit.repos.getContent({
+                        owner,
+                        repo,
+                        path,
+                    });
+                    return response.data;
+                },
+                (error) => {
+                    elizaLogger.warn(`GitHub API error for ${owner}/${repo}, using cached data if available`);
+                    // Return cached data if available, even if expired
+                    const expiredCache = this.cache.get(cacheKey);
+                    if (expiredCache) {
+                        elizaLogger.info(`Using expired cache for ${cacheKey}`);
+                        return expiredCache;
+                    }
+                    throw error;
+                }
+            );
+
+            // Cache the successful response
+            this.cache.set(cacheKey, content);
+            return content;
+        } catch (error) {
+            elizaLogger.error(`Failed to fetch GitHub content for ${owner}/${repo}:${path}`, error);
+            throw error;
+        }
+    }
+
+    // Add similar wrappers for other GitHub API methods
+    async getRepository(owner: string, repo: string): Promise<any> {
+        const cacheKey = `repo:${owner}/${repo}`;
+
+        const cached = this.cache.get(cacheKey);
+        if (cached) {
+            elizaLogger.debug(`Cache hit for ${cacheKey}`);
+            return cached;
+        }
+
+        try {
+            const repoData = await withRateLimit(
+                `github:${owner}/${repo}`,
+                async () => {
+                    const response = await this.octokit.repos.get({
+                        owner,
+                        repo,
+                    });
+                    return response.data;
+                }
+            );
+
+            this.cache.set(cacheKey, repoData);
+            return repoData;
+        } catch (error) {
+            elizaLogger.error(`Failed to fetch GitHub repository ${owner}/${repo}`, error);
             throw error;
         }
     }
