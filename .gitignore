@@ -74,3 +74,4 @@ characters/*.character.json
 # Dashboard state files
 .eliza/
 agent/rag-state/
+agent/rag-state/sources/github.json

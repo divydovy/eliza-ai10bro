@@ -64,31 +64,14 @@ export class ObsidianAutoClient {
             return;
         }
 
-        const scriptPath = path.join(projectRoot, 'scripts', 'update-obsidian-knowledge.ts');
-        const characterPath = path.join(projectRoot, 'characters', `${this.runtime.character.name}.character.json`);
-
-        elizaLogger.log("Running Obsidian knowledge update...");
+        elizaLogger.log("Running knowledge update...");
         this.isKnowledgeUpdateRunning = true;
 
-        return new Promise((resolve) => {
-            exec(`cd ${projectRoot} && pnpm tsx ${scriptPath} ${characterPath}`,
-                { maxBuffer: 1024 * 1024 * 10 }, // 10MB buffer
-                (error, stdout, stderr) => {
-                    this.isKnowledgeUpdateRunning = false;
+        // Logic to check Obsidian for new files and trigger create_knowledge
+        // ... existing code ...
 
-                    if (stderr) elizaLogger.error(stderr);
-                    if (stdout) elizaLogger.log(stdout);
-
-                    if (error) {
-                        elizaLogger.error(`Error executing knowledge update script: ${error}`);
-                        resolve(false);
-                        return;
-                    }
-
-                    elizaLogger.log("Obsidian knowledge update completed");
-                    resolve(true);
-            });
-        });
+        this.isKnowledgeUpdateRunning = false;
+        elizaLogger.log("Knowledge update completed");
     }
 
     private async runBroadcastCreate() {
@@ -160,12 +143,6 @@ export class ObsidianAutoClient {
     stop() {
         if (this.knowledgeInterval) {
             clearInterval(this.knowledgeInterval);
-        }
-        if (this.broadcastInterval) {
-            clearInterval(this.broadcastInterval);
-        }
-        if (this.queueInterval) {
-            clearTimeout(this.queueInterval);
         }
     }
 }

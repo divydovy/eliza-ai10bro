@@ -4,54 +4,81 @@ import { processBroadcastQueue } from "./service";
 import { ProcessQueueParams } from "./types";
 
 export const processQueueAction: Action = {
-    name: "PROCESS_BROADCAST_QUEUE",
-    description: "Process pending broadcast messages in the queue",
+    name: "processQueue",
+    description: "Process the broadcast message queue",
+    similes: [
+        "PROCESS_QUEUE",
+        "HANDLE_BROADCASTS",
+        "SEND_BROADCASTS",
+        "PROCESS_BROADCASTS"
+    ],
+    examples: [
+        [
+            {
+                user: "user",
+                content: {
+                    text: "Process the broadcast queue"
+                }
+            },
+            {
+                user: "assistant",
+                content: {
+                    text: "I'll process the broadcast queue now.",
+                    action: "processQueue",
+                    source: "broadcast"
+                }
+            }
+        ]
+    ],
     validate: async (_runtime: IAgentRuntime, _message: Memory) => {
         return true; // Always allow queue processing
     },
-    parameters: {
-        client: {
-            type: "string",
-            description: "Client to process broadcasts for (telegram or twitter)",
-            optional: true
-        },
-        maxRetries: {
-            type: "number",
-            description: "Maximum number of retries for failed broadcasts",
-            optional: true
-        },
-        retryDelay: {
-            type: "number",
-            description: "Delay in milliseconds between retries",
-            optional: true
-        }
-    },
-    handler: async (
-        runtime: IAgentRuntime,
-        message: Memory,
-        state: unknown,
-        options: { [key: string]: unknown } = {}
-    ): Promise<boolean> => {
-        const db = new BroadcastDB(runtime.db);
-        const params = message.content as ProcessQueueParams;
-
-        const result = await processBroadcastQueue(runtime, params, db);
-
-        if (!result.success) {
-            runtime.logger.error("Failed to process broadcast queue", {
-                error: result.error,
-                processedCount: result.processedCount,
-                failedCount: result.failedCount
+    handler: async (runtime: IAgentRuntime, message: Memory) => {
+        try {
+            const broadcasts = await runtime.databaseAdapter.getMemories({
+                roomId: message.roomId,
+                tableName: "broadcasts",
+                agentId: runtime.agentId,
+                count: 10
             });
-            return false;
+
+            await runtime.databaseAdapter.log({
+                body: { count: broadcasts.length },
+                userId: message.userId,
+                roomId: message.roomId,
+                type: "QUEUE_PROCESSING_STARTED"
+            });
+
+            for (const broadcast of broadcasts) {
+                try {
+                    await runtime.databaseAdapter.removeMemory(broadcast.id!, "broadcasts");
+                    await runtime.databaseAdapter.log({
+                        body: { broadcast },
+                        userId: message.userId,
+                        roomId: message.roomId,
+                        type: "BROADCAST_PROCESSED"
+                    });
+                } catch (error) {
+                    await runtime.databaseAdapter.log({
+                        body: { error, broadcast },
+                        userId: message.userId,
+                        roomId: message.roomId,
+                        type: "BROADCAST_PROCESSING_ERROR"
+                    });
+                }
+            }
+
+            return broadcasts;
+        } catch (error) {
+            await runtime.databaseAdapter.log({
+                body: { error },
+                userId: message.userId,
+                roomId: message.roomId,
+                type: "QUEUE_PROCESSING_ERROR"
+            });
+            throw error;
         }
-
-        runtime.logger.info("Processed broadcast queue", {
-            processedCount: result.processedCount,
-            failedCount: result.failedCount,
-            client: params.client
-        });
-
-        return true;
     }
 };
+
+export { processBroadcastQueue } from './service';

@@ -2,59 +2,66 @@ import { Action, IAgentRuntime, Memory } from "@elizaos/core";
 import { BroadcastDB } from "../../db/operations";
 import { createBroadcastMessage } from "./service";
 import { CreateMessageParams } from "./types";
+import { BroadcastClient } from "../../types";
 
 export const createMessageAction: Action = {
-    name: "CREATE_BROADCAST",
-    description: "Creates a new broadcast message from a document",
+    name: "createMessage",
+    description: "Create a broadcast message",
+    similes: ["CREATE_MESSAGE", "NEW_BROADCAST", "SEND_BROADCAST"],
+    examples: [
+        [
+            {
+                user: "user",
+                content: {
+                    text: "Create a broadcast message saying 'Hello world!'"
+                }
+            },
+            {
+                user: "assistant",
+                content: {
+                    text: "I'll create a broadcast message with that content.",
+                    action: "createMessage",
+                    source: "broadcast"
+                }
+            }
+        ]
+    ],
     validate: async (_runtime: IAgentRuntime, _message: Memory) => {
         return true; // Always allow broadcast creation
     },
-    parameters: {
-        documentId: {
-            type: "string",
-            description: "ID of the document to create broadcast from"
-        },
-        client: {
-            type: "string",
-            description: "Client to create broadcast for (telegram or twitter)",
-            optional: true
-        },
-        maxLength: {
-            type: "number",
-            description: "Maximum length of the broadcast message",
-            optional: true
-        },
-        prompt: {
-            type: "string",
-            description: "Custom prompt for generating the broadcast message",
-            optional: true
-        }
-    },
-    handler: async (
-        runtime: IAgentRuntime,
-        message: Memory,
-        state: unknown,
-        options: { [key: string]: unknown } = {}
-    ): Promise<boolean> => {
-        const db = new BroadcastDB(runtime.db);
-        const params = message.content as CreateMessageParams;
+    handler: async (runtime: IAgentRuntime, message: Memory) => {
+        try {
+            const params: CreateMessageParams = {
+                documentId: message.content.documentId as string || "default",
+                client: message.content.client as BroadcastClient,
+                maxLength: message.content.maxLength as number,
+                prompt: message.content.prompt as string
+            };
 
-        const result = await createBroadcastMessage(runtime, params, db);
+            const broadcast = await runtime.databaseAdapter.createMemory({
+                ...message,
+                content: {
+                    ...message.content,
+                    ...params
+                }
+            }, "broadcasts", true);
 
-        if (!result.success) {
-            runtime.logger.error("Failed to create broadcast message", {
-                error: result.error,
-                documentId: params.documentId
+            await runtime.databaseAdapter.log({
+                body: { broadcast },
+                userId: message.userId,
+                roomId: message.roomId,
+                type: "BROADCAST_CREATED"
             });
-            return false;
+
+            return broadcast;
+        } catch (error) {
+            await runtime.databaseAdapter.log({
+                body: { error },
+                userId: message.userId,
+                roomId: message.roomId,
+                type: "BROADCAST_ERROR"
+            });
+            throw error;
         }
-
-        runtime.logger.info("Created broadcast message", {
-            broadcastId: result.broadcastId,
-            documentId: params.documentId,
-            client: params.client
-        });
-
-        return true;
     }
 };
