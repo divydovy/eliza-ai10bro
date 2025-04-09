@@ -3,6 +3,7 @@ import Ajv from "ajv";
 import { blueprintSchema, BlueprintData } from "../schema/blueprint";
 import axios from "axios";
 import { v4 } from "uuid";
+import { getLatestVersions } from '../utils/versions';
 
 // Initialize AJV with enhanced features
 const ajv = new Ajv({
@@ -112,7 +113,7 @@ Example blueprint (COPY THIS FORMAT EXACTLY):
   "landingPage": "/shop",
   "preferredVersions": {
     "php": "8.2",
-    "wp": "6.4"
+    "wp": "6.5.3"
   },
   "features": {
     "networking": true
@@ -200,8 +201,19 @@ const generateBlueprintAction: Action = {
                 state = await runtime.updateRecentMessageState(state);
             }
 
+            // Get latest versions
+            const { wordpress, php } = await getLatestVersions();
+            elizaLogger.info('Using latest versions:', { wordpress, php });
+
+            // Add versions to state
+            const stateWithVersions = {
+                ...state,
+                latestWordPressVersion: wordpress,
+                latestPHPVersion: php
+            };
+
             const context = composeContext({
-                state,
+                state: stateWithVersions,
                 template: blueprintTemplate
             });
 
