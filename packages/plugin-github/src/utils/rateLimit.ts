@@ -1,3 +1,5 @@
+import { elizaLogger } from '@elizaos/core';
+
 export function withRateLimit<T>(
   key: string,
   fn: () => Promise<T>,
@@ -5,12 +7,14 @@ export function withRateLimit<T>(
     maxRequests?: number;
     timeWindow?: number;
     onRateLimit?: () => void;
+    getCachedData?: () => T | null;
   } = {}
 ): Promise<T> {
   const {
     maxRequests = 10,
     timeWindow = 60000, // 1 minute
-    onRateLimit
+    onRateLimit,
+    getCachedData
   } = options;
 
   let requestCount = 0;
@@ -30,7 +34,19 @@ export function withRateLimit<T>(
       if (onRateLimit) {
         onRateLimit();
       }
-      throw new Error(`Rate limit exceeded for ${key}`);
+      // Instead of throwing, try to get cached data
+      if (getCachedData) {
+        const cached = getCachedData();
+        if (cached) {
+          elizaLogger.warn(`Rate limit exceeded for ${key}, using cached data`);
+          return cached;
+        }
+      }
+      // If no cached data available, wait and retry
+      const waitTime = timeWindow - (now - windowStart);
+      elizaLogger.warn(`Rate limit exceeded for ${key}, waiting ${waitTime}ms before retry`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+      return withRateLimit(key, fn, options);
     }
 
     requestCount++;
