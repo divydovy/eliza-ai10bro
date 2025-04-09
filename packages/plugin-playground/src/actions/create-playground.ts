@@ -165,7 +165,7 @@ const createPlaygroundAction: Action = {
 
             const uploadedUrl = blueprintData.url;
             elizaLogger.info("Constructing playground URL with blueprint:", uploadedUrl);
-            const playgroundUrl = `https://wpcalypso.wordpress.com/setup/onboarding/playground?blueprint-url=${encodeURIComponent(uploadedUrl)}`;
+            const playgroundUrl = `https://wordpress.com/setup/onboarding/playground?blueprint-url=${encodeURIComponent(uploadedUrl)}`;
             elizaLogger.info("Final playground URL:", playgroundUrl);
 
             if (callback) {
