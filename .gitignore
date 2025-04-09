@@ -62,3 +62,4 @@ agent/content
 .specstory/
 
 agent/rag-state/sources/
+agent/rag-state/

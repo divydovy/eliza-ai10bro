@@ -1,7 +1,8 @@
-import { Action, IAgentRuntime, Memory, elizaLogger, State, HandlerCallback, composeContext, generateText, ModelClass } from "@elizaos/core";
+import { Action, IAgentRuntime, Memory, elizaLogger, State, HandlerCallback, composeContext, generateText, ModelClass, getEmbeddingZeroVector, UUID } from "@elizaos/core";
 import Ajv from "ajv";
 import { blueprintSchema, BlueprintData } from "../schema/blueprint";
 import axios from "axios";
+import { v4 } from "uuid";
 
 // Initialize AJV with enhanced features
 const ajv = new Ajv({
@@ -230,7 +231,7 @@ const generateBlueprintAction: Action = {
 
                 try {
                     // Parse and validate the JSON
-                    const parsed = JSON.parse(cleanedMatch);
+                    const parsed = JSON.parse(cleanedMatch) as BlueprintData;
                     elizaLogger.info('Validating blueprint structure', {
                         hasSchema: parsed.$schema ? 'yes' : 'no',
                         hasMeta: parsed.meta ? 'yes' : 'no',
@@ -250,22 +251,49 @@ const generateBlueprintAction: Action = {
                                 preview: formattedJson.substring(0, 100)
                             });
 
-                            try {
-                                // Upload blueprint to JSONBin
-                                const uploadedUrl = await uploadBlueprint(runtime, formattedJson);
+                            // Upload the blueprint to JSONBin
+                            const uploadedUrl = await uploadBlueprint(runtime, formattedJson);
 
-                                // Get client-specific message
-                                const clientType = runtime.character.clients?.[0] || 'telegram';
-                                const response = getClientSpecificMessage(clientType, formattedJson, uploadedUrl);
-
-                                callback(response);
-                            } catch (error) {
-                                elizaLogger.error('Error uploading blueprint:', error);
-                                callback({
-                                    text: "I encountered an error while uploading the blueprint. Please try again."
-                                });
-                                return false;
+                            if (!uploadedUrl) {
+                                elizaLogger.error('Failed to upload blueprint to JSONBin');
+                                throw new Error('Failed to upload blueprint to JSONBin');
                             }
+
+                            // Create memory with both blueprint and URL
+                            const memory: Memory = {
+                                id: v4() as UUID,
+                                userId: message.userId,
+                                agentId: message.agentId,
+                                roomId: message.roomId,
+                                content: {
+                                    text: `Generated blueprint for ${parsed.meta.title}`,
+                                    blueprint: formattedJson,
+                                    blueprintUrl: uploadedUrl
+                                },
+                                embedding: getEmbeddingZeroVector(),
+                                createdAt: Date.now()
+                            };
+
+                            // Add embedding to memory
+                            const memoryWithEmbedding = await runtime.messageManager.addEmbeddingToMemory(memory);
+
+                            if (!memoryWithEmbedding) {
+                                elizaLogger.error('Failed to add embedding to memory');
+                                throw new Error('Failed to add embedding to memory');
+                            }
+
+                            await runtime.messageManager.createMemory(memoryWithEmbedding);
+
+                            // Get client-specific message
+                            const clientType = runtime.character.clients?.[0] || 'telegram';
+                            const response = getClientSpecificMessage(clientType, formattedJson, uploadedUrl);
+
+                            if (!response) {
+                                elizaLogger.error('Failed to generate client-specific message');
+                                throw new Error('Failed to generate client-specific message');
+                            }
+
+                            callback(response);
                         }
                         return true;
                     } else {
