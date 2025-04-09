@@ -20,7 +20,9 @@ function logSafeStringify(value: any): string {
 }
 
 // Create a cache for GitHub API responses
-const githubCache = new Cache<any>(15 * 60 * 1000); // 15 minutes TTL
+const githubCache = new Cache<any>(24 * 60 * 60 * 1000); // 24 hours TTL
+let lastSyncTime: number = 0;
+const SYNC_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
 
 export const githubProvider: Provider = {
     async get(runtime: IAgentRuntime, message: Memory, state?: State) {
@@ -51,7 +53,17 @@ export const githubProvider: Provider = {
             dashboardConfig
         );
 
-        return client.syncKnowledge();
+        // Only sync if it's been more than 24 hours since last sync
+        const now = Date.now();
+        if (now - lastSyncTime > SYNC_INTERVAL) {
+            elizaLogger.info('Starting GitHub sync - cache is older than 24 hours');
+            const result = await client.syncKnowledge();
+            lastSyncTime = now;
+            return result;
+        } else {
+            elizaLogger.debug('Skipping GitHub sync - cache is still fresh');
+            return 0; // Return 0 to indicate no new files were processed
+        }
     }
 };
 
@@ -299,9 +311,9 @@ export class GitHubClient {
     }
 
     async getRepositoryContent(owner: string, repo: string, path: string): Promise<any> {
-        const cacheKey = `repo:${owner}/${repo}:${path}`;
+        const cacheKey = `content:${owner}/${repo}:${path}`;
 
-        // Try to get from cache first
+        // First try to get from cache
         const cached = this.cache.get(cacheKey);
         if (cached) {
             elizaLogger.debug(`Cache hit for ${cacheKey}`);
@@ -309,6 +321,7 @@ export class GitHubClient {
         }
 
         try {
+            // Use rate limiting for the API call with cache fallback
             const content = await withRateLimit(
                 `github:${owner}/${repo}`,
                 async () => {
@@ -319,15 +332,11 @@ export class GitHubClient {
                     });
                     return response.data;
                 },
-                (error) => {
-                    elizaLogger.warn(`GitHub API error for ${owner}/${repo}, using cached data if available`);
-                    // Return cached data if available, even if expired
-                    const expiredCache = this.cache.get(cacheKey);
-                    if (expiredCache) {
-                        elizaLogger.info(`Using expired cache for ${cacheKey}`);
-                        return expiredCache;
+                {
+                    getCachedData: () => this.cache.get(cacheKey),
+                    onRateLimit: () => {
+                        elizaLogger.warn(`GitHub API rate limit hit for ${owner}/${repo}`);
                     }
-                    throw error;
                 }
             );
 
@@ -336,6 +345,12 @@ export class GitHubClient {
             return content;
         } catch (error) {
             elizaLogger.error(`Failed to fetch GitHub content for ${owner}/${repo}:${path}`, error);
+            // Try to get expired cache as last resort
+            const expiredCache = this.cache.get(cacheKey);
+            if (expiredCache) {
+                elizaLogger.info(`Using expired cache for ${cacheKey}`);
+                return expiredCache;
+            }
             throw error;
         }
     }

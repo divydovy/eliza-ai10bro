@@ -2,7 +2,7 @@ export class Cache<T> {
   private cache: Map<string, { value: T; timestamp: number }>;
   private ttl: number;
 
-  constructor(ttl: number = 5 * 60 * 1000) { // Default 5 minutes
+  constructor(ttl: number = 24 * 60 * 60 * 1000) { // Default 24 hours
     this.cache = new Map();
     this.ttl = ttl;
   }
