@@ -151,6 +151,216 @@ Example blueprint (COPY THIS FORMAT EXACTLY):
     {
       "step": "setSiteLanguage",
       "language": "en_US"
+    },
+    {
+      "step": "importWxr",
+      "file": {
+        "resource": "url",
+        "url": "https://raw.githubusercontent.com/WordPress/blueprints/trunk/blueprints/stylish-press/site-content.wxr"
+      }
+    },
+    {
+      "step": "importWxr",
+      "file": {
+        "resource": "url",
+        "url": "https://raw.githubusercontent.com/WordPress/blueprints/trunk/blueprints/stylish-press/woo-products.wxr"
+      }
+    },
+    {
+      "step": "mkdir",
+      "path": "/wp-content/uploads/woo-product-images"
+    },
+    {
+      "step": "request",
+      "file": {
+        "resource": "url",
+        "url": "https://raw.githubusercontent.com/WordPress/blueprints/trunk/blueprints/stylish-press/woo-product-images/album-1.jpg"
+      },
+      "path": "/wp-content/uploads/woo-product-images/album-1.jpg"
+    },
+    {
+      "step": "request",
+      "file": {
+        "resource": "url",
+        "url": "https://raw.githubusercontent.com/WordPress/blueprints/trunk/blueprints/stylish-press/woo-product-images/album.jpg"
+      },
+      "path": "/wp-content/uploads/woo-product-images/album.jpg"
+    },
+    {
+      "step": "request",
+      "file": {
+        "resource": "url",
+        "url": "https://raw.githubusercontent.com/WordPress/blueprints/trunk/blueprints/stylish-press/woo-product-images/beanie-2.jpg"
+      },
+      "path": "/wp-content/uploads/woo-product-images/beanie-2.jpg"
+    },
+    {
+      "step": "request",
+      "file": {
+        "resource": "url",
+        "url": "https://raw.githubusercontent.com/WordPress/blueprints/trunk/blueprints/stylish-press/woo-product-images/beanie-with-logo-1.jpg"
+      },
+      "path": "/wp-content/uploads/woo-product-images/beanie-with-logo-1.jpg"
+    },
+    {
+      "step": "request",
+      "file": {
+        "resource": "url",
+        "url": "https://raw.githubusercontent.com/WordPress/blueprints/trunk/blueprints/stylish-press/woo-product-images/belt-2.jpg"
+      },
+      "path": "/wp-content/uploads/woo-product-images/belt-2.jpg"
+    },
+    {
+      "step": "request",
+      "file": {
+        "resource": "url",
+        "url": "https://raw.githubusercontent.com/WordPress/blueprints/trunk/blueprints/stylish-press/woo-product-images/cap-2.jpg"
+      },
+      "path": "/wp-content/uploads/woo-product-images/cap-2.jpg"
+    },
+    {
+      "step": "request",
+      "file": {
+        "resource": "url",
+        "url": "https://raw.githubusercontent.com/WordPress/blueprints/trunk/blueprints/stylish-press/woo-product-images/hoodie-2.jpg"
+      },
+      "path": "/wp-content/uploads/woo-product-images/hoodie-2.jpg"
+    },
+    {
+      "step": "request",
+      "file": {
+        "resource": "url",
+        "url": "https://raw.githubusercontent.com/WordPress/blueprints/trunk/blueprints/stylish-press/woo-product-images/hoodie-blue-1.jpg"
+      },
+      "path": "/wp-content/uploads/woo-product-images/hoodie-blue-1.jpg"
+    },
+    {
+      "step": "request",
+      "file": {
+        "resource": "url",
+        "url": "https://raw.githubusercontent.com/WordPress/blueprints/trunk/blueprints/stylish-press/woo-product-images/hoodie-green-1.jpg"
+      },
+      "path": "/wp-content/uploads/woo-product-images/hoodie-green-1.jpg"
+    },
+    {
+      "step": "request",
+      "file": {
+        "resource": "url",
+        "url": "https://raw.githubusercontent.com/WordPress/blueprints/trunk/blueprints/stylish-press/woo-product-images/hoodie-with-logo-2.jpg"
+      },
+      "path": "/wp-content/uploads/woo-product-images/hoodie-with-logo-2.jpg"
+    },
+    {
+      "step": "request",
+      "file": {
+        "resource": "url",
+        "url": "https://raw.githubusercontent.com/WordPress/blueprints/trunk/blueprints/stylish-press/woo-product-images/hoodie-with-pocket-2.jpg"
+      },
+      "path": "/wp-content/uploads/woo-product-images/hoodie-with-pocket-2.jpg"
+    },
+    {
+      "step": "request",
+      "file": {
+        "resource": "url",
+        "url": "https://raw.githubusercontent.com/WordPress/blueprints/trunk/blueprints/stylish-press/woo-product-images/hoodie-with-zipper-2.jpg"
+      },
+      "path": "/wp-content/uploads/woo-product-images/hoodie-with-zipper-2.jpg"
+    },
+    {
+      "step": "request",
+      "file": {
+        "resource": "url",
+        "url": "https://raw.githubusercontent.com/WordPress/blueprints/trunk/blueprints/stylish-press/woo-product-images/logo-1.jpg"
+      },
+      "path": "/wp-content/uploads/woo-product-images/logo-1.jpg"
+    },
+    {
+      "step": "request",
+      "file": {
+        "resource": "url",
+        "url": "https://raw.githubusercontent.com/WordPress/blueprints/trunk/blueprints/stylish-press/woo-product-images/long-sleeve-tee-2.jpg"
+      },
+      "path": "/wp-content/uploads/woo-product-images/long-sleeve-tee-2.jpg"
+    },
+    {
+      "step": "request",
+      "file": {
+        "resource": "url",
+        "url": "https://raw.githubusercontent.com/WordPress/blueprints/trunk/blueprints/stylish-press/woo-product-images/pennant-1.jpg"
+      },
+      "path": "/wp-content/uploads/woo-product-images/pennant-1.jpg"
+    },
+    {
+      "step": "request",
+      "file": {
+        "resource": "url",
+        "url": "https://raw.githubusercontent.com/WordPress/blueprints/trunk/blueprints/stylish-press/woo-product-images/polo-2.jpg"
+      },
+      "path": "/wp-content/uploads/woo-product-images/polo-2.jpg"
+    },
+    {
+      "step": "request",
+      "file": {
+        "resource": "url",
+        "url": "https://raw.githubusercontent.com/WordPress/blueprints/trunk/blueprints/stylish-press/woo-product-images/single-1.jpg"
+      },
+      "path": "/wp-content/uploads/woo-product-images/single-1.jpg"
+    },
+    {
+      "step": "request",
+      "file": {
+        "resource": "url",
+        "url": "https://raw.githubusercontent.com/WordPress/blueprints/trunk/blueprints/stylish-press/woo-product-images/single.jpg"
+      },
+      "path": "/wp-content/uploads/woo-product-images/single.jpg"
+    },
+    {
+      "step": "request",
+      "file": {
+        "resource": "url",
+        "url": "https://raw.githubusercontent.com/WordPress/blueprints/trunk/blueprints/stylish-press/woo-product-images/sunglasses-2.jpg"
+      },
+      "path": "/wp-content/uploads/woo-product-images/sunglasses-2.jpg"
+    },
+    {
+      "step": "request",
+      "file": {
+        "resource": "url",
+        "url": "https://raw.githubusercontent.com/WordPress/blueprints/trunk/blueprints/stylish-press/woo-product-images/t-shirt-with-logo-1.jpg"
+      },
+      "path": "/wp-content/uploads/woo-product-images/t-shirt-with-logo-1.jpg"
+    },
+    {
+      "step": "request",
+      "file": {
+        "resource": "url",
+        "url": "https://raw.githubusercontent.com/WordPress/blueprints/trunk/blueprints/stylish-press/woo-product-images/tshirt-2.jpg"
+      },
+      "path": "/wp-content/uploads/woo-product-images/tshirt-2.jpg"
+    },
+    {
+      "step": "request",
+      "file": {
+        "resource": "url",
+        "url": "https://raw.githubusercontent.com/WordPress/blueprints/trunk/blueprints/stylish-press/woo-product-images/vnech-tee-blue-1.jpg"
+      },
+      "path": "/wp-content/uploads/woo-product-images/vnech-tee-blue-1.jpg"
+    },
+    {
+      "step": "request",
+      "file": {
+        "resource": "url",
+        "url": "https://raw.githubusercontent.com/WordPress/blueprints/trunk/blueprints/stylish-press/woo-product-images/vnech-tee-green-1.jpg"
+      },
+      "path": "/wp-content/uploads/woo-product-images/vnech-tee-green-1.jpg"
+    },
+    {
+      "step": "request",
+      "file": {
+        "resource": "url",
+        "url": "https://raw.githubusercontent.com/WordPress/blueprints/trunk/blueprints/stylish-press/woo-product-images/vneck-tee-2.jpg"
+      },
+      "path": "/wp-content/uploads/woo-product-images/vneck-tee-2.jpg"
     }
   ]
 }
