@@ -18,8 +18,8 @@ export class BroadcastDB {
                 id,
                 documentId,
                 client,
-                messageId,
-                content,
+                message_id,
+                status,
                 createdAt
             ) VALUES (?, ?, ?, ?, ?, ?)
         `).run(
@@ -27,7 +27,7 @@ export class BroadcastDB {
             documentId,
             client,
             messageId,
-            content,
+            'pending',
             Date.now()
         );
 

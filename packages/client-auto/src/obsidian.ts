@@ -2,6 +2,9 @@ import { Client, IAgentRuntime, elizaLogger } from "@elizaos/core";
 import { exec } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createBroadcastMessage } from '@elizaos/plugin-broadcast';
+import { BroadcastDB } from '@elizaos/plugin-broadcast/src/db/operations';
+import { processBroadcastQueue } from '@elizaos/plugin-broadcast/src/actions/processQueue/service';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -80,31 +83,19 @@ export class ObsidianAutoClient {
             return;
         }
 
-        const scriptPath = path.join(projectRoot, 'scripts', 'create-broadcast-message.ts');
-        const characterName = this.runtime.character.name;
-
         elizaLogger.log("Running broadcast message creation...");
         this.isBroadcastCreateRunning = true;
 
-        return new Promise((resolve) => {
-            exec(`cd ${projectRoot} && pnpm tsx ${scriptPath} ${characterName}`,
-                { maxBuffer: 1024 * 1024 * 10 }, // 10MB buffer
-                (error, stdout, stderr) => {
-                    this.isBroadcastCreateRunning = false;
-
-                    if (stderr) elizaLogger.error(stderr);
-                    if (stdout) elizaLogger.log(stdout);
-
-                    if (error) {
-                        elizaLogger.error(`Error executing broadcast creation script: ${error}`);
-                        resolve(false);
-                        return;
-                    }
-
-                    elizaLogger.log("Broadcast message creation completed");
-                    resolve(true);
-            });
-        });
+        try {
+            await createBroadcastMessage(this.runtime, this.runtime.character.name);
+            elizaLogger.log("Broadcast message creation completed");
+            return true;
+        } catch (error) {
+            elizaLogger.error(`Error executing broadcast creation: ${error}`);
+            return false;
+        } finally {
+            this.isBroadcastCreateRunning = false;
+        }
     }
 
     private async runQueueProcess() {
@@ -113,31 +104,20 @@ export class ObsidianAutoClient {
             return;
         }
 
-        const scriptPath = path.join(projectRoot, 'scripts', 'process-broadcast-queue.ts');
-        const characterName = this.runtime.character.name;
-
         elizaLogger.log("Running broadcast queue processing...");
         this.isQueueProcessRunning = true;
 
-        return new Promise((resolve) => {
-            exec(`cd ${projectRoot} && pnpm tsx ${scriptPath} ${characterName}`,
-                { maxBuffer: 1024 * 1024 * 10 }, // 10MB buffer
-                (error, stdout, stderr) => {
-                    this.isQueueProcessRunning = false;
-
-                    if (stderr) elizaLogger.error(stderr);
-                    if (stdout) elizaLogger.log(stdout);
-
-                    if (error) {
-                        elizaLogger.error(`Error executing queue processing script: ${error}`);
-                        resolve(false);
-                        return;
-                    }
-
-                    elizaLogger.log("Broadcast queue processing completed");
-                    resolve(true);
-            });
-        });
+        try {
+            const db = new BroadcastDB(this.runtime.databaseAdapter.db);
+            const result = await processBroadcastQueue(this.runtime, {}, db);
+            elizaLogger.log(`Broadcast queue processing completed. Processed: ${result.processedCount}, Failed: ${result.failedCount}`);
+            return true;
+        } catch (error) {
+            elizaLogger.error(`Error executing queue processing: ${error}`);
+            return false;
+        } finally {
+            this.isQueueProcessRunning = false;
+        }
     }
 
     stop() {

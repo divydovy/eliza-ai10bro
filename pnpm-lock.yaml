@@ -202,6 +202,9 @@ importers:
       '@elizaos/plugin-bootstrap':
         specifier: workspace:*
         version: link:../packages/plugin-bootstrap
+      '@elizaos/plugin-broadcast':
+        specifier: workspace:*
+        version: link:../packages/plugin-broadcast
       '@elizaos/plugin-coinbase':
         specifier: workspace:*
         version: link:../packages/plugin-coinbase
@@ -712,6 +715,9 @@ importers:
       '@elizaos/core':
         specifier: workspace:*
         version: link:../core
+      '@elizaos/plugin-broadcast':
+        specifier: workspace:*
+        version: link:../plugin-broadcast
       '@types/body-parser':
         specifier: 1.19.5
         version: 1.19.5

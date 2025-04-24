@@ -7,6 +7,7 @@ export interface GitHubSourceState {
     lastChecked: string;
     totalDocuments: number;
     processedDocuments: number;
+    skippedDocuments: number;
     lastError?: string;
 }
 
@@ -166,6 +167,18 @@ export class DashboardState {
         } catch (error) {
             elizaLogger.warn(`Failed to write dashboard state to ${filePath}: ${error.message}`);
             // Don't throw - dashboard failures shouldn't affect main functionality
+        }
+    }
+
+    async getDocumentState(docId: string): Promise<GitHubDocumentState | null> {
+        if (!this.enabled) return null;
+
+        const filePath = path.join(this.basePath, 'documents/github', `${docId}.json`);
+        try {
+            const data = await fs.readFile(filePath, 'utf-8');
+            return JSON.parse(data);
+        } catch (error) {
+            return null;
         }
     }
 }

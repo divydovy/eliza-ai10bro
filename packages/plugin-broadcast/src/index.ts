@@ -2,7 +2,8 @@ import { Plugin, IAgentRuntime } from "@elizaos/core";
 import { createMessageAction } from "./actions/createMessage";
 import { processQueueAction } from "./actions/processQueue";
 import { initializeBroadcastSchema } from "./db/schema";
-import { processBroadcastQueue } from './actions/processQueue';
+export { createBroadcastMessage } from "./scripts/create-broadcast-message";
+export { processBroadcastQueue } from "./actions/processQueue/service";
 
 // Function to initialize the plugin
 export function initializePlugin(runtime: IAgentRuntime) {
@@ -16,8 +17,7 @@ const plugin: Plugin = {
     description: "Plugin for managing broadcast messages across multiple channels",
     actions: [
         createMessageAction,
-        processQueueAction,
-        processBroadcastQueue
+        processQueueAction
     ],
     evaluators: [],
     services: [],

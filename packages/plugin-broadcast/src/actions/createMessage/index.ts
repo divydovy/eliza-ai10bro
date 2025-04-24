@@ -1,62 +1,97 @@
-import { Action, IAgentRuntime, Memory } from "@elizaos/core";
-import { BroadcastDB } from "../../db/operations";
-import { createBroadcastMessage } from "./service";
-import { CreateMessageParams } from "./types";
+import { Action, Content } from "@elizaos/core";
 import { BroadcastClient } from "../../types";
+import { createBroadcastMessage } from "./service";
+import { BroadcastDB } from "../../db/operations";
+
+export interface CreateMessageParams {
+    documentId: string;
+    client?: BroadcastClient;
+    maxLength?: number;
+    prompt?: string;
+}
 
 export const createMessageAction: Action = {
-    name: "createMessage",
-    description: "Create a broadcast message",
-    similes: ["CREATE_MESSAGE", "NEW_BROADCAST", "SEND_BROADCAST"],
+    name: "CREATE_MESSAGE",
+    similes: ["CREATE_BROADCAST", "NEW_BROADCAST", "BROADCAST_MESSAGE"],
+    description: "Creates a new broadcast message from the given content",
     examples: [
         [
             {
                 user: "user",
                 content: {
-                    text: "Create a broadcast message saying 'Hello world!'"
-                }
+                    text: "Create a broadcast message for this document",
+                    documentId: "doc-123"
+                } as Content
             },
             {
                 user: "assistant",
                 content: {
-                    text: "I'll create a broadcast message with that content.",
-                    action: "createMessage",
-                    source: "broadcast"
-                }
+                    text: "I'll create a broadcast message for document doc-123",
+                    action: "CREATE_MESSAGE"
+                } as Content
+            }
+        ],
+        [
+            {
+                user: "user",
+                content: {
+                    text: "Make a Twitter broadcast for doc-abc with max length 280",
+                    documentId: "doc-abc",
+                    client: "twitter",
+                    maxLength: 280
+                } as Content
+            },
+            {
+                user: "assistant",
+                content: {
+                    text: "Creating a Twitter broadcast for document doc-abc with 280 character limit",
+                    action: "CREATE_MESSAGE"
+                } as Content
             }
         ]
     ],
-    validate: async (_runtime: IAgentRuntime, _message: Memory) => {
-        return true; // Always allow broadcast creation
+    validate: async (runtime, message) => {
+        const content = message.content as Content & { documentId: string };
+        return !!content.documentId;
     },
-    handler: async (runtime: IAgentRuntime, message: Memory) => {
+    handler: async (runtime, message) => {
+        const content = message.content as Content & {
+            documentId: string;
+            client?: BroadcastClient;
+            maxLength?: number;
+            prompt?: string;
+        };
+
+        const params: CreateMessageParams = {
+            documentId: content.documentId,
+            client: content.client,
+            maxLength: content.maxLength,
+            prompt: content.prompt
+        };
+
         try {
-            const params: CreateMessageParams = {
-                documentId: message.content.documentId as string || "default",
-                client: message.content.client as BroadcastClient,
-                maxLength: message.content.maxLength as number,
-                prompt: message.content.prompt as string
-            };
-
-            const broadcast = await runtime.databaseAdapter.createMemory({
-                ...message,
-                content: {
-                    ...message.content,
-                    ...params
-                }
-            }, "broadcasts", true);
-
+            const db = new BroadcastDB(runtime.databaseAdapter.db);
+            const result = await createBroadcastMessage(runtime, params, db);
             await runtime.databaseAdapter.log({
-                body: { broadcast },
+                body: {
+                    success: true,
+                    broadcastId: result.broadcastId,
+                    documentId: params.documentId,
+                    client: params.client
+                },
                 userId: message.userId,
                 roomId: message.roomId,
                 type: "BROADCAST_CREATED"
             });
-
-            return broadcast;
+            return result;
         } catch (error) {
             await runtime.databaseAdapter.log({
-                body: { error },
+                body: {
+                    success: false,
+                    error: error instanceof Error ? error.message : String(error),
+                    documentId: params.documentId,
+                    client: params.client
+                },
                 userId: message.userId,
                 roomId: message.roomId,
                 type: "BROADCAST_ERROR"

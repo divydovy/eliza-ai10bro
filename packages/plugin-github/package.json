@@ -3,18 +3,19 @@
   "version": "0.0.6",
   "description": "GitHub integration plugin for ElizaOS",
   "main": "dist/index.js",
-  "type": "module",
+  "type": "commonjs",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.mjs"
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsup --format cjs,esm --dts",
     "test": "jest",
     "clean": "rm -rf dist",
-    "dev": "tsc -w",
+    "dev": "tsup --format cjs,esm --dts --watch",
     "lint": "eslint ."
   },
   "dependencies": {

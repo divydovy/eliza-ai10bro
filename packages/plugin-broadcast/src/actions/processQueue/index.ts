@@ -1,7 +1,8 @@
-import { Action, IAgentRuntime, Memory } from "@elizaos/core";
-import { BroadcastDB } from "../../db/operations";
+import { Action, Content } from "@elizaos/core";
 import { processBroadcastQueue } from "./service";
 import { ProcessQueueParams } from "./types";
+import { BroadcastClient } from "../../types";
+import { BroadcastDB } from "../../db/operations";
 
 export const processQueueAction: Action = {
     name: "processQueue",
@@ -17,66 +18,75 @@ export const processQueueAction: Action = {
             {
                 user: "user",
                 content: {
-                    text: "Process the broadcast queue"
-                }
+                    text: "Please process the broadcast queue now."
+                } as Content
             },
             {
                 user: "assistant",
                 content: {
-                    text: "I'll process the broadcast queue now.",
-                    action: "processQueue",
-                    source: "broadcast"
-                }
+                    text: "I'll process the broadcast queue to send any pending messages. Processing the queue now..."
+                } as Content
             }
         ]
     ],
-    validate: async (_runtime: IAgentRuntime, _message: Memory) => {
+    validate: async (_runtime, _message) => {
         return true; // Always allow queue processing
     },
-    handler: async (runtime: IAgentRuntime, message: Memory) => {
+    handler: async (runtime, message) => {
         try {
-            const broadcasts = await runtime.databaseAdapter.getMemories({
-                roomId: message.roomId,
-                tableName: "broadcasts",
-                agentId: runtime.agentId,
-                count: 10
-            });
+            const params: ProcessQueueParams = {
+                client: message.content.client as BroadcastClient,
+                maxRetries: typeof message.content.maxRetries === 'number' ? message.content.maxRetries : undefined,
+                retryDelay: typeof message.content.retryDelay === 'number' ? message.content.retryDelay : undefined
+            };
 
-            await runtime.databaseAdapter.log({
-                body: { count: broadcasts.length },
-                userId: message.userId,
-                roomId: message.roomId,
-                type: "QUEUE_PROCESSING_STARTED"
-            });
+            const db = new BroadcastDB(runtime.databaseAdapter.db);
+            const result = await processBroadcastQueue(runtime, params, db);
 
-            for (const broadcast of broadcasts) {
-                try {
-                    await runtime.databaseAdapter.removeMemory(broadcast.id!, "broadcasts");
-                    await runtime.databaseAdapter.log({
-                        body: { broadcast },
-                        userId: message.userId,
-                        roomId: message.roomId,
-                        type: "BROADCAST_PROCESSED"
-                    });
-                } catch (error) {
-                    await runtime.databaseAdapter.log({
-                        body: { error, broadcast },
-                        userId: message.userId,
-                        roomId: message.roomId,
-                        type: "BROADCAST_PROCESSING_ERROR"
-                    });
-                }
+            if (result.success) {
+                runtime.databaseAdapter.log({
+                    type: "QUEUE_PROCESSED",
+                    body: {
+                        status: "success",
+                        processedCount: result.processedCount,
+                        failedCount: result.failedCount
+                    },
+                    userId: message.userId,
+                    roomId: message.roomId
+                });
+                return {
+                    success: true,
+                    message: `Successfully processed broadcast queue. Processed ${result.processedCount} messages, with ${result.failedCount} failures.`
+                };
+            } else {
+                runtime.databaseAdapter.log({
+                    type: "QUEUE_ERROR",
+                    body: {
+                        status: "error",
+                        error: result.error
+                    },
+                    userId: message.userId,
+                    roomId: message.roomId
+                });
+                return {
+                    success: false,
+                    message: `Failed to process broadcast queue: ${result.error}`
+                };
             }
-
-            return broadcasts;
         } catch (error) {
-            await runtime.databaseAdapter.log({
-                body: { error },
+            runtime.databaseAdapter.log({
+                type: "QUEUE_ERROR",
+                body: {
+                    status: "error",
+                    error: String(error)
+                },
                 userId: message.userId,
-                roomId: message.roomId,
-                type: "QUEUE_PROCESSING_ERROR"
+                roomId: message.roomId
             });
-            throw error;
+            return {
+                success: false,
+                message: `Error processing broadcast queue: ${error}`
+            };
         }
     }
 };

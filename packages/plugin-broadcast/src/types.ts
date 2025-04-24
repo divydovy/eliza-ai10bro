@@ -6,9 +6,9 @@ export interface BroadcastMessage {
     id: string;
     documentId: string;
     client: BroadcastClient;
-    messageId: string;
+    message_id: string;
     status: BroadcastStatus;
-    sentAt: number | null;
+    sent_at: number | null;
     createdAt: number;
     content: string;
 }
