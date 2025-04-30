@@ -54,7 +54,7 @@ function showDatabaseState() {
     // Get pending broadcasts (new schema)
     console.log('\nPending broadcasts:');
     const pendingBroadcasts = db.prepare(`
-        SELECT b.id, b.documentId, b.client, b.status,
+        SELECT b.id, b.documentId, b.client, b.status, b.alignment_score,
                json_extract(d.content, '$.metadata.frontmatter.title') as title,
                json_extract(d.content, '$.metadata.frontmatter.source') as source
         FROM broadcasts b
@@ -68,6 +68,7 @@ function showDatabaseState() {
         status: string;
         title: string;
         source: string;
+        alignment_score: number;
     }>;
 
     for (const broadcast of pendingBroadcasts) {
@@ -75,7 +76,7 @@ function showDatabaseState() {
         console.log(`Document ID: ${broadcast.documentId}`);
         console.log(`Client: ${broadcast.client}`);
         console.log(`Status: ${broadcast.status}`);
-        console.log(`Title: ${broadcast.title || 'No title'}`);
+        console.log(`Title: ${broadcast.title || 'No title'} (alignment score: ${broadcast.alignment_score?.toFixed(2) || 'N/A'})`);
         console.log(`Source: ${broadcast.source || 'Unknown'}`);
     }
 }
@@ -86,7 +87,7 @@ function getNextPendingBroadcast(client: string): (Broadcast & { content: string
         SELECT b.*, m.content
         FROM broadcasts b
         JOIN memories m ON m.id = b.message_id
-        WHERE b.client = ? AND b.status = 'pending'
+        WHERE b.client = ? AND b.status = 'pending' AND b.alignment_score >= 0.8
         ORDER BY b.createdAt ASC
         LIMIT 1
     `).get(client) as (Broadcast & { content: string }) | undefined;

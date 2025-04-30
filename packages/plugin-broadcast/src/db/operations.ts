@@ -9,7 +9,7 @@ export class BroadcastDB {
         this.db = db;
     }
 
-    createBroadcast(documentId: string, client: BroadcastClient, messageId: string): string {
+    createBroadcast(documentId: string, client: BroadcastClient, messageId: string, alignmentScore: number, status: string): string {
         const id = randomUUID();
         this.db.prepare(`
             INSERT INTO broadcasts (
@@ -18,14 +18,16 @@ export class BroadcastDB {
                 client,
                 message_id,
                 status,
+                alignment_score,
                 createdAt
-            ) VALUES (?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
         `).run(
             id,
             documentId,
             client,
             messageId,
-            'pending',
+            status,
+            alignmentScore,
             Date.now()
         );
         return id;

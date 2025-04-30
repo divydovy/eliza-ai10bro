@@ -9,6 +9,7 @@ export const initializeBroadcastSchema = (db: Database): void => {
             client TEXT NOT NULL,
             message_id TEXT,
             status TEXT NOT NULL DEFAULT 'pending',
+            alignment_score FLOAT,
             sent_at INTEGER,
             createdAt INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
             FOREIGN KEY (documentId) REFERENCES memories(id)

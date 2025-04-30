@@ -6,7 +6,7 @@ import Database from 'better-sqlite3';
 import crypto from 'node:crypto';
 import { encodingForModel } from "js-tiktoken";
 import fetch from 'node-fetch';
-import { getEmbeddingZeroVector, generateText, ModelClass, ModelProviderName, IAgentRuntime } from "@elizaos/core";
+import { getEmbeddingZeroVector, generateText, ModelClass, ModelProviderName, IAgentRuntime, embed } from "@elizaos/core";
 import { BroadcastDB } from "../db/operations";
 import { initializeBroadcastSchema } from "../db/schema";
 import { BroadcastClient } from "../types";
@@ -152,6 +152,28 @@ async function generatePlatformMessages(content: string, metadata: any): Promise
     };
 }
 
+// Add local cosineSimilarity for vectors
+function cosineSimilarity(vecA: number[], vecB: number[]): number {
+    let dot = 0.0;
+    let normA = 0.0;
+    let normB = 0.0;
+    for (let i = 0; i < vecA.length; i++) {
+        dot += vecA[i] * vecB[i];
+        normA += vecA[i] * vecA[i];
+        normB += vecB[i] * vecB[i];
+    }
+    if (normA === 0 || normB === 0) return 0;
+    return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
+const goalStatements = [
+  "Bridging the wisdom of natural systems with breakthrough technologies.",
+  "Championing technologies that work in harmony with natural systems.",
+  "Promote sustainable innovation and regenerative design.",
+  "Share insights that inspire solutions to environmental challenges.",
+  "Advance technological biomimicry and systems thinking."
+];
+
 export async function createBroadcastMessage(runtime: IAgentRuntime, characterName: string = 'c3po'): Promise<void> {
     console.log('Starting broadcast message creation...');
 
@@ -167,6 +189,10 @@ export async function createBroadcastMessage(runtime: IAgentRuntime, characterNa
     // Initialize broadcast DB
     const broadcastDb = new BroadcastDB(db);
 
+    // Generate goal embeddings
+    const goalEmbeddings = await Promise.all(goalStatements.map(text => embed(runtime, text)));
+    const threshold = 0.6; // Lowered from 0.8 to 0.6
+
     try {
         // Get all documents to broadcast
         const docs = getUnbroadcastDocuments(db);
@@ -177,15 +203,36 @@ export async function createBroadcastMessage(runtime: IAgentRuntime, characterNa
 
         for (const doc of docs) {
             const content = JSON.parse(doc.content);
-            // Use frontmatter if it exists, otherwise fallback
             const metadata = content.metadata || {};
             const frontmatter = metadata.frontmatter || {};
-            const title = frontmatter.title || 'No title';
+            const title = frontmatter.title || (content.text ? content.text.slice(0, 60) + (content.text.length > 60 ? '...' : '') : 'No title');
             const source = frontmatter.source || metadata.source || 'Unknown';
             const text = content.text || '';
 
+            // --- Heuristic filters ---
+            if (text.length < 100) {
+                console.log(`Skipping doc "${title}" (too short)`);
+                continue;
+            }
+            if (/test|draft|cache/i.test(title)) {
+                console.log(`Skipping doc "${title}" (unwanted title)`);
+                continue;
+            }
+
+            // --- Embedding-based filtering ---
+            const docEmbedding = await embed(runtime, text);
+            const similarities = goalEmbeddings.map(goalVec => cosineSimilarity(goalVec, docEmbedding));
+            const alignmentScore = Math.max(...similarities);
+
+            if (alignmentScore < threshold) {
+                console.log(`Skipping doc "${title}" (alignment score: ${alignmentScore.toFixed(2)})`);
+                continue;
+            }
+
             // Generate platform messages, using available metadata
             const messages = await generatePlatformMessages(text, { frontmatter: { title, source } });
+
+            const status = alignmentScore >= threshold ? 'pending' : 'skipped';
 
             // For each platform, create a memory and broadcast record
             if (messages.telegram) {
@@ -211,7 +258,7 @@ export async function createBroadcastMessage(runtime: IAgentRuntime, characterNa
                     telegramMemory.createdAt,
                     JSON.stringify(zeroEmbedding)
                   );
-                await broadcastDb.createBroadcast(doc.id, 'telegram', telegramMemoryId);
+                await broadcastDb.createBroadcast(doc.id, 'telegram', telegramMemoryId, alignmentScore, status);
             }
             if (messages.twitter) {
                 // Create a new memory for the twitter broadcast message
@@ -236,7 +283,7 @@ export async function createBroadcastMessage(runtime: IAgentRuntime, characterNa
                     twitterMemory.createdAt,
                     JSON.stringify(zeroEmbedding)
                   );
-                await broadcastDb.createBroadcast(doc.id, 'twitter', twitterMemoryId);
+                await broadcastDb.createBroadcast(doc.id, 'twitter', twitterMemoryId, alignmentScore, status);
             }
 
             console.log(`Successfully created broadcast messages for document: ${doc.id} (title: ${title})`);
