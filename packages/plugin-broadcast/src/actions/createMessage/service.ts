@@ -2,6 +2,7 @@ import { IAgentRuntime, Memory, ModelClass, generateText } from "@elizaos/core";
 import { BroadcastDB } from "../../db/operations";
 import { CreateMessageParams, CreateMessageResult } from "./types";
 import { randomUUID } from "node:crypto";
+import { UUID } from "@elizaos/core";
 
 export async function createBroadcastMessage(
     runtime: IAgentRuntime,
@@ -9,12 +10,12 @@ export async function createBroadcastMessage(
     db: BroadcastDB
 ): Promise<CreateMessageResult> {
     try {
-        const client = params.client || runtime.character.settings?.defaultClient || "telegram";
+        const client = params.client || "telegram";
         const maxLength = params.maxLength || (client === "telegram" ? 1000 : 280);
         const broadcastId = randomUUID();
 
         // Get document content
-        const document = await runtime.memory.get(params.documentId);
+        const document = await runtime.documentsManager.getMemoryById(params.documentId as UUID);
         if (!document) {
             return {
                 success: false,
@@ -22,9 +23,8 @@ export async function createBroadcastMessage(
             };
         }
 
-        // Use character's broadcast prompt if available
+        // Use fallback broadcast prompt
         const basePrompt = params.prompt ||
-            runtime.character.settings?.broadcastPrompt ||
             "Create a single focused message about what you learned from this content. Be specific about the insight, why it matters, and what it suggests.";
 
         const prompt = `${basePrompt}
@@ -49,8 +49,20 @@ ${client === "telegram" ? "- You may include more detail and context" : ""}
         const messageMatch = broadcastText.match(/\[BROADCAST:.*?\](.*?)(?=\[|$)/s);
         const finalText = messageMatch ? messageMatch[1].trim() : broadcastText.trim();
 
-        // Store in database
-        const id = db.createBroadcast(params.documentId, client, finalText);
+        // Create a new memory for the broadcast message
+        const memoryId = randomUUID();
+        const broadcastMemory: Memory = {
+            id: memoryId,
+            userId: runtime.agentId,
+            agentId: runtime.agentId,
+            roomId: runtime.agentId, // Using agentId as roomId
+            content: { text: finalText, type: "broadcast" },
+            createdAt: Date.now(),
+        };
+        await runtime.messageManager.createMemory(broadcastMemory, false);
+
+        // Store in database, referencing the new memory
+        const id = db.createBroadcast(params.documentId, client, memoryId);
 
         return {
             success: true,

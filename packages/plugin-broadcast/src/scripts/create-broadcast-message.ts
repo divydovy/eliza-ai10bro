@@ -8,6 +8,7 @@ import { encodingForModel } from "js-tiktoken";
 import fetch from 'node-fetch';
 import { getEmbeddingZeroVector, generateText, ModelClass, ModelProviderName, IAgentRuntime } from "@elizaos/core";
 import { BroadcastDB } from "../db/operations";
+import { initializeBroadcastSchema } from "../db/schema";
 import { BroadcastClient } from "../types";
 
 interface MessageContent {
@@ -107,15 +108,12 @@ function countTokens(text: string): number {
     }
 }
 
-function getNextUnbroadcastDocument(db: ReturnType<typeof Database>): DatabaseMemory | undefined {
-    // Get the oldest document that hasn't been broadcast yet and isn't currently being processed
-    const doc = db.prepare(`
+function getUnbroadcastDocuments(db: ReturnType<typeof Database>): DatabaseMemory[] {
+    // Get all documents that haven't been broadcast yet and aren't currently being processed
+    return db.prepare(`
         SELECT m.* FROM memories m
         WHERE m.type = 'documents'
         AND json_valid(m.content)
-        AND json_extract(m.content, '$.metadata.frontmatter') IS NOT NULL
-        AND json_extract(m.content, '$.metadata.frontmatter.title') IS NOT NULL
-        AND json_extract(m.content, '$.metadata.frontmatter.source') IS NOT NULL
         AND json_extract(m.content, '$.text') NOT LIKE '%This is a test document%'
         AND NOT EXISTS (
             SELECT 1 FROM broadcasts b
@@ -123,22 +121,7 @@ function getNextUnbroadcastDocument(db: ReturnType<typeof Database>): DatabaseMe
             AND (b.status = 'pending' OR b.status = 'sent')
         )
         ORDER BY m.createdAt ASC
-        LIMIT 1
-    `).get() as DatabaseMemory | undefined;
-
-    if (doc) {
-        const content = JSON.parse(doc.content);
-        console.log('\nDocument found:', {
-            id: doc.id,
-            createdAt: new Date(doc.createdAt).toISOString(),
-            title: content.metadata?.frontmatter?.title || 'No title',
-            source: content.metadata?.frontmatter?.source || 'Unknown'
-        });
-    } else {
-        console.log('No unbroadcast documents found');
-    }
-
-    return doc;
+    `).all() as DatabaseMemory[];
 }
 
 async function generatePlatformMessages(content: string, metadata: any): Promise<PlatformMessage> {
@@ -178,29 +161,86 @@ export async function createBroadcastMessage(runtime: IAgentRuntime, characterNa
     const db = new Database(dbPath);
     console.log('Successfully connected to database');
 
+    // Ensure broadcasts table exists
+    initializeBroadcastSchema(db);
+
     // Initialize broadcast DB
     const broadcastDb = new BroadcastDB(db);
 
     try {
-        // Get next document to broadcast
-        const doc = getNextUnbroadcastDocument(db);
-        if (!doc) {
-            console.log('No documents to broadcast');
+        // Get all documents to broadcast
+        const docs = getUnbroadcastDocuments(db);
+        if (!docs.length) {
+            console.log('No documents found that need to be prepared for broadcast');
             return;
         }
 
-        const content = JSON.parse(doc.content);
-        const messages = await generatePlatformMessages(content.text, content.metadata);
+        for (const doc of docs) {
+            const content = JSON.parse(doc.content);
+            // Use frontmatter if it exists, otherwise fallback
+            const metadata = content.metadata || {};
+            const frontmatter = metadata.frontmatter || {};
+            const title = frontmatter.title || 'No title';
+            const source = frontmatter.source || metadata.source || 'Unknown';
+            const text = content.text || '';
 
-        // Create broadcast records
-        if (messages.telegram) {
-            await broadcastDb.createBroadcast(doc.id, 'telegram', messages.telegram.text);
-        }
-        if (messages.twitter) {
-            await broadcastDb.createBroadcast(doc.id, 'twitter', messages.twitter.text);
-        }
+            // Generate platform messages, using available metadata
+            const messages = await generatePlatformMessages(text, { frontmatter: { title, source } });
 
-        console.log('Successfully created broadcast messages');
+            // For each platform, create a memory and broadcast record
+            if (messages.telegram) {
+                // Create a new memory for the telegram broadcast message
+                const telegramMemoryId = crypto.randomUUID();
+                const telegramMemory: DatabaseMemory = {
+                    id: telegramMemoryId,
+                    content: JSON.stringify({
+                        text: messages.telegram.text,
+                        metadata: {
+                            messageType: 'broadcast',
+                            status: 'pending',
+                            sourceMemoryId: doc.id
+                        }
+                    }),
+                    createdAt: Date.now()
+                };
+                const zeroEmbedding = getEmbeddingZeroVector();
+                db.prepare(`INSERT INTO memories (id, content, createdAt, type, embedding) VALUES (?, ?, ?, 'messages', ?)`)
+                  .run(
+                    telegramMemory.id,
+                    telegramMemory.content,
+                    telegramMemory.createdAt,
+                    JSON.stringify(zeroEmbedding)
+                  );
+                await broadcastDb.createBroadcast(doc.id, 'telegram', telegramMemoryId);
+            }
+            if (messages.twitter) {
+                // Create a new memory for the twitter broadcast message
+                const twitterMemoryId = crypto.randomUUID();
+                const twitterMemory: DatabaseMemory = {
+                    id: twitterMemoryId,
+                    content: JSON.stringify({
+                        text: messages.twitter.text,
+                        metadata: {
+                            messageType: 'broadcast',
+                            status: 'pending',
+                            sourceMemoryId: doc.id
+                        }
+                    }),
+                    createdAt: Date.now()
+                };
+                const zeroEmbedding = getEmbeddingZeroVector();
+                db.prepare(`INSERT INTO memories (id, content, createdAt, type, embedding) VALUES (?, ?, ?, 'messages', ?)`)
+                  .run(
+                    twitterMemory.id,
+                    twitterMemory.content,
+                    twitterMemory.createdAt,
+                    JSON.stringify(zeroEmbedding)
+                  );
+                await broadcastDb.createBroadcast(doc.id, 'twitter', twitterMemoryId);
+            }
+
+            console.log(`Successfully created broadcast messages for document: ${doc.id} (title: ${title})`);
+        }
     } catch (error) {
         console.error('Error creating broadcast message:', error);
         throw error;

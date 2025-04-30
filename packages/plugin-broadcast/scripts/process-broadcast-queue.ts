@@ -4,6 +4,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { initializeBroadcastSchema } from '../src/db/schema.js';
 
 // Get the database path from environment variable or use default
 const __filename = fileURLToPath(import.meta.url);
@@ -11,6 +12,9 @@ const __dirname = dirname(__filename);
 const dataDir = process.env.DATA_DIR || path.resolve(__dirname, '..', '..', '..', 'agent', 'data');
 const dbPath = process.env.SQLITE_FILE || path.resolve(dataDir, 'db.sqlite');
 const db = new Database(dbPath);
+
+// Ensure broadcasts table exists
+initializeBroadcastSchema(db);
 
 interface Broadcast {
     id: string;
@@ -47,21 +51,21 @@ function showDatabaseState() {
     const totalCount = db.prepare('SELECT COUNT(*) as count FROM broadcasts').get() as { count: number };
     console.log(`Total broadcasts in database: ${totalCount.count}`);
 
-    // Get pending broadcasts
+    // Get pending broadcasts (new schema)
     console.log('\nPending broadcasts:');
     const pendingBroadcasts = db.prepare(`
-        SELECT b.id, b.documentId, b.telegram_status, b.twitter_status,
+        SELECT b.id, b.documentId, b.client, b.status,
                json_extract(d.content, '$.metadata.frontmatter.title') as title,
                json_extract(d.content, '$.metadata.frontmatter.source') as source
         FROM broadcasts b
         JOIN memories d ON d.id = b.documentId
-        WHERE b.telegram_status = 'pending' OR b.twitter_status = 'pending'
+        WHERE b.status = 'pending'
         ORDER BY b.createdAt DESC
     `).all() as Array<{
         id: string;
         documentId: string;
-        telegram_status: string;
-        twitter_status: string;
+        client: string;
+        status: string;
         title: string;
         source: string;
     }>;
@@ -69,10 +73,10 @@ function showDatabaseState() {
     for (const broadcast of pendingBroadcasts) {
         console.log(`\nBroadcast ID: ${broadcast.id}`);
         console.log(`Document ID: ${broadcast.documentId}`);
+        console.log(`Client: ${broadcast.client}`);
+        console.log(`Status: ${broadcast.status}`);
         console.log(`Title: ${broadcast.title || 'No title'}`);
         console.log(`Source: ${broadcast.source || 'Unknown'}`);
-        console.log(`Telegram Status: ${broadcast.telegram_status}`);
-        console.log(`Twitter Status: ${broadcast.twitter_status}`);
     }
 }
 

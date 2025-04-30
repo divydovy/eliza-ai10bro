@@ -107,6 +107,9 @@ export class GitHubClient {
         let totalFiles = 0;
         let skippedCount = 0;
 
+        // Determine branch/ref to use
+        let branch = this.runtime.getSetting("GITHUB_BRANCH") || "master";
+
         try {
             // Update initial state
             await this.dashboardState.updateSourceState({
@@ -119,12 +122,29 @@ export class GitHubClient {
             // Recursive function to get all Markdown files from a directory and its subdirectories
             const getMarkdownFilesRecursively = async (path: string): Promise<any[]> => {
                 elizaLogger.info(`Scanning directory: ${path}`);
-                const response = await this.octokit.rest.repos.getContent({
-                    owner,
-                    repo,
-                    path: path || '',
-                    ref: 'main'
-                });
+                let response;
+                try {
+                    response = await this.octokit.rest.repos.getContent({
+                        owner,
+                        repo,
+                        path: path || '',
+                        ref: branch
+                    });
+                } catch (err: any) {
+                    // If branch is 'master' and it fails, try 'main' as fallback
+                    if (branch === 'master') {
+                        elizaLogger.warn(`Branch 'master' not found, trying 'main' as fallback.`);
+                        branch = 'main';
+                        response = await this.octokit.rest.repos.getContent({
+                            owner,
+                            repo,
+                            path: path || '',
+                            ref: branch
+                        });
+                    } else {
+                        throw err;
+                    }
+                }
 
                 if (!Array.isArray(response.data)) {
                     // Single file case
