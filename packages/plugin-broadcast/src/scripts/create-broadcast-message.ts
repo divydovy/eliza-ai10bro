@@ -140,7 +140,7 @@ async function generatePlatformMessagesLLM(runtime: IAgentRuntime, content: stri
     const TELEGRAM_MAX_LENGTH = 4096;
     let telegramLengthInstruction = `Your message must be no more than ${TELEGRAM_MAX_LENGTH} characters, including any links.`;
     // Explicit, conversational, example-driven prompt for Telegram
-    const telegramPrompt = `You are an expert science communicator. Write a conversational, engaging Telegram post summarizing the key insight from the following article. Do not just repeat the title or metadata. Focus on what's new, why it matters, and what it suggests for the future.\n\nExample:\nTitle: \"${exampleTitle}\"\nContent: \"${exampleContent}\"\nTelegram post: \"${exampleTelegram}\"\n\n${broadcastPrompt}\n\nPlatform: Telegram\n${telegramLengthInstruction}\nContent to share:\n${content}\n\n[END]`;
+    const telegramPrompt = `You are an expert science communicator. Write a conversational, engaging Telegram post summarizing the key insight from the following article. Do not just repeat the title or metadata. Focus on what's new, why it matters, and what it suggests for the future. If you find a source URL or reference anywhere in the content, include it as a link at the end of your message. Do not include any meta-instructions, character counts, or phrases like 'Here is a Telegram post'. Only return the final message as it should appear to the user. Always write the message in English, regardless of the source content language. If the source content is not in English, translate and summarize it in English. Never return the message in any language other than English.\n\nExample:\nTitle: "${exampleTitle}"\nContent: "${exampleContent}"\nTelegram post: "${exampleTelegram}"\n\n${broadcastPrompt}\n\nPlatform: Telegram\n${telegramLengthInstruction}\nContent to share:\n${content}\n\n[END]`;
     console.log("[Broadcast] Telegram LLM prompt:\n", telegramPrompt);
     let telegramText = await generateText({
         runtime,
@@ -165,7 +165,7 @@ async function generatePlatformMessagesLLM(runtime: IAgentRuntime, content: stri
     const TWITTER_MAX_LENGTH = 280;
     let twitterLengthInstruction = `Your message must be no more than ${TWITTER_MAX_LENGTH} characters, including any links.`;
     // Explicit, conversational, example-driven prompt for Twitter
-    const twitterPrompt = `You are an expert science communicator. Write a conversational, engaging tweet (max 280 characters) summarizing the key insight from the following article. Do not just repeat the title or metadata. Focus on what's new, why it matters, and what it suggests for the future.\n\nExample:\nTitle: \"${exampleTitle}\"\nContent: \"${exampleContent}\"\nTweet: \"${exampleTweet}\"\n\n${broadcastPrompt}\n\nPlatform: Twitter\n${twitterLengthInstruction}\nContent to share:\n${content}\n\n[END]`;
+    const twitterPrompt = `You are an expert science communicator. Write a conversational, engaging tweet (max 280 characters) summarizing the key insight from the following article. Do not just repeat the title or metadata. Focus on what's new, why it matters, and what it suggests for the future. If you find a source URL or reference anywhere in the content, include it as a link at the end of your tweet. Do not include any meta-instructions, character counts, or phrases like 'Here is a tweet'. Only return the final message as it should appear to the user. Always write the message in English, regardless of the source content language. If the source content is not in English, translate and summarize it in English. Never return the message in any language other than English.\n\nExample:\nTitle: "${exampleTitle}"\nContent: "${exampleContent}"\nTweet: "${exampleTweet}"\n\n${broadcastPrompt}\n\nPlatform: Twitter\n${twitterLengthInstruction}\nContent to share:\n${content}\n\n[END]`;
     console.log("[Broadcast] Twitter LLM prompt:\n", twitterPrompt);
     let twitterText = await generateText({
         runtime,
@@ -282,6 +282,17 @@ export async function createBroadcastMessage(runtime: IAgentRuntime, characterNa
 
             // Generate platform messages, using available metadata
             const messages = await generatePlatformMessagesLLM(runtime, cleanedText, { frontmatter: { title, source } });
+
+            // --- Log broadcast messages to a file for debugging ---
+            const logPath = path.resolve(process.cwd(), 'broadcast-message-log.txt');
+            const timestamp = new Date().toISOString();
+            if (messages.telegram) {
+                fs.appendFileSync(logPath, `\n[${timestamp}] Document: ${doc.id} | Platform: Telegram\n${messages.telegram.text}\n`);
+            }
+            if (messages.twitter) {
+                fs.appendFileSync(logPath, `\n[${timestamp}] Document: ${doc.id} | Platform: Twitter\n${messages.twitter.text}\n`);
+            }
+            // --- End log ---
 
             const status = alignmentScore >= threshold ? 'pending' : 'skipped';
 

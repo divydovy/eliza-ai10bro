@@ -90,7 +90,7 @@ function getNextPendingBroadcast(client: string): (Broadcast & { content: string
         SELECT b.*, m.content
         FROM broadcasts b
         JOIN memories m ON m.id = b.message_id
-        WHERE b.client = ? AND b.status = 'pending' AND b.alignment_score >= 0.8
+        WHERE b.client = ? AND b.status = 'pending' AND b.alignment_score >= 0.6
         ORDER BY b.createdAt ASC
         LIMIT 1
     `).get(client) as (Broadcast & { content: string }) | undefined;
@@ -110,7 +110,7 @@ function markAsSent(id: string) {
 async function processNextBroadcast(client: string, characterName: string) {
     const broadcast = getNextPendingBroadcast(client);
     if (!broadcast) {
-        console.log(`No pending broadcasts found for ${client}`);
+        console.log(`No pending broadcasts found for ${client} with sufficient alignment score`);
         return false;
     }
 
