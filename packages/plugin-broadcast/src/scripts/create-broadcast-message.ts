@@ -124,31 +124,71 @@ function getUnbroadcastDocuments(db: ReturnType<typeof Database>): DatabaseMemor
     `).all() as DatabaseMemory[];
 }
 
-async function generatePlatformMessages(content: string, metadata: any): Promise<PlatformMessage> {
+async function generatePlatformMessagesLLM(runtime: IAgentRuntime, content: string, metadata: any): Promise<PlatformMessage> {
     const sourceUrl = metadata?.frontmatter?.source || metadata.source || 'Unknown';
+    const broadcastPrompt = runtime.character?.settings && 'broadcastPrompt' in runtime.character.settings
+        ? runtime.character.settings['broadcastPrompt']
+        : "Create a single focused message about what you learned from this content. Be specific about the insight, why it matters, and what it suggests.";
 
-    // For Telegram, we can include more formatting and detail
-    const telegramText = content + (sourceUrl !== 'Unknown' ? `\n\n🔗 [Read more](${sourceUrl})` : '');
+    // Example outputs for the LLM prompt
+    const exampleTitle = "Self-Healing Concrete: Nature-Inspired Innovation";
+    const exampleContent = "Scientists have developed concrete that repairs its own cracks using bacteria, inspired by natural processes. This could make our infrastructure more resilient and sustainable.";
+    const exampleTweet = "Concrete that heals itself? Inspired by nature, scientists are using bacteria to repair cracks—paving the way for longer-lasting, greener infrastructure. #innovation #biomimicry";
+    const exampleTelegram = "Nature inspires again! Scientists have created self-healing concrete using bacteria, promising more resilient, sustainable buildings. Could this be the future of construction?";
 
-    // For Twitter, we need to ensure we're within limits
-    const twitterMaxLength = 280 - (sourceUrl !== 'Unknown' ? sourceUrl.length + 1 : 0);
-    let twitterText = content;
+    // Telegram
+    const TELEGRAM_MAX_LENGTH = 4096;
+    let telegramLengthInstruction = `Your message must be no more than ${TELEGRAM_MAX_LENGTH} characters, including any links.`;
+    // Explicit, conversational, example-driven prompt for Telegram
+    const telegramPrompt = `You are an expert science communicator. Write a conversational, engaging Telegram post summarizing the key insight from the following article. Do not just repeat the title or metadata. Focus on what's new, why it matters, and what it suggests for the future.\n\nExample:\nTitle: \"${exampleTitle}\"\nContent: \"${exampleContent}\"\nTelegram post: \"${exampleTelegram}\"\n\n${broadcastPrompt}\n\nPlatform: Telegram\n${telegramLengthInstruction}\nContent to share:\n${content}\n\n[END]`;
+    console.log("[Broadcast] Telegram LLM prompt:\n", telegramPrompt);
+    let telegramText = await generateText({
+        runtime,
+        context: telegramPrompt,
+        modelClass: ModelClass.SMALL,
+        maxSteps: 1
+    });
+    console.log(`[Broadcast] Telegram LLM output (before truncation, length ${telegramText.length}):\n`, telegramText);
+    let link = '';
     if (sourceUrl !== 'Unknown') {
-        if (twitterText.length > twitterMaxLength) {
-            twitterText = twitterText.slice(0, twitterMaxLength - 4) + '... ' + sourceUrl;
-        } else {
-            twitterText = twitterText + ' ' + sourceUrl;
-        }
+        link = `\n\n🔗 [Read more](${sourceUrl})`;
     }
+    // Truncate LLM output to leave space for the link
+    const maxTextLength = TELEGRAM_MAX_LENGTH - link.length;
+    if (telegramText.length > maxTextLength) {
+        telegramText = telegramText.slice(0, maxTextLength - 3) + '...';
+    }
+    telegramText += link;
+    console.log(`[Broadcast] Telegram final message length: ${telegramText.length}`);
+
+    // Twitter (X)
+    const TWITTER_MAX_LENGTH = 280;
+    let twitterLengthInstruction = `Your message must be no more than ${TWITTER_MAX_LENGTH} characters, including any links.`;
+    // Explicit, conversational, example-driven prompt for Twitter
+    const twitterPrompt = `You are an expert science communicator. Write a conversational, engaging tweet (max 280 characters) summarizing the key insight from the following article. Do not just repeat the title or metadata. Focus on what's new, why it matters, and what it suggests for the future.\n\nExample:\nTitle: \"${exampleTitle}\"\nContent: \"${exampleContent}\"\nTweet: \"${exampleTweet}\"\n\n${broadcastPrompt}\n\nPlatform: Twitter\n${twitterLengthInstruction}\nContent to share:\n${content}\n\n[END]`;
+    console.log("[Broadcast] Twitter LLM prompt:\n", twitterPrompt);
+    let twitterText = await generateText({
+        runtime,
+        context: twitterPrompt,
+        modelClass: ModelClass.SMALL,
+        maxSteps: 1
+    });
+    console.log(`[Broadcast] Twitter LLM output (before truncation, length ${twitterText.length}):\n`, twitterText);
+    let twitterLink = '';
+    if (sourceUrl !== 'Unknown') {
+        twitterLink = ' ' + sourceUrl;
+    }
+    // Truncate LLM output to leave space for the link
+    const maxTwitterTextLength = TWITTER_MAX_LENGTH - twitterLink.length;
+    if (twitterText.length > maxTwitterTextLength) {
+        twitterText = twitterText.slice(0, maxTwitterTextLength - 3) + '...';
+    }
+    twitterText += twitterLink;
+    console.log(`[Broadcast] Twitter final message length: ${twitterText.length}`);
 
     return {
-        telegram: {
-            text: telegramText,
-            format: 'markdown'
-        },
-        twitter: {
-            text: twitterText
-        }
+        telegram: { text: telegramText, format: 'markdown' },
+        twitter: { text: twitterText }
     };
 }
 
@@ -173,6 +213,14 @@ const goalStatements = [
   "Share insights that inspire solutions to environmental challenges.",
   "Advance technological biomimicry and systems thinking."
 ];
+
+function cleanRoleplayElements(text: string): string {
+    // Remove text between asterisks (roleplay actions)
+    let cleaned = text.replace(/\*[^*]+\*/g, '');
+    // Trim extra whitespace and normalize spaces
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+    return cleaned;
+}
 
 export async function createBroadcastMessage(runtime: IAgentRuntime, characterName: string = 'c3po'): Promise<void> {
     console.log('Starting broadcast message creation...');
@@ -209,8 +257,11 @@ export async function createBroadcastMessage(runtime: IAgentRuntime, characterNa
             const source = frontmatter.source || metadata.source || 'Unknown';
             const text = content.text || '';
 
+            // Clean roleplay elements from the text
+            const cleanedText = cleanRoleplayElements(text);
+
             // --- Heuristic filters ---
-            if (text.length < 100) {
+            if (cleanedText.length < 100) {
                 console.log(`Skipping doc "${title}" (too short)`);
                 continue;
             }
@@ -220,7 +271,7 @@ export async function createBroadcastMessage(runtime: IAgentRuntime, characterNa
             }
 
             // --- Embedding-based filtering ---
-            const docEmbedding = await embed(runtime, text);
+            const docEmbedding = await embed(runtime, cleanedText);
             const similarities = goalEmbeddings.map(goalVec => cosineSimilarity(goalVec, docEmbedding));
             const alignmentScore = Math.max(...similarities);
 
@@ -230,7 +281,7 @@ export async function createBroadcastMessage(runtime: IAgentRuntime, characterNa
             }
 
             // Generate platform messages, using available metadata
-            const messages = await generatePlatformMessages(text, { frontmatter: { title, source } });
+            const messages = await generatePlatformMessagesLLM(runtime, cleanedText, { frontmatter: { title, source } });
 
             const status = alignmentScore >= threshold ? 'pending' : 'skipped';
 

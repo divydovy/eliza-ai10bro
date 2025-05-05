@@ -4,13 +4,16 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { initializeBroadcastSchema } from '../src/db/schema.js';
+import { initializeBroadcastSchema } from '../db/schema.js';
 
 // Get the database path from environment variable or use default
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const dataDir = process.env.DATA_DIR || path.resolve(__dirname, '..', '..', '..', 'agent', 'data');
+// Use project root for robust path resolution
+const projectRoot = path.resolve(__dirname, '../../../../');
+const dataDir = process.env.DATA_DIR || path.join(projectRoot, 'agent', 'data');
 const dbPath = process.env.SQLITE_FILE || path.resolve(dataDir, 'db.sqlite');
+console.log('Resolved database path:', dbPath);
 const db = new Database(dbPath);
 
 // Ensure broadcasts table exists
