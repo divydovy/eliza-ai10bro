@@ -148,6 +148,8 @@ async function generatePlatformMessagesLLM(runtime: IAgentRuntime, content: stri
         modelClass: ModelClass.SMALL,
         maxSteps: 1
     });
+    // Strip [END] from the end if present
+    telegramText = telegramText.replace(/\[END\]\s*$/, '').trim();
     console.log(`[Broadcast] Telegram LLM output (before truncation, length ${telegramText.length}):\n`, telegramText);
     let link = '';
     if (sourceUrl !== 'Unknown') {
@@ -173,6 +175,8 @@ async function generatePlatformMessagesLLM(runtime: IAgentRuntime, content: stri
         modelClass: ModelClass.SMALL,
         maxSteps: 1
     });
+    // Strip [END] from the end if present
+    twitterText = twitterText.replace(/\[END\]\s*$/, '').trim();
     console.log(`[Broadcast] Twitter LLM output (before truncation, length ${twitterText.length}):\n`, twitterText);
     let twitterLink = '';
     if (sourceUrl !== 'Unknown') {

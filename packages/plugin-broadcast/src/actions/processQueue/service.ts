@@ -130,7 +130,9 @@ export async function processBroadcastQueue(
                                 message: `Failed to send broadcast: ${result.error}`,
                                 broadcastId: broadcast.id,
                                 client: clientName,
-                                attempt: retryCount
+                                attempt: retryCount,
+                                content: broadcast.content,
+                                errorStack: (typeof result.error === 'object' && result.error && 'stack' in result.error) ? (result.error as any).stack : undefined
                             },
                             userId: generateUUID(),
                             roomId: generateUUID()
@@ -148,9 +150,11 @@ export async function processBroadcastQueue(
                         body: {
                             message: "Error processing broadcast",
                             error: error instanceof Error ? error.message : String(error),
+                            errorStack: error instanceof Error && error.stack ? error.stack : undefined,
                             broadcastId: broadcast.id,
                             client: clientName,
-                            attempt: retryCount
+                            attempt: retryCount,
+                            content: broadcast.content
                         },
                         userId: generateUUID(),
                         roomId: generateUUID()
