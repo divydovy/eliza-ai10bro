@@ -8067,3 +8067,11 @@ https://www.baubotanik.org/en/
 
 [2025-05-06T14:01:48.282Z] Document: 4614aa8c-5b48-01ee-89b0-6f9edb44366f | Platform: Twitter
 [BROADCAST:451] Architects are "growing" buildings using living tree branches grafted with modern materials. This "baubotanik" technique harnesses natural processes like inosculation to create structures that become more tree-like over time. An innovative approach to sustainab...
+
+[2025-05-14T08:38:06.556Z] Document: 95ecad1e-9ba5-097e-bb84-971d36ea551f | Platform: Telegram
+[BROADCAST:id]
+
+Fascinating discovery - tea leaves can remove heavy metals like lead from drinking water! Longer steeping and ground tea leaves are most effective. This could help reduce heavy metal exposure, especially in areas with contaminated water. Tea's widespread popularity makes it a promising passive solution to a serious public health issue.
+
+[2025-05-14T08:38:06.556Z] Document: 95ecad1e-9ba5-097e-bb84-971d36ea551f | Platform: Twitter
+[BROADCAST:2025-05-05 01:52:58] Tea leaves can adsorb and remove lead and other heavy metals from drinking water during the brewing process. This unexpected benefit could help reduce exposure to toxic contaminants, especially in areas with lead-polluted water supplies. More re...

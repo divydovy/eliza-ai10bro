@@ -10,6 +10,30 @@ export class BroadcastDB {
     }
 
     createBroadcast(documentId: string, client: BroadcastClient, messageId: string, alignmentScore: number, status: string): string {
+        // Check if a broadcast already exists for this document and client
+        const existing = this.db.prepare(`
+            SELECT id FROM broadcasts
+            WHERE documentId = ? AND client = ?
+        `).get(documentId, client) as { id: string } | undefined;
+
+        if (existing) {
+            // If broadcast exists and is pending, update it
+            if (status === 'pending') {
+                this.db.prepare(`
+                    UPDATE broadcasts
+                    SET message_id = ?,
+                        alignment_score = ?,
+                        status = ?,
+                        createdAt = ?
+                    WHERE id = ?
+                `).run(messageId, alignmentScore, status, Date.now(), existing.id);
+                return existing.id;
+            }
+            // If broadcast exists and is not pending, return existing id
+            return existing.id;
+        }
+
+        // Create new broadcast if none exists
         const id = randomUUID();
         this.db.prepare(`
             INSERT INTO broadcasts (
