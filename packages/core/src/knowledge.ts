@@ -113,8 +113,27 @@ export function preprocess(content: string): string {
         return "";
     }
 
+    // First, extract and store any URLs
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const urls = content.match(urlRegex) || [];
+
+    // Replace content references with their URLs
+    const contentRefRegex = /(?:this|the)\s+(?:video|article|link|content|source)(?:\s+here)?/gi;
+    let processedContent = content;
+
+    if (urls.length > 0) {
+        processedContent = processedContent.replace(contentRefRegex, (match, index) => {
+            // Find the closest URL to this reference
+            const urlIndex = Math.min(
+                Math.floor(index / 50), // Approximate position
+                urls.length - 1
+            );
+            return urls[urlIndex];
+        });
+    }
+
     return (
-        content
+        processedContent
             // Remove code blocks and their content
             .replace(/```[\s\S]*?```/g, "")
             // Remove inline code

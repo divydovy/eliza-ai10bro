@@ -75,14 +75,25 @@ export const formatMessages = ({
                     ?.name || "Unknown User";
 
             const attachments = (message.content as Content).attachments;
+            const url = (message.content as Content).url;
 
-            const attachmentString =
-                attachments && attachments.length > 0
-                    ? ` (Attachments: ${attachments.map((media) => `[${media.id} - ${media.title} (${media.url})]`).join(", ")})`
-                    : "";
+            // Format attachments and links
+            let attachmentString = "";
+
+            // Add direct URL if present
+            if (url) {
+                attachmentString += ` [Link: ${url}]`;
+            }
+
+            // Add attachments if present
+            if (attachments && attachments.length > 0) {
+                attachmentString += ` (Attachments: ${attachments.map((media) => {
+                    const linkText = media.url ? `[${media.title || media.id} (${media.url})]` : `[${media.title || media.id}]`;
+                    return linkText;
+                }).join(", ")})`;
+            }
 
             const timestamp = formatTimestamp(message.createdAt);
-
             const shortId = message.userId.slice(-5);
 
             return `(${timestamp}) [${shortId}] ${formattedName}: ${messageContent}${attachmentString}${messageAction && messageAction !== "null" ? ` (${messageAction})` : ""}`;

@@ -144,15 +144,37 @@ async function processNextBroadcast(client: string, characterName: string) {
         `).get(broadcast.documentId) as { content: string };
 
         let messageText = messageContent.text;
+        let attachments = messageContent.attachments || [];
 
-        // If source document has source, append it to the message
+        // If source document has source, append it to the message and add as attachment
         if (sourceDoc) {
             const sourceContent = JSON.parse(sourceDoc.content);
             const sourceUrl = sourceContent.metadata?.frontmatter?.source;
             if (sourceUrl) {
-                messageText = `${messageText}\n\nSource: ${sourceUrl}`;
+                // Add source URL as an attachment
+                attachments.push({
+                    id: `source-${Date.now()}`,
+                    url: sourceUrl,
+                    title: "Source",
+                    source: "Web",
+                    description: "Original source of the content",
+                    text: sourceUrl
+                });
+
+                // Format message based on platform
+                if (client === 'twitter') {
+                    // For Twitter, add shortened URL at the end
+                    messageText = `${messageText}\n\n${sourceUrl}`;
+                } else {
+                    // For other platforms, add a more descriptive link
+                    messageText = `${messageText}\n\nSource: ${sourceUrl}`;
+                }
             }
         }
+
+        // Update message content with attachments
+        messageContent.attachments = attachments;
+        messageContent.text = messageText;
 
         // Send to appropriate client
         if (client === 'telegram') {

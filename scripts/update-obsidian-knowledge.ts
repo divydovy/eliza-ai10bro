@@ -6,7 +6,7 @@ async function sendMessageToAgent(characterName: string, message: any) {
     // Always use character settings for server URL
     const characterPath = path.join(process.cwd(), 'characters', `${characterName}.character.json`);
     const characterSettings = JSON.parse(fs.readFileSync(characterPath, 'utf-8'));
-    const serverPort = characterSettings.settings?.serverPort || 3005;
+    const serverPort = 3000; // Hardcoded to 3000 instead of using character settings
     const serverUrl = `http://localhost:${serverPort}`;
 
     console.log('\nUsing server URL from character settings:', {
