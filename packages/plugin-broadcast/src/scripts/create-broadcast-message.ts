@@ -247,8 +247,7 @@ const goalStatements = [
 
 // Add content filters
 const excludedTopics = [
-  'strike', 'union', 'labor', 'industrial action', 'protest',
-  'politics', 'election', 'campaign', 'policy', 'government'
+  'strike', 'union', 'labor', 'industrial action', 'protest'
 ];
 
 function isEnglishText(text: string): boolean {
