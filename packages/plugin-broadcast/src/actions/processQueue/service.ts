@@ -63,10 +63,18 @@ export async function processBroadcastQueue(
         }
 
         if (!params.client || params.client === "twitter") {
-            const bearerToken = runtime.character.settings?.secrets?.TWITTER_BEARER_TOKEN;
+            const apiKey = runtime.character.settings?.secrets?.TWITTER_API_KEY;
+            const apiKeySecret = runtime.character.settings?.secrets?.TWITTER_API_KEY_SECRET;
+            const accessToken = runtime.character.settings?.secrets?.TWITTER_ACCESS_TOKEN;
+            const accessTokenSecret = runtime.character.settings?.secrets?.TWITTER_ACCESS_TOKEN_SECRET;
 
-            if (bearerToken) {
-                clients.twitter = new TwitterBroadcastClient(bearerToken);
+            if (apiKey && apiKeySecret && accessToken && accessTokenSecret) {
+                clients.twitter = new TwitterBroadcastClient({
+                    apiKey,
+                    apiKeySecret,
+                    accessToken,
+                    accessTokenSecret
+                });
                 availableClients++;
                 runtime.databaseAdapter.log({
                     type: "info",
@@ -77,7 +85,7 @@ export async function processBroadcastQueue(
             } else {
                 runtime.databaseAdapter.log({
                     type: "warning",
-                    body: { message: "Twitter client not initialized: missing TWITTER_BEARER_TOKEN" },
+                    body: { message: "Twitter client not initialized: missing OAuth credentials" },
                     userId: generateUUID(),
                     roomId: generateUUID()
                 });

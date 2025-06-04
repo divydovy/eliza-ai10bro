@@ -4,8 +4,18 @@ import { BroadcastResult } from "../types";
 export class TwitterBroadcastClient {
     private client: TwitterApi;
 
-    constructor(bearerToken: string) {
-        this.client = new TwitterApi(bearerToken);
+    constructor(credentials: {
+        apiKey: string;
+        apiKeySecret: string;
+        accessToken: string;
+        accessTokenSecret: string;
+    }) {
+        this.client = new TwitterApi({
+            appKey: credentials.apiKey,
+            appSecret: credentials.apiKeySecret,
+            accessToken: credentials.accessToken,
+            accessSecret: credentials.accessTokenSecret,
+        });
     }
 
     async broadcast(message: string): Promise<BroadcastResult> {

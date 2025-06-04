@@ -12,6 +12,7 @@
   "dependencies": {
     "@elizaos/core": "workspace:*",
     "@elizaos/adapter-sqlite": "workspace:*",
+    "@elizaos/client-twitter": "workspace:*",
     "better-sqlite3": "11.6.0",
     "telegraf": "^4.15.3",
     "twitter-api-v2": "^1.16.0"
