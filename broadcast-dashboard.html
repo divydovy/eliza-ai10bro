@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI10bro Broadcast Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .action-btn {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+        
+        .action-btn:active {
+            transform: translateY(0);
+        }
+        
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .action-btn.success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .action-btn.processing {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .status-message {
+            text-align: center;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .status-message.success {
+            background: #10b981;
+            color: white;
+            display: block;
+        }
+        
+        .status-message.error {
+            background: #ef4444;
+            color: white;
+            display: block;
+        }
+        
+        .status-message.info {
+            background: #3b82f6;
+            color: white;
+            display: block;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+        
+        .stat-label {
+            color: #718096;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+        
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+        
+        .stat-detail {
+            color: #4a5568;
+            font-size: 0.95em;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        .recent-activity {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .activity-header {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .activity-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .activity-item {
+            padding: 15px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+        
+        .activity-text {
+            flex: 1;
+            color: #4a5568;
+        }
+        
+        .activity-time {
+            color: #a0aec0;
+            font-size: 0.9em;
+            margin-left: 15px;
+        }
+        
+        .platform-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        
+        .badge-telegram {
+            background: #0088cc;
+            color: white;
+        }
+        
+        .badge-twitter {
+            background: #1da1f2;
+            color: white;
+        }
+        
+        .refresh-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: opacity 0.3s ease;
+        }
+        
+        .refresh-btn:hover {
+            opacity: 0.9;
+        }
+        
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.2em;
+            margin-top: 50px;
+        }
+        
+        .error {
+            background: #feb2b2;
+            color: #742a2a;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-pending { background: #fbbf24; }
+        .status-sent { background: #34d399; }
+        .status-failed { background: #f87171; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 AI10bro Broadcast Dashboard</h1>
+        
+        <div id="status-message" class="status-message"></div>
+        
+        <div class="action-buttons">
+            <button class="action-btn" onclick="triggerAction('SYNC_GITHUB')" id="sync-github-btn">
+                📚 Sync GitHub
+            </button>
+            <button class="action-btn" onclick="triggerAction('CREATE_KNOWLEDGE')" id="create-knowledge-btn">
+                🧠 Import Obsidian
+            </button>
+            <button class="action-btn" onclick="triggerAction('PROCESS_QUEUE')" id="process-queue-btn">
+                📤 Process Queue
+            </button>
+            <button class="action-btn" onclick="refreshStats()" id="refresh-btn">
+                🔄 Refresh Stats
+            </button>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Documents</div>
+                <div class="stat-value" id="total-docs">-</div>
+                <div class="stat-detail">Knowledge base entries</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-label">Total Broadcasts</div>
+                <div class="stat-value" id="total-broadcasts">-</div>
+                <div class="stat-detail">Messages created</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="broadcast-progress"></div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-label">Pending Broadcasts</div>
+                <div class="stat-value" id="pending-broadcasts">-</div>
+                <div class="stat-detail">Awaiting delivery</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-label">Sent Broadcasts</div>
+                <div class="stat-value" id="sent-broadcasts">-</div>
+                <div class="stat-detail">Successfully delivered</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-label">Documents Without Broadcasts</div>
+                <div class="stat-value" id="docs-without-broadcasts">-</div>
+                <div class="stat-detail">Need processing</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-label">Broadcast Coverage</div>
+                <div class="stat-value" id="coverage-percent">-</div>
+                <div class="stat-detail">Documents with broadcasts</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="coverage-progress"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="recent-activity">
+            <div class="activity-header">
+                <span>Recent Broadcast Activity</span>
+                <button class="refresh-btn" onclick="fetchData()">🔄 Refresh</button>
+            </div>
+            <div class="activity-list" id="activity-list">
+                <div class="loading">Loading broadcast data...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Fetch real data from API
+        async function fetchData() {
+            try {
+                // Try to fetch from API first
+                const response = await fetch('http://localhost:3002/api/broadcast-stats');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    updateDashboard(data);
+                } else {
+                    // Fallback to mock data if API is not available
+                    console.warn('API not available, using mock data');
+                    const data = {
+                        totalDocuments: 1439,
+                        totalBroadcasts: 3858,
+                        pendingBroadcasts: Math.floor(3858 * 0.1),
+                        sentBroadcasts: Math.floor(3858 * 0.85),
+                        failedBroadcasts: Math.floor(3858 * 0.05),
+                        docsWithoutBroadcasts: 0,
+                        recentActivity: generateMockActivity()
+                    };
+                    updateDashboard(data);
+                }
+            } catch (error) {
+                console.warn('API connection failed, using mock data:', error);
+                // Use mock data as fallback
+                const data = {
+                    totalDocuments: 1439,
+                    totalBroadcasts: 3858,
+                    pendingBroadcasts: Math.floor(3858 * 0.1),
+                    sentBroadcasts: Math.floor(3858 * 0.85),
+                    failedBroadcasts: Math.floor(3858 * 0.05),
+                    docsWithoutBroadcasts: 0,
+                    recentActivity: generateMockActivity()
+                };
+                updateDashboard(data);
+            }
+        }
+        
+        function updateDashboard(data) {
+            // Update stat cards
+            document.getElementById('total-docs').textContent = data.totalDocuments.toLocaleString();
+            document.getElementById('total-broadcasts').textContent = data.totalBroadcasts.toLocaleString();
+            document.getElementById('pending-broadcasts').textContent = data.pendingBroadcasts.toLocaleString();
+            document.getElementById('sent-broadcasts').textContent = data.sentBroadcasts.toLocaleString();
+            
+            // Use provided value or calculate documents without broadcasts
+            const docsWithoutBroadcasts = data.docsWithoutBroadcasts !== undefined ? 
+                data.docsWithoutBroadcasts : 
+                Math.max(0, data.totalDocuments - Math.floor(data.totalBroadcasts / 2));
+            document.getElementById('docs-without-broadcasts').textContent = docsWithoutBroadcasts.toLocaleString();
+            
+            // Calculate documents with broadcasts for coverage
+            const docsWithBroadcasts = data.docsWithBroadcasts !== undefined ?
+                data.docsWithBroadcasts :
+                Math.floor(data.totalBroadcasts / 2);
+            
+            // Calculate coverage percentage
+            const coveragePercent = Math.min(100, Math.round((docsWithBroadcasts / data.totalDocuments) * 100));
+            document.getElementById('coverage-percent').textContent = coveragePercent + '%';
+            document.getElementById('coverage-progress').style.width = coveragePercent + '%';
+            
+            // Update broadcast progress
+            const broadcastProgress = Math.round((data.sentBroadcasts / data.totalBroadcasts) * 100);
+            document.getElementById('broadcast-progress').style.width = broadcastProgress + '%';
+            
+            // Update activity list
+            updateActivityList(data.recentActivity);
+        }
+        
+        function updateActivityList(activities) {
+            const listElement = document.getElementById('activity-list');
+            listElement.innerHTML = '';
+            
+            activities.forEach(activity => {
+                const item = document.createElement('div');
+                item.className = 'activity-item';
+                item.innerHTML = `
+                    <div class="activity-text">
+                        <span class="status-indicator status-${activity.status}"></span>
+                        <span class="platform-badge badge-${activity.platform}">${activity.platform.toUpperCase()}</span>
+                        ${activity.text}
+                    </div>
+                    <div class="activity-time">${activity.time}</div>
+                `;
+                listElement.appendChild(item);
+            });
+        }
+        
+        function generateMockActivity() {
+            const activities = [];
+            const platforms = ['telegram', 'twitter'];
+            const statuses = ['pending', 'sent', 'sent', 'sent']; // More sent than pending
+            const texts = [
+                'CRISPR breakthrough: Scientists develop new gene editing technique',
+                'Biomimicry in action: Self-healing concrete inspired by nature',
+                'Climate tech: New carbon capture method shows promise',
+                'Quantum computing milestone: Error correction breakthrough',
+                'AI safety research: New alignment techniques proposed',
+                'Renewable energy: Solar efficiency reaches new record',
+                'Ocean cleanup: Microplastic filtering technology deployed',
+                'Space exploration: Mars sample return mission update'
+            ];
+            
+            for (let i = 0; i < 8; i++) {
+                activities.push({
+                    platform: platforms[Math.floor(Math.random() * platforms.length)],
+                    status: statuses[Math.floor(Math.random() * statuses.length)],
+                    text: texts[i],
+                    time: `${Math.floor(Math.random() * 60)} mins ago`
+                });
+            }
+            
+            return activities;
+        }
+        
+        function showError(message) {
+            const container = document.querySelector('.container');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            container.insertBefore(errorDiv, container.firstChild);
+            setTimeout(() => errorDiv.remove(), 5000);
+        }
+        
+        // Action trigger functions
+        async function triggerAction(actionName) {
+            const button = event.target;
+            const statusMessage = document.getElementById('status-message');
+            
+            // Disable button and show processing state
+            button.disabled = true;
+            button.classList.add('processing');
+            const originalText = button.innerHTML;
+            button.innerHTML = '⏳ Processing...';
+            
+            // Update status message
+            statusMessage.className = 'status-message info';
+            statusMessage.textContent = `Triggering ${actionName}...`;
+            
+            try {
+                const response = await fetch('http://localhost:3003/trigger', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ action: actionName })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    // Success
+                    button.classList.remove('processing');
+                    button.classList.add('success');
+                    statusMessage.className = 'status-message success';
+                    statusMessage.textContent = `✅ ${actionName} triggered successfully!`;
+                    
+                    // Refresh stats after a moment
+                    setTimeout(() => {
+                        fetchData();
+                    }, 2000);
+                } else {
+                    // Error
+                    statusMessage.className = 'status-message error';
+                    statusMessage.textContent = `❌ Failed to trigger ${actionName}: ${result.error || 'Unknown error'}`;
+                }
+            } catch (error) {
+                // Network or other error
+                statusMessage.className = 'status-message error';
+                statusMessage.textContent = `❌ Error: ${error.message}`;
+            } finally {
+                // Re-enable button after 3 seconds
+                setTimeout(() => {
+                    button.disabled = false;
+                    button.classList.remove('processing', 'success');
+                    button.innerHTML = originalText;
+                }, 3000);
+                
+                // Hide status message after 5 seconds
+                setTimeout(() => {
+                    statusMessage.className = 'status-message';
+                    statusMessage.textContent = '';
+                }, 5000);
+            }
+        }
+        
+        function refreshStats() {
+            const statusMessage = document.getElementById('status-message');
+            statusMessage.className = 'status-message info';
+            statusMessage.textContent = '🔄 Refreshing statistics...';
+            
+            fetchData();
+            
+            setTimeout(() => {
+                statusMessage.className = 'status-message success';
+                statusMessage.textContent = '✅ Statistics refreshed!';
+                
+                setTimeout(() => {
+                    statusMessage.className = 'status-message';
+                    statusMessage.textContent = '';
+                }, 2000);
+            }, 500);
+        }
+        
+        // Initial load
+        fetchData();
+        
+        // Auto-refresh every 30 seconds
+        setInterval(fetchData, 30000);
+    </script>
+</body>
+</html>
