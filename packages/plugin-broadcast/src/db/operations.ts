@@ -9,14 +9,14 @@ export class BroadcastDB {
         this.db = db;
     }
 
-    createBroadcast(documentId: string, client: BroadcastClient, messageId: string, alignmentScore: number, status: string): string {
+    createBroadcast(documentId: string, client: BroadcastClient, content: string, alignmentScore: number, status: string): string {
         const id = randomUUID();
         this.db.prepare(`
             INSERT INTO broadcasts (
                 id,
                 documentId,
                 client,
-                message_id,
+                content,
                 status,
                 alignment_score,
                 createdAt
@@ -25,7 +25,7 @@ export class BroadcastDB {
             id,
             documentId,
             client,
-            messageId,
+            content,
             status,
             alignmentScore,
             Date.now()
@@ -74,5 +74,33 @@ export class BroadcastDB {
             DELETE FROM broadcasts
             WHERE id = ?
         `).run(id);
+    }
+
+    getBroadcastByDocumentId(documentId: string): BroadcastMessage | undefined {
+        return this.db.prepare(`
+            SELECT *
+            FROM broadcasts
+            WHERE documentId = ?
+            LIMIT 1
+        `).get(documentId) as BroadcastMessage | undefined;
+    }
+
+    getBroadcastStats(): { pending: number; sent: number; failed: number } {
+        const result = this.db.prepare(`
+            SELECT 
+                status,
+                COUNT(*) as count
+            FROM broadcasts 
+            GROUP BY status
+        `).all() as { status: string; count: number }[];
+        
+        const stats = { pending: 0, sent: 0, failed: 0 };
+        result.forEach(row => {
+            if (row.status in stats) {
+                stats[row.status as keyof typeof stats] = row.count;
+            }
+        });
+        
+        return stats;
     }
 }

@@ -7,6 +7,7 @@ export const initializeBroadcastSchema = (db: Database): void => {
             id TEXT PRIMARY KEY,
             documentId TEXT NOT NULL,
             client TEXT NOT NULL,
+            content TEXT NOT NULL,
             message_id TEXT,
             status TEXT NOT NULL DEFAULT 'pending',
             alignment_score FLOAT,

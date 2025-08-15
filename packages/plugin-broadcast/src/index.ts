@@ -1,7 +1,8 @@
-import { Plugin, IAgentRuntime } from "@elizaos/core";
+import { Plugin, IAgentRuntime, ServiceType } from "@elizaos/core";
 import { createMessageAction } from "./actions/createMessage";
 import { processQueueAction } from "./actions/processQueue";
 import { initializeBroadcastSchema } from "./db/schema";
+import { autoBroadcastService } from "./services/AutoBroadcastService";
 export { createBroadcastMessage } from "./scripts/create-broadcast-message";
 export { createBroadcastMessageFixed } from "./scripts/create-broadcast-message-fixed";
 export { processBroadcastQueue } from "./actions/processQueue/service";
@@ -11,6 +12,9 @@ export function initializePlugin(runtime: IAgentRuntime) {
     // Access the database instance through the adapter
     const db = runtime.databaseAdapter.db;
     initializeBroadcastSchema(db);
+    
+    // Initialize the auto-broadcast service
+    autoBroadcastService.initialize(runtime);
 }
 
 const plugin: Plugin = {
@@ -21,7 +25,9 @@ const plugin: Plugin = {
         processQueueAction
     ],
     evaluators: [],
-    services: [],
+    services: [
+        autoBroadcastService
+    ],
     providers: [],
 };
 

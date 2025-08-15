@@ -49,20 +49,8 @@ ${client === "telegram" ? "- You may include more detail and context" : ""}
         const messageMatch = broadcastText.match(/\[BROADCAST:.*?\](.*?)(?=\[|$)/s);
         const finalText = messageMatch ? messageMatch[1].trim() : broadcastText.trim();
 
-        // Create a new memory for the broadcast message
-        const memoryId = randomUUID();
-        const broadcastMemory: Memory = {
-            id: memoryId,
-            userId: runtime.agentId,
-            agentId: runtime.agentId,
-            roomId: runtime.agentId, // Using agentId as roomId
-            content: { text: finalText, type: "broadcast" },
-            createdAt: Date.now(),
-        };
-        await runtime.messageManager.createMemory(broadcastMemory, false);
-
-        // Store in database, referencing the new memory
-        const id = db.createBroadcast(params.documentId, client, memoryId);
+        // Store broadcast in database with generated content
+        const id = db.createBroadcast(params.documentId, client, finalText, 0.8, 'pending');
 
         return {
             success: true,
