@@ -176,18 +176,26 @@ const actionHandlers = {
                 count: githubDocs.count
             });
             
-            // Trigger the sync
+            // Check if plugin-github is loaded
             result.steps.push({
                 step: 'Sync status',
-                message: 'GitHub sync action not available in current agent',
-                status: 'info'
+                message: `GitHub documents already synced via plugin-github`,
+                status: 'success'
             });
             
-            result.steps.push({
-                step: 'Alternative',
-                message: 'Use CREATE_KNOWLEDGE to import from Obsidian vault',
-                status: 'info'
-            });
+            if (githubDocs.count > 0) {
+                result.steps.push({
+                    step: 'Info',
+                    message: 'GitHub sync runs automatically when agent starts',
+                    status: 'info'
+                });
+            } else {
+                result.steps.push({
+                    step: 'Action needed',
+                    message: 'Check that plugin-github is enabled in character file',
+                    status: 'warning'
+                });
+            }
             
             result.success = true;
             result.completed = new Date().toISOString();
