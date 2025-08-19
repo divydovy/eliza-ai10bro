@@ -524,6 +524,7 @@ export async function createAgent(
         character,
         // character.plugins are handled when clients are added
         plugins: [
+            ...(character.plugins || []), // Add character plugins
             bootstrapPlugin,
             getSecret(character, "CONFLUX_CORE_PRIVATE_KEY")
                 ? confluxPlugin

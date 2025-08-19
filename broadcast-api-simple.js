@@ -42,22 +42,18 @@ const server = http.createServer((req, res) => {
                 WHERE type = 'documents'
             `).get().count;
 
-            // Get total broadcasts
+            // Get total broadcasts from broadcasts table
             const totalBroadcasts = db.prepare(`
                 SELECT COUNT(*) as count 
-                FROM memories 
-                WHERE type = 'messages' 
-                AND json_extract(content, '$.metadata.messageType') = 'broadcast'
+                FROM broadcasts
             `).get().count;
 
-            // Get broadcast status breakdown
+            // Get broadcast status breakdown from broadcasts table
             const statusBreakdown = db.prepare(`
                 SELECT 
-                    json_extract(content, '$.metadata.status') as status,
+                    status,
                     COUNT(*) as count
-                FROM memories 
-                WHERE type = 'messages' 
-                AND json_extract(content, '$.metadata.messageType') = 'broadcast'
+                FROM broadcasts
                 GROUP BY status
             `).all();
 
@@ -77,16 +73,14 @@ const server = http.createServer((req, res) => {
                 pendingBroadcasts = totalBroadcasts;
             }
 
-            // Get recent broadcast activity
+            // Get recent broadcast activity from broadcasts table
             const recentActivity = db.prepare(`
                 SELECT 
-                    json_extract(content, '$.text') as text,
-                    json_extract(content, '$.metadata.status') as status,
-                    json_extract(content, '$.metadata.platform') as platform,
+                    content as text,
+                    status,
+                    client as platform,
                     createdAt
-                FROM memories 
-                WHERE type = 'messages' 
-                AND json_extract(content, '$.metadata.messageType') = 'broadcast'
+                FROM broadcasts
                 ORDER BY createdAt DESC
                 LIMIT 20
             `).all();
@@ -128,13 +122,11 @@ const server = http.createServer((req, res) => {
                 };
             });
 
-            // Get documents with broadcasts
+            // Get documents with broadcasts from broadcasts table
             const docsWithBroadcasts = db.prepare(`
-                SELECT COUNT(DISTINCT json_extract(content, '$.metadata.sourceMemoryId')) as count
-                FROM memories 
-                WHERE type = 'messages' 
-                AND json_extract(content, '$.metadata.messageType') = 'broadcast'
-                AND json_extract(content, '$.metadata.sourceMemoryId') IS NOT NULL
+                SELECT COUNT(DISTINCT documentId) as count
+                FROM broadcasts
+                WHERE documentId IS NOT NULL
             `).get().count;
 
             const response = {

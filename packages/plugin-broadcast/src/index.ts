@@ -13,8 +13,8 @@ export function initializePlugin(runtime: IAgentRuntime) {
     const db = runtime.databaseAdapter.db;
     initializeBroadcastSchema(db);
     
-    // Initialize the auto-broadcast service
-    autoBroadcastService.initialize(runtime);
+    // Don't initialize service here - it's initialized through the services array
+    // autoBroadcastService.initialize(runtime);
 }
 
 const plugin: Plugin = {
