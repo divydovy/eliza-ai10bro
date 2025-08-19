@@ -177,16 +177,18 @@
         }
         
         .activity-list {
-            max-height: 400px;
+            max-height: 600px;
             overflow-y: auto;
+            padding-right: 10px;
         }
         
         .activity-item {
-            padding: 15px;
+            padding: 20px;
             border-bottom: 1px solid #e2e8f0;
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
+            gap: 15px;
         }
         
         .activity-item:last-child {
@@ -196,6 +198,10 @@
         .activity-text {
             flex: 1;
             color: #4a5568;
+            line-height: 1.5;
+            max-width: 80%;
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
         
         .activity-time {

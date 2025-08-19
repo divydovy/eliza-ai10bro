@@ -97,12 +97,12 @@ const server = http.createServer((req, res) => {
                 else if (minutesAgo < 1440) timeStr = `${Math.floor(minutesAgo / 60)} hours ago`;
                 else timeStr = `${Math.floor(minutesAgo / 1440)} days ago`;
 
-                // Extract first line of text for display
+                // Show full text content
                 // Remove [BROADCAST:id] prefix if present to show actual content
                 let textContent = item.text || 'No content';
                 textContent = textContent.replace(/^\[BROADCAST:\d+\]\s*/, '');
-                const textPreview = textContent.split('\n')[0].substring(0, 100) + 
-                    (textContent.length > 100 ? '...' : '');
+                // Show full message, not just preview
+                const fullText = textContent;
 
                 // Guess platform from text content if not specified
                 let platform = item.platform || 'unknown';
@@ -115,7 +115,7 @@ const server = http.createServer((req, res) => {
                 }
 
                 return {
-                    text: textPreview,
+                    text: fullText,
                     status: item.status || 'pending',
                     platform: platform,
                     time: timeStr
