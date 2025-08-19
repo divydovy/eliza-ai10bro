@@ -39,22 +39,15 @@ export async function createBroadcastMessage(
 Content to analyze:
 ${document.content.text}
 
-MISSION CONTEXT: You're building a movement toward a more humane, sustainable, beautiful future. Help people understand both WHY this matters and HOW to engage based on the technology's maturity.
+Create a flowing narrative (max ${maxLength - 50} chars) that:
+- Connects this innovation to a pattern in nature
+- Reveals why it matters for humanity's future  
+- Ends with ONE specific action (researcher to follow, company to track, or platform to use)
+- Uses vivid, sensory language that brings the innovation to life
 
-Action Framework (choose based on content):
-- EARLY RESEARCH: "Follow [specific researcher/lab]. Subscribe to [journal/newsletter]. Join [community/discord]."
-- EMERGING TECH: "Track [company/project]. Consider applications in [specific industry]. Watch for [key milestone]."  
-- SCALING NOW: "Invest via [platform/fund]. Partner through [program]. Implement in [specific use case]."
-- AVAILABLE TODAY: "Access at [platform]. Start with [specific action]. Compare to [alternative]."
-
-Critical requirements:
-- STRICT LIMIT: ${maxLength - 50} characters (to allow for source URL)
-- Write ONE complete thought - do not exceed the limit
-- Structure: [Nature parallel] → [Why this changes the game] → [Specific action based on maturity]
-- Include concrete details: timeline, scale, key players
-- NO PLATITUDES: Be specific. Name names. Give real actions.
-${client === "telegram" ? "- Can be more detailed but MUST stay under limit" : "- Ultra-concise, maximum impact"}
-${sourceUrl ? "- Source URL will be added automatically, don't include it" : ""}
+Avoid formulaic structures or section headers. Tell a compelling story that moves naturally from observation to action.
+${client === "telegram" ? "You have more space for rich detail." : "Every word must count - maximum impact."}
+${sourceUrl ? "Source URL will be added automatically." : ""}
 
 [BROADCAST_REQUEST:${broadcastId}]`;
 

@@ -43,23 +43,25 @@ async function processUnprocessedDocuments(limit = 10) {
                 console.log(`\n📄 Processing: ${title}`);
                 
                 // Generate broadcast using Ollama
-                const prompt = `When you receive a [BROADCAST_REQUEST:id] message: 1) Draw a nature parallel, 2) Explain why this is a game-changer, 3) Give SPECIFIC action based on maturity - if early: who to follow/read, if emerging: what to track/test, if scaling: where to invest/partner, if available: how to access/use. No platitudes. Name names. Be practical. Write as David Attenborough. STAY UNDER LIMIT!
+                const prompt = `You are David Attenborough observing technological evolution. Create a compelling broadcast about this innovation that weaves together nature's wisdom with human progress. 
 
 Content to analyze:
 ${content.text?.substring(0, 2000)}
 
-MISSION CONTEXT: You're building a movement toward a more humane, sustainable, beautiful future. Help people understand both WHY this matters and HOW to engage based on the technology's maturity.
+Write a SINGLE PARAGRAPH broadcast (MAXIMUM 600 characters - this is CRITICAL) that:
+- Opens with an unexpected observation linking this to nature (but don't label it)
+- Reveals why this breakthrough matters for humanity's future
+- Ends with ONE specific action: a researcher to follow, company to track, platform to use, or investment opportunity
+- Use vivid, sensory language that brings the innovation to life
+- Vary your openings - sometimes start with the technology, sometimes with nature, sometimes with a question
 
-Action Framework (choose based on content):
-- EARLY RESEARCH: "Follow [specific researcher/lab]. Subscribe to [journal/newsletter]."
-- EMERGING TECH: "Track [company/project]. Consider applications in [specific industry]."  
-- SCALING NOW: "Invest via [platform/fund]. Partner through [program]."
-- AVAILABLE TODAY: "Access at [platform]. Start with [specific action]."
+AVOID:
+- Section headers like "Nature Parallel:" or "Why this matters:"
+- Generic statements - be specific about people, companies, timelines
+- Multiple actions - give just ONE clear next step
+- Formulaic structure - let each broadcast flow naturally
 
-Critical requirements:
-- STRICT LIMIT: 750 characters
-- Structure: [Nature parallel] → [Why this changes the game] → [Specific action]
-- NO PLATITUDES: Be specific. Name names. Give real actions.
+Remember: You're telling a story about how this innovation mirrors nature's genius and what someone should DO about it right now.
 
 [BROADCAST_REQUEST:${doc.id}]`;
 
@@ -75,6 +77,21 @@ Critical requirements:
                 const match = generated.match(/\[BROADCAST:.*?\](.*?)$/s);
                 if (match) {
                     generated = match[1].trim();
+                }
+                
+                // Enforce length limit
+                if (generated.length > 750) {
+                    // Find last complete sentence within limit
+                    const sentences = generated.match(/[^.!?]+[.!?]+/g) || [];
+                    let truncated = '';
+                    for (const sentence of sentences) {
+                        if ((truncated + sentence).length <= 700) {
+                            truncated += sentence;
+                        } else {
+                            break;
+                        }
+                    }
+                    generated = truncated || generated.substring(0, 700) + '...';
                 }
                 
                 // Add source URL if available
