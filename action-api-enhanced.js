@@ -28,10 +28,11 @@ const actionHandlers = {
             });
             
             if (pending.count === 0) {
-                // Check for documents without broadcasts
+                // Check for documents without broadcasts (only actual documents, not fragments/messages)
                 const unprocessed = db.prepare(`
                     SELECT COUNT(*) as count FROM memories m 
-                    WHERE NOT EXISTS (
+                    WHERE m.type = 'documents'
+                    AND NOT EXISTS (
                         SELECT 1 FROM broadcasts b WHERE b.documentId = m.id
                     ) AND json_extract(m.content, '$.text') IS NOT NULL
                     AND length(json_extract(m.content, '$.text')) > 100
@@ -86,8 +87,8 @@ const actionHandlers = {
         };
         
         try {
-            // Check current document count
-            const before = db.prepare('SELECT COUNT(*) as count FROM memories').get();
+            // Check current document count (only actual documents, not fragments/messages)
+            const before = db.prepare("SELECT COUNT(*) as count FROM memories WHERE type = 'documents'").get();
             result.steps.push({
                 step: 'Initial count',
                 message: `Current knowledge base: ${before.count} documents`,
@@ -111,7 +112,7 @@ const actionHandlers = {
             // Wait a moment and check new count
             await new Promise(resolve => setTimeout(resolve, 2000));
             
-            const after = db.prepare('SELECT COUNT(*) as count FROM memories').get();
+            const after = db.prepare("SELECT COUNT(*) as count FROM memories WHERE type = 'documents'").get();
             const imported = after.count - before.count;
             
             if (imported > 0) {
@@ -148,10 +149,44 @@ const actionHandlers = {
         };
         
         try {
+            // Check if GitHub sync is configured
+            const character = require('./characters/ai10bro.character.json');
+            const githubToken = character.settings?.secrets?.GITHUB_TOKEN;
+            
+            if (!githubToken) {
+                result.steps.push({
+                    step: 'Configuration check',
+                    message: 'GitHub token not configured',
+                    status: 'error'
+                });
+                result.success = false;
+                return result;
+            }
+            
+            // Check current GitHub documents
+            const githubDocs = db.prepare(`
+                SELECT COUNT(*) as count FROM memories 
+                WHERE type = 'documents' 
+                AND json_extract(content, '$.source') = 'github'
+            `).get();
+            
             result.steps.push({
-                step: 'GitHub sync',
-                message: 'GitHub sync not yet implemented',
-                status: 'pending'
+                step: 'Current GitHub docs',
+                message: `Found ${githubDocs.count} documents from GitHub`,
+                count: githubDocs.count
+            });
+            
+            // Trigger the sync
+            result.steps.push({
+                step: 'Sync status',
+                message: 'GitHub sync action not available in current agent',
+                status: 'info'
+            });
+            
+            result.steps.push({
+                step: 'Alternative',
+                message: 'Use CREATE_KNOWLEDGE to import from Obsidian vault',
+                status: 'info'
             });
             
             result.success = true;
