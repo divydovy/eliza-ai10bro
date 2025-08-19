@@ -23,10 +23,13 @@ export async function createBroadcastMessage(
             };
         }
 
-        // Extract source URL from document content if present
-        const contentText = document.content.text || '';
-        const sourceMatch = contentText.match(/source:\s*(https?:\/\/[^\s]+)/i);
-        const sourceUrl = sourceMatch ? sourceMatch[1] : null;
+        // Extract source URL from document metadata (check multiple locations)
+        const metadata = document.content.metadata || {};
+        const sourceUrl = metadata.frontmatter?.source || 
+                         metadata.url || 
+                         document.content.url ||
+                         (document.content.source !== 'obsidian' && document.content.source !== 'github' ? 
+                          document.content.source : null);
 
         // Use character-specific broadcast prompt for sharp, concise insights
         const characterPrompt = runtime.character.settings?.broadcastPrompt;

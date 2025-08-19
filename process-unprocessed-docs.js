@@ -94,8 +94,11 @@ Remember: You're telling a story about how this innovation mirrors nature's geni
                     generated = truncated || generated.substring(0, 700) + '...';
                 }
                 
-                // Add source URL if available
-                const sourceUrl = content.metadata?.url || content.source;
+                // Add source URL if available (check multiple locations)
+                const sourceUrl = content.metadata?.frontmatter?.source || 
+                                  content.metadata?.url || 
+                                  content.url ||
+                                  (content.source !== 'obsidian' ? content.source : null);
                 if (sourceUrl) {
                     generated = `${generated}\n\n🔗 Source: ${sourceUrl}`;
                 }
