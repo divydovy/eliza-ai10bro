@@ -171,6 +171,23 @@ const server = http.createServer((req, res) => {
             uptime: process.uptime()
         }));
     }
+    // Route: /api/config - Provides configuration for dashboard
+    else if (req.url === '/api/config' && req.method === 'GET') {
+        res.writeHead(200, { 
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        });
+        res.end(JSON.stringify({
+            statsPort: PORT,
+            actionPort: process.env.ELIZA_ACTION_PORT || 3003,
+            refreshInterval: 30000,
+            endpoints: {
+                stats: `/api/broadcast-stats`,
+                health: `/health`,
+                trigger: `http://localhost:${process.env.ELIZA_ACTION_PORT || 3003}/trigger`
+            }
+        }));
+    }
     // Default route
     else {
         res.writeHead(404, { 'Content-Type': 'text/plain' });

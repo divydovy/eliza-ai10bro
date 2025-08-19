@@ -343,11 +343,43 @@
     </div>
     
     <script>
+        // Store configuration
+        let appConfig = {
+            statsPort: 3002,
+            actionPort: 3003,
+            endpoints: {
+                stats: '/api/broadcast-stats',
+                trigger: 'http://localhost:3003/trigger'
+            }
+        };
+        
+        // Fetch configuration on load
+        async function fetchConfig() {
+            try {
+                const configUrl = window.location.port === '3002'
+                    ? '/api/config'
+                    : `http://${window.location.hostname}:3002/api/config`;
+                    
+                const response = await fetch(configUrl);
+                if (response.ok) {
+                    appConfig = await response.json();
+                    console.log('Loaded configuration:', appConfig);
+                }
+            } catch (error) {
+                console.warn('Could not fetch config, using defaults:', error);
+            }
+        }
+        
         // Fetch real data from API
         async function fetchData() {
             try {
+                // Use configuration or smart defaults
+                const statsUrl = window.location.port === String(appConfig.statsPort)
+                    ? appConfig.endpoints.stats
+                    : `http://${window.location.hostname}:${appConfig.statsPort}${appConfig.endpoints.stats}`;
+                
                 // Try to fetch from API first
-                const response = await fetch('http://localhost:3002/api/broadcast-stats');
+                const response = await fetch(statsUrl);
                 
                 if (response.ok) {
                     const data = await response.json();
@@ -484,7 +516,9 @@
             statusMessage.textContent = `Triggering ${actionName}...`;
             
             try {
-                const response = await fetch('http://localhost:3003/trigger', {
+                // Use configured endpoint or smart default
+                const triggerUrl = appConfig.endpoints.trigger.replace('localhost', window.location.hostname);
+                const response = await fetch(triggerUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -548,11 +582,12 @@
             }, 500);
         }
         
-        // Initial load
-        fetchData();
-        
-        // Auto-refresh every 30 seconds
-        setInterval(fetchData, 30000);
+        // Initial load - fetch config first, then data
+        fetchConfig().then(() => {
+            fetchData();
+            // Auto-refresh data (not config) every 30 seconds
+            setInterval(fetchData, appConfig.refreshInterval || 30000);
+        });
     </script>
 </body>
 </html>
