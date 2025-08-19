@@ -47,9 +47,28 @@ const actionHandlers = {
                 if (unprocessed.count > 0) {
                     result.steps.push({
                         step: 'Trigger processing',
-                        message: 'Triggering broadcast generation for unprocessed documents...',
+                        message: `Creating broadcasts for ${Math.min(10, unprocessed.count)} unprocessed documents...`,
                         status: 'initiated'
                     });
+                    
+                    // Actually process the documents
+                    const { processUnprocessedDocuments } = require('./process-unprocessed-docs.js');
+                    const processResult = await processUnprocessedDocuments(10);
+                    
+                    result.steps.push({
+                        step: 'Processing complete',
+                        message: `Created ${processResult.processed} new broadcasts`,
+                        count: processResult.processed
+                    });
+                    
+                    if (processResult.failed > 0) {
+                        result.steps.push({
+                            step: 'Failed',
+                            message: `Failed to process ${processResult.failed} documents`,
+                            count: processResult.failed,
+                            status: 'warning'
+                        });
+                    }
                 }
             } else {
                 // Process pending broadcasts
@@ -64,9 +83,6 @@ const actionHandlers = {
                     }))
                 });
             }
-            
-            // Trigger the actual action
-            const { stdout } = await execPromise(`curl -s -X POST http://localhost:3000/trigger -H "Content-Type: application/json" -d '{"action":"PROCESS_QUEUE"}'`);
             
             result.success = true;
             result.completed = new Date().toISOString();
