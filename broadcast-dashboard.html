@@ -529,11 +529,28 @@
                 const result = await response.json();
                 
                 if (response.ok && result.success) {
-                    // Success
+                    // Success with detailed feedback
                     button.classList.remove('processing');
                     button.classList.add('success');
-                    statusMessage.className = 'status-message success';
-                    statusMessage.textContent = `✅ ${actionName} triggered successfully!`;
+                    
+                    // Show detailed steps if available
+                    if (result.steps && result.steps.length > 0) {
+                        let detailsHtml = `<div><strong>✅ ${actionName} completed:</strong></div>`;
+                        result.steps.forEach(step => {
+                            detailsHtml += `<div style="margin-left: 20px; margin-top: 5px;">`;
+                            detailsHtml += `• ${step.message}`;
+                            if (step.count !== undefined) {
+                                detailsHtml += ` <span style="color: #667eea;">(${step.count})</span>`;
+                            }
+                            detailsHtml += `</div>`;
+                        });
+                        statusMessage.className = 'status-message success';
+                        statusMessage.innerHTML = detailsHtml;
+                    } else {
+                        // Fallback to simple message
+                        statusMessage.className = 'status-message success';
+                        statusMessage.textContent = `✅ ${actionName} triggered successfully!`;
+                    }
                     
                     // Refresh stats after a moment
                     setTimeout(() => {
