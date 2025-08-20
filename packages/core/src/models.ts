@@ -274,17 +274,17 @@ export const models: Models = {
             [ModelClass.SMALL]:
                 settings.SMALL_OLLAMA_MODEL ||
                 settings.OLLAMA_MODEL ||
-                "llama3.2",
+                "qwen2.5:14b",
             [ModelClass.MEDIUM]:
                 settings.MEDIUM_OLLAMA_MODEL ||
                 settings.OLLAMA_MODEL ||
-                "hermes3",
+                "qwen2.5:14b",
             [ModelClass.LARGE]:
                 settings.LARGE_OLLAMA_MODEL ||
                 settings.OLLAMA_MODEL ||
-                "hermes3:70b",
+                "qwen2.5:14b",
             [ModelClass.EMBEDDING]:
-                settings.OLLAMA_EMBEDDING_MODEL || "mxbai-embed-large",
+                settings.OLLAMA_EMBEDDING_MODEL || "mxbai-embed-large:latest",
         },
     },
     [ModelProviderName.HEURIST]: {

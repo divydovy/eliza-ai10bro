@@ -1,8 +1,9 @@
 {
   "name": "@elizaos/plugin-dashboard",
   "version": "0.1.0",
+  "type": "module",
   "description": "Dashboard plugin for monitoring Eliza plugins",
-  "main": "dist/index.js",
+  "main": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsup",
