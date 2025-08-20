@@ -212,6 +212,8 @@
             font-size: 0.85em;
             white-space: nowrap;
             flex-shrink: 0;
+            text-align: right;
+            line-height: 1.4;
         }
         
         .platform-badge {
@@ -469,7 +471,10 @@
                                 <span class="status-indicator status-${activity.status}"></span>
                                 <span class="platform-badge badge-${activity.platform}">${activity.platform.toUpperCase()}</span>
                             </div>
-                            <div class="activity-time">${activity.time}</div>
+                            <div class="activity-time">
+                                <span style="color: #718096;">Created: ${activity.createdTime}</span>
+                                ${activity.sentTime ? `<br><span style="color: #48bb78;">Sent: ${activity.sentTime}</span>` : ''}
+                            </div>
                         </div>
                         <div class="activity-content">
                             ${activity.text}

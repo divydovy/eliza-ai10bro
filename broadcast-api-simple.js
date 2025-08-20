@@ -79,7 +79,8 @@ const server = http.createServer((req, res) => {
                     content as text,
                     status,
                     client as platform,
-                    createdAt
+                    createdAt,
+                    sent_at as sentAt
                 FROM broadcasts
                 ORDER BY createdAt DESC
                 LIMIT 20
@@ -89,13 +90,25 @@ const server = http.createServer((req, res) => {
             const formattedActivity = recentActivity.map(item => {
                 const now = Date.now();
                 const created = parseInt(item.createdAt);
-                const minutesAgo = Math.floor((now - created) / 60000);
+                const sent = item.sentAt ? parseInt(item.sentAt) : null;
                 
-                let timeStr;
-                if (minutesAgo < 1) timeStr = 'Just now';
-                else if (minutesAgo < 60) timeStr = `${minutesAgo} mins ago`;
-                else if (minutesAgo < 1440) timeStr = `${Math.floor(minutesAgo / 60)} hours ago`;
-                else timeStr = `${Math.floor(minutesAgo / 1440)} days ago`;
+                // Format creation time
+                const createdMinutesAgo = Math.floor((now - created) / 60000);
+                let createdStr;
+                if (createdMinutesAgo < 1) createdStr = 'Just now';
+                else if (createdMinutesAgo < 60) createdStr = `${createdMinutesAgo} mins ago`;
+                else if (createdMinutesAgo < 1440) createdStr = `${Math.floor(createdMinutesAgo / 60)} hours ago`;
+                else createdStr = `${Math.floor(createdMinutesAgo / 1440)} days ago`;
+                
+                // Format sent time if available
+                let sentStr = null;
+                if (sent) {
+                    const sentMinutesAgo = Math.floor((now - sent) / 60000);
+                    if (sentMinutesAgo < 1) sentStr = 'Just now';
+                    else if (sentMinutesAgo < 60) sentStr = `${sentMinutesAgo} mins ago`;
+                    else if (sentMinutesAgo < 1440) sentStr = `${Math.floor(sentMinutesAgo / 60)} hours ago`;
+                    else sentStr = `${Math.floor(sentMinutesAgo / 1440)} days ago`;
+                }
 
                 // Show full text content
                 // Remove [BROADCAST:id] prefix if present to show actual content
@@ -118,7 +131,9 @@ const server = http.createServer((req, res) => {
                     text: fullText,
                     status: item.status || 'pending',
                     platform: platform,
-                    time: timeStr
+                    createdTime: createdStr,
+                    sentTime: sentStr,
+                    time: sentStr || createdStr // Keep backwards compatibility
                 };
             });
 

@@ -45,10 +45,12 @@ async function processUnprocessedDocuments(limit = 10) {
                 // Generate broadcast using Ollama
                 const prompt = `You are David Attenborough observing technological evolution. Create a compelling broadcast about this innovation that weaves together nature's wisdom with human progress. 
 
+CRITICAL: Write ONLY in ENGLISH, regardless of the source language.
+
 Content to analyze:
 ${content.text?.substring(0, 2000)}
 
-Write a SINGLE PARAGRAPH broadcast (MAXIMUM 600 characters - this is CRITICAL) that:
+Write a SINGLE PARAGRAPH broadcast IN ENGLISH ONLY (MAXIMUM 600 characters - this is CRITICAL) that:
 - Opens with an unexpected observation linking this to nature (but don't label it)
 - Reveals why this breakthrough matters for humanity's future
 - Ends with ONE specific action: a researcher to follow, company to track, platform to use, or investment opportunity
