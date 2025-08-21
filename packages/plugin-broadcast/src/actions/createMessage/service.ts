@@ -23,13 +23,19 @@ export async function createBroadcastMessage(
             };
         }
 
-        // Extract source URL from document metadata (check multiple locations)
+        // Extract actual HTTPS source URL from document metadata
         const metadata = document.content.metadata || {};
-        const sourceUrl = metadata.frontmatter?.source || 
-                         metadata.url || 
-                         document.content.url ||
-                         (document.content.source !== 'obsidian' && document.content.source !== 'github' ? 
-                          document.content.source : null);
+        let sourceUrl = metadata.frontmatter?.source || 
+                        metadata.url || 
+                        document.content.url ||
+                        null;
+        
+        // If source is just "github" or "obsidian", try to extract actual URL from content
+        if (!sourceUrl || sourceUrl === 'github' || sourceUrl === 'obsidian') {
+            // Try to find an actual HTTPS URL in the document content
+            const urlMatch = document.content.text?.match(/https?:\/\/[^\s\)]+/);
+            sourceUrl = urlMatch ? urlMatch[0] : null;
+        }
 
         // Use character-specific broadcast prompt for sharp, concise insights
         const characterPrompt = runtime.character.settings?.broadcastPrompt;
@@ -42,15 +48,19 @@ export async function createBroadcastMessage(
 Content to analyze:
 ${document.content.text}
 
-Create a flowing narrative (max ${maxLength - 50} chars) that:
-- Connects this innovation to a pattern in nature
+Create a compelling broadcast (max ${maxLength - 50} chars) that:
+- Focuses on the breakthrough itself and its practical significance
 - Reveals why it matters for humanity's future  
 - Ends with ONE specific action (researcher to follow, company to track, or platform to use)
-- Uses vivid, sensory language that brings the innovation to life
+- ONLY includes a sharp nature comparison at the very end if it adds meaningful insight
+- Uses actual source URLs, never generic terms like 'github' or 'obsidian'
 
-Avoid formulaic structures or section headers. Tell a compelling story that moves naturally from observation to action.
-${client === "telegram" ? "You have more space for rich detail." : "Every word must count - maximum impact."}
-${sourceUrl ? "Source URL will be added automatically." : ""}
+Requirements:
+- Lead with the innovation and its impact
+- Be precise and direct - no formulaic structures
+- Save any nature metaphors for the final sentence only
+- ${client === "telegram" ? "Use the space for rich technical detail." : "Every word must count - maximum impact."}
+${sourceUrl ? `Source URL available: ${sourceUrl}` : ""}
 
 [BROADCAST_REQUEST:${broadcastId}]`;
 

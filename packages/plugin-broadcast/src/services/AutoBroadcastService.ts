@@ -1,6 +1,8 @@
 import { Service, IAgentRuntime, Memory, UUID, ServiceType, embed } from "@elizaos/core";
 import { BroadcastDB } from "../db/operations";
 import { createBroadcastMessage } from "../actions/createMessage/service";
+import { spawn } from "child_process";
+import * as path from "path";
 
 export class AutoBroadcastService extends Service {
     private runtime: IAgentRuntime;
@@ -9,6 +11,7 @@ export class AutoBroadcastService extends Service {
     private static isInitialized: boolean = false;
     private goalEmbeddings: number[][] = [];
     private alignmentThreshold: number = 0.6;
+    private dashboardProcess: any = null;
 
     static get serviceType(): ServiceType {
         return ServiceType.BACKGROUND;
@@ -32,6 +35,11 @@ export class AutoBroadcastService extends Service {
         await this.initializeGoalEmbeddings();
         
         console.log("🚀 AutoBroadcastService initialized with alignment checking");
+        
+        // Note: Dashboard auto-start disabled due to ES module compatibility
+        console.log("📊 To start the broadcast dashboard manually, run: ./start-broadcast-system.sh");
+        console.log("📊 Dashboard will be available at: http://localhost:3002/broadcast-dashboard.html");
+        
         AutoBroadcastService.isInitialized = true;
         
         // Check for new documents every 30 minutes
@@ -178,6 +186,115 @@ export class AutoBroadcastService extends Service {
         if (this.checkInterval) {
             clearInterval(this.checkInterval);
             this.checkInterval = null;
+        }
+        
+        // Stop the dashboard process if it's running
+        if (this.dashboardProcess) {
+            this.dashboardProcess.kill();
+            this.dashboardProcess = null;
+            console.log("🛑 Broadcast dashboard stopped");
+        }
+    }
+
+    private async startBroadcastDashboard(): Promise<void> {
+        try {
+            // Check if dashboard is already running on port 3002
+            const portInUse = await this.isPortInUse(3002);
+            if (portInUse) {
+                console.log("📊 Broadcast dashboard already running on port 3002");
+                return;
+            }
+
+            // Find the project root (where broadcast-api-simple.js is located)
+            const projectRoot = this.findProjectRoot();
+            if (!projectRoot) {
+                console.error("❌ Could not find project root for broadcast dashboard");
+                return;
+            }
+
+            const dashboardScript = path.join(projectRoot, "broadcast-api-simple.js");
+            
+            console.log("🚀 Starting broadcast dashboard...");
+            
+            // Start the dashboard process
+            this.dashboardProcess = spawn("node", [dashboardScript], {
+                cwd: projectRoot,
+                stdio: ["ignore", "pipe", "pipe"],
+                env: {
+                    ...process.env,
+                    BROADCAST_API_PORT: "3002",
+                    ELIZA_ACTION_PORT: "3005" // Match the agent port
+                }
+            });
+
+            this.dashboardProcess.stdout.on("data", (data: Buffer) => {
+                console.log(`📊 Dashboard: ${data.toString().trim()}`);
+            });
+
+            this.dashboardProcess.stderr.on("data", (data: Buffer) => {
+                console.error(`📊 Dashboard Error: ${data.toString().trim()}`);
+            });
+
+            this.dashboardProcess.on("close", (code: number) => {
+                console.log(`📊 Dashboard process exited with code ${code}`);
+                this.dashboardProcess = null;
+            });
+
+            // Give it a moment to start
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            console.log("✅ Broadcast dashboard started on http://localhost:3002/broadcast-dashboard.html");
+            
+        } catch (error) {
+            console.error("❌ Failed to start broadcast dashboard:", error);
+        }
+    }
+
+    private findProjectRoot(): string | null {
+        let currentDir = __dirname;
+        
+        // Go up directories until we find broadcast-api-simple.js
+        for (let i = 0; i < 10; i++) {
+            const parentDir = path.dirname(currentDir);
+            if (parentDir === currentDir) break; // Reached root
+            
+            currentDir = parentDir;
+            
+            // Check for broadcast-api-simple.js
+            try {
+                // Use dynamic import for fs in ES module context
+                import("fs").then(fs => {
+                    const broadcastApiPath = path.join(currentDir, "broadcast-api-simple.js");
+                    if (fs.existsSync(broadcastApiPath)) {
+                        return currentDir;
+                    }
+                }).catch(() => {
+                    // Continue searching
+                });
+            } catch (error) {
+                // Continue searching
+            }
+        }
+        
+        return null;
+    }
+
+    private async isPortInUse(port: number): Promise<boolean> {
+        try {
+            const { createServer } = await import("net");
+            return new Promise((resolve) => {
+                const server = createServer();
+                
+                server.listen(port, () => {
+                    server.once("close", () => resolve(false));
+                    server.close();
+                });
+                
+                server.on("error", () => resolve(true));
+            });
+        } catch (error) {
+            console.error("Error checking port:", error);
+            return false; // Assume port is free if we can't check
         }
     }
 

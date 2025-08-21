@@ -90,7 +90,17 @@ const server = http.createServer((req, res) => {
             const formattedActivity = recentActivity.map(item => {
                 const now = Date.now();
                 const created = parseInt(item.createdAt);
-                const sent = item.sentAt ? parseInt(item.sentAt) : null;
+                // Handle both timestamp and datetime string formats for sent_at
+                let sent = null;
+                if (item.sentAt) {
+                    if (typeof item.sentAt === 'string' && item.sentAt.includes('-')) {
+                        // SQLite datetime format: "2025-08-21 12:47:29"
+                        sent = new Date(item.sentAt + ' UTC').getTime();
+                    } else {
+                        // Unix timestamp
+                        sent = parseInt(item.sentAt);
+                    }
+                }
                 
                 // Format creation time
                 const createdMinutesAgo = Math.floor((now - created) / 60000);
