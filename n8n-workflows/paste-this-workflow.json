@@ -1,0 +1,108 @@
+{
+  "name": "Telegram Broadcast - Zero Cost",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "telegram-broadcast",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "8f7e1b2a-telegram-broadcast"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract input data\nconst title = $input.first().json.title || 'Update';\nconst text = $input.first().json.text || '';\nconst url = $input.first().json.url || '';\n\n// Format message for Telegram\nlet message = `📢 *${title}*\\n\\n${text}`;\n\nif (url) {\n  message += `\\n\\n🔗 [Source](${url})`;\n}\n\n// Return for both chats\nreturn [\n  {\n    chatId: '425347269',\n    message: message\n  },\n  {\n    chatId: '-1002339513336',\n    message: message\n  }\n];"
+      },
+      "id": "format",
+      "name": "Format Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "telegram",
+      "name": "Send Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "new",
+          "name": "AI10bro Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "✅ Broadcast sent successfully!"
+            },
+            {
+              "name": "cost",
+              "value": "$0.00 (was $0.25 with ElizaOS)"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "response",
+      "name": "Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Format Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Message": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

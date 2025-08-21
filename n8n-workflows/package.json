@@ -1,0 +1,16 @@
+{
+  "name": "eliza-telegram-replacement",
+  "version": "1.0.0",
+  "description": "Zero-cost Telegram broadcasts - ElizaOS replacement",
+  "main": "telegram-service.js",
+  "scripts": {
+    "start": "node telegram-service.js",
+    "dev": "node telegram-service.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "keywords": ["telegram", "broadcast", "eliza", "zero-cost"],
+  "author": "Migration from ElizaOS",
+  "license": "MIT"
+}

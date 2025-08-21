@@ -1,0 +1,182 @@
+INSERT INTO workflow_entity (
+  id, 
+  name, 
+  active, 
+  nodes, 
+  connections, 
+  settings,
+  staticData,
+  pinData,
+  meta
+) VALUES (
+  'a39375e4-6480-4c19-8ebd-55c15be534ad',
+  'AI10bro Telegram Broadcast',
+  1,
+  '[
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "broadcast-trigger",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger", 
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "content": "={ \"success\": true, \"message\": \"Broadcast queued successfully\", \"timestamp\": \"{{ $now }}\" }",
+        "options": {}
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook", 
+      "typeVersion": 1,
+      "position": [1200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract and format content for Telegram\nconst input = $input.first();\nconst content = input.json.content || input.json.text || '''';\nconst title = input.json.title || ''Content Update'';\nconst sourceUrl = input.json.sourceUrl || input.json.url || '''';\n\n// Format content for Telegram (4096 char limit)\nlet telegramMessage = `📢 *${title.replace(/[_*\\[\\]()~`>#+=|{}.!-]/g, ''\\\\$&'')}*\\n\\n`;\n\n// Smart truncation - preserve URLs and key information\nconst maxContentLength = 4000 - telegramMessage.length - (sourceUrl ? sourceUrl.length + 20 : 0);\n\nlet contentText = content;\nif (content.length > maxContentLength) {\n  // Find the last complete sentence within limit\n  const truncated = content.substring(0, maxContentLength);\n  const lastSentence = truncated.lastIndexOf(''.'');\n  const lastNewline = truncated.lastIndexOf(''\\n'');\n  const cutPoint = Math.max(lastSentence, lastNewline);\n  \n  contentText = cutPoint > maxContentLength * 0.7 ? \n    truncated.substring(0, cutPoint + 1) : \n    truncated + ''...'';\n}\n\ntelegramMessage += contentText;\n\n// Add source URL if available\nif (sourceUrl) {\n  telegramMessage += `\\n\\n🔗 [Source](${sourceUrl})`;\n}\n\n// Return formatted data for both chat IDs\nconst chatIds = [''425347269'', ''-1002339513336''];\nconst messages = chatIds.map(chatId => ({\n  chatId: chatId,\n  text: telegramMessage,\n  originalContent: content,\n  truncated: content.length > maxContentLength\n}));\n\nreturn messages;"
+      },
+      "id": "format-telegram-content",
+      "name": "Format Telegram Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "credentials",
+        "resource": "message", 
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "parse_mode": "MarkdownV2",
+          "disable_web_page_preview": false
+        }
+      },
+      "id": "send-telegram-message",
+      "name": "Send Telegram Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [640, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "aace74d0-9355-4dc6-9a3f-9916cffb1d72",
+          "name": "AI10bro Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log broadcast results and return summary\nconst results = $input.all();\nconst successful = results.filter(r => r.json.ok).length;\nconst failed = results.length - successful;\n\nconsole.log(`Telegram broadcast completed: ${successful} successful, ${failed} failed`);\n\nresults.forEach(result => {\n  if (result.json.ok) {\n    console.log(`✅ Message sent to chat ${result.json.result.chat.id}`);\n  } else {\n    console.log(`❌ Failed to send to chat: ${result.json.description}`);\n  }\n});\n\nreturn [{\n  broadcastId: Date.now(),\n  successful: successful,\n  failed: failed,\n  timestamp: new Date().toISOString(),\n  details: results.map(r => ({\n    chatId: r.json.result?.chat?.id || ''unknown'',\n    success: r.json.ok,\n    messageId: r.json.result?.message_id,\n    error: r.json.description\n  }))\n}];"
+      },
+      "id": "log-results",
+      "name": "Log Results", 
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [840, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-success",
+              "leftValue": "={{ $json.failed }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-success",
+      "name": "Check Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1040, 300]
+    }
+  ]',
+  '{
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Format Telegram Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Telegram Content": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram Message": {
+      "main": [
+        [
+          {
+            "node": "Log Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Results": {
+      "main": [
+        [
+          {
+            "node": "Check Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Success": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }',
+  '{"executionOrder": "v1"}',
+  '{}',
+  '{}',
+  '{"templateCredsSetupCompleted": true, "instanceId": "n8n-telegram-migration"}'
+);

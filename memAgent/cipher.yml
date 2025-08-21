@@ -1,0 +1,66 @@
+name: eliza-memory-agent
+description: Memory agent for Eliza AI project with n8n migration context
+
+# Agent Configuration
+agent:
+  name: eliza-assistant
+  description: AI assistant for the Eliza project, maintaining context about ElizaOS to n8n migration
+
+# LLM Provider Configuration (using environment variables)
+providers:
+  # Primary provider - can be openai, anthropic, groq, etc.
+  primary: anthropic
+  fallback: openai
+  
+  # Model selection
+  models:
+    small: claude-3-haiku-20240307
+    medium: claude-3-5-sonnet-20241022
+    large: claude-3-5-sonnet-20241022
+    embedding: text-embedding-3-small
+
+# Memory Configuration
+memory:
+  enabled: true
+  max_memories: 1000
+  embedding_enabled: true
+  
+  # System 1 Memory (immediate, contextual)
+  system1:
+    enabled: true
+    max_entries: 100
+    
+  # System 2 Memory (long-term, reasoning)
+  system2:
+    enabled: true
+    max_entries: 500
+
+# Project Context
+project:
+  name: Eliza
+  type: ai-agent-framework
+  current_status: migration-planning
+  source_framework: ElizaOS
+  target_framework: n8n
+  
+  # Key areas of focus
+  focus_areas:
+    - broadcast_functionality
+    - custom_characters
+    - plugin_architecture
+    - migration_strategy
+
+# Tools and Integrations
+tools:
+  enabled: true
+  # Add specific tools as needed
+
+# Session Configuration
+session:
+  persist: true
+  timeout: 3600 # 1 hour
+
+# Logging
+logging:
+  level: info
+  file: cipher.log
