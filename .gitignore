@@ -1,10 +1,17 @@
 node_modules
 /out
 
+# Environment files with secrets
 .env
+.env.*
+!.env.example
+!.env.broadcast
 .env.production
 .env.local
 .env_main
+*.env.local
+*.env.development
+*.env.production
 concatenated-output.ts
 embedding-cache.json
 packages/plugin-buttplug/intiface-engine
@@ -43,7 +50,13 @@ timeline_cache.json
 
 *.sqlite
 
+# Character files with secrets
 characters/
+*.character.json
+
+# N8N configuration with secrets
+n8n-data/
+n8n/
 
 packages/core/src/providers/cache
 packages/core/src/providers/cache/*
@@ -60,3 +73,39 @@ coverage
 
 agent/content
 .specstory/
+
+# API Keys and Secrets
+*api_key*
+*apikey*
+*secret*
+*token*
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+
+# Credential files
+credentials.json
+service-account.json
+auth.json
+config.json
+!package.json
+!tsconfig.json
+!jest.config.json
+
+# AWS
+.aws/
+aws.json
+
+# Google Cloud
+.gcloud/
+gcloud.json
+
+# Azure
+.azure/
+
+# Docker secrets
+docker-compose.override.yml
+.dockerignore.local
