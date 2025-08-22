@@ -57,6 +57,26 @@
             box-shadow: 0 6px 20px rgba(0,0,0,0.15);
         }
         
+        .action-btn[title]:hover::after {
+            content: attr(title);
+            position: absolute;
+            bottom: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 1000;
+            pointer-events: none;
+        }
+        
+        .action-btn {
+            position: relative;
+        }
+        
         .action-btn:active {
             transform: translateY(0);
         }
@@ -285,17 +305,17 @@
         <div id="status-message" class="status-message"></div>
         
         <div class="action-buttons">
-            <button class="action-btn" onclick="triggerAction('SYNC_GITHUB')" id="sync-github-btn">
+            <button class="action-btn" onclick="triggerAction('SYNC_GITHUB')" id="sync-github-btn" title="Sync documents from GitHub repositories">
                 📚 Sync GitHub
             </button>
-            <button class="action-btn" onclick="triggerAction('CREATE_KNOWLEDGE')" id="create-knowledge-btn">
+            <button class="action-btn" onclick="triggerAction('CREATE_KNOWLEDGE')" id="create-knowledge-btn" title="Import documents from Obsidian vault">
                 🧠 Import Obsidian
             </button>
-            <button class="action-btn" onclick="triggerAction('CREATE_BROADCASTS')" id="create-broadcasts-btn">
+            <button class="action-btn" onclick="triggerAction('CREATE_BROADCASTS')" id="create-broadcasts-btn" title="Generate new broadcast messages from documents without broadcasts">
                 ✨ Create Broadcasts
             </button>
-            <button class="action-btn" onclick="triggerAction('PROCESS_QUEUE')" id="process-queue-btn">
-                📤 Process Queue
+            <button class="action-btn" onclick="triggerAction('PROCESS_QUEUE')" id="process-queue-btn" title="Send the next pending broadcast to Twitter/Telegram">
+                📤 Send Next Broadcast
             </button>
             <button class="action-btn" onclick="refreshStats()" id="refresh-btn">
                 🔄 Refresh Stats

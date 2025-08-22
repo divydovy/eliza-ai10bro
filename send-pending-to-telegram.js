@@ -24,14 +24,27 @@ async function sendPendingBroadcasts() {
         const dbPath = path.join(process.cwd(), 'agent/data/db.sqlite');
         const db = sqlite3(dbPath);
         
-        // Get pending broadcasts
-        const pendingBroadcasts = db.prepare(`
-            SELECT id, content as message, client as platform 
-            FROM broadcasts 
-            WHERE status = 'pending' 
-            AND client = 'telegram'
-            LIMIT 5
-        `).all();
+        // Get pending broadcasts - either a specific one or up to 5
+        let pendingBroadcasts;
+        if (process.env.BROADCAST_ID) {
+            // Send a specific broadcast
+            pendingBroadcasts = db.prepare(`
+                SELECT id, content as message, client as platform 
+                FROM broadcasts 
+                WHERE id = ? 
+                AND status IN ('pending', 'sending')
+                AND client = 'telegram'
+            `).all(process.env.BROADCAST_ID);
+        } else {
+            // Send up to 5 pending broadcasts
+            pendingBroadcasts = db.prepare(`
+                SELECT id, content as message, client as platform 
+                FROM broadcasts 
+                WHERE status = 'pending' 
+                AND client = 'telegram'
+                LIMIT 5
+            `).all();
+        }
         
         console.log(`📤 Found ${pendingBroadcasts.length} pending Telegram broadcasts`);
         

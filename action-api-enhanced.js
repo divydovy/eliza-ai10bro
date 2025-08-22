@@ -71,17 +71,74 @@ const actionHandlers = {
                     }
                 }
             } else {
-                // Process pending broadcasts
-                const broadcasts = db.prepare('SELECT * FROM broadcasts WHERE status = ? LIMIT 5').all('pending');
-                result.steps.push({
-                    step: 'Processing broadcasts',
-                    message: `Processing ${broadcasts.length} pending broadcasts...`,
-                    items: broadcasts.map(b => ({
-                        id: b.id,
-                        client: b.client,
-                        preview: b.content ? b.content.substring(0, 50) + '...' : 'No content'
-                    }))
-                });
+                // Process next pending broadcast (just one)
+                const broadcast = db.prepare('SELECT * FROM broadcasts WHERE status = ? LIMIT 1').get('pending');
+                if (broadcast) {
+                    result.steps.push({
+                        step: 'Processing next broadcast',
+                        message: `Sending 1 broadcast to ${broadcast.client}...`,
+                        items: [{
+                            id: broadcast.id,
+                            client: broadcast.client,
+                            preview: broadcast.content ? broadcast.content.substring(0, 50) + '...' : 'No content'
+                        }]
+                    });
+                    
+                    // Actually send the broadcast
+                    try {
+                        // Call the send script for this single broadcast
+                        const { execSync } = require('child_process');
+                        
+                        // First, mark this specific broadcast as ready to send
+                        // (we'll use a temporary status to isolate it)
+                        db.prepare('UPDATE broadcasts SET status = ? WHERE id = ?')
+                            .run('sending', broadcast.id);
+                        
+                        // Now call the actual send script
+                        const output = execSync(`node send-pending-to-telegram.js`, { 
+                            encoding: 'utf8',
+                            env: { ...process.env, BROADCAST_ID: broadcast.id }
+                        });
+                        
+                        // Check if it was actually sent
+                        const updatedBroadcast = db.prepare('SELECT status FROM broadcasts WHERE id = ?').get(broadcast.id);
+                        
+                        if (updatedBroadcast.status === 'sent') {
+                            result.steps.push({
+                                step: 'Sent successfully',
+                                message: `Broadcast sent to ${broadcast.client}!`,
+                                details: output.trim().split('\n').pop(),
+                                status: 'success'
+                            });
+                        } else {
+                            // If not sent, revert to pending
+                            db.prepare('UPDATE broadcasts SET status = ? WHERE id = ?')
+                                .run('pending', broadcast.id);
+                            
+                            result.steps.push({
+                                step: 'Send failed',
+                                message: `Failed to send broadcast to ${broadcast.client}`,
+                                status: 'error'
+                            });
+                        }
+                    } catch (error) {
+                        // Revert to pending on error
+                        db.prepare('UPDATE broadcasts SET status = ? WHERE id = ?')
+                            .run('pending', broadcast.id);
+                        
+                        result.steps.push({
+                            step: 'Send error',
+                            message: error.message,
+                            status: 'error'
+                        });
+                    }
+                } else {
+                    result.steps.push({
+                        step: 'No broadcasts',
+                        message: 'No pending broadcasts to send',
+                        status: 'info'
+                    });
+                }
             }
             
             result.success = true;
