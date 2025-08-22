@@ -48,7 +48,7 @@ export async function createBroadcastMessage(
 Content to analyze:
 ${document.content.text}
 
-Create a compelling broadcast (max ${maxLength - 50} chars) that:
+Create a compelling broadcast that:
 - Focuses on the breakthrough itself and its practical significance
 - Reveals why it matters for humanity's future  
 - Ends with ONE specific action (researcher to follow, company to track, or platform to use)

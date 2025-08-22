@@ -204,12 +204,12 @@ const server = http.createServer((req, res) => {
         });
         res.end(JSON.stringify({
             statsPort: PORT,
-            actionPort: process.env.ELIZA_ACTION_PORT || 3003,
+            actionPort: process.env.ELIZA_ACTION_PORT || 3000,
             refreshInterval: 30000,
             endpoints: {
                 stats: `/api/broadcast-stats`,
                 health: `/health`,
-                trigger: `http://localhost:${process.env.ELIZA_ACTION_PORT || 3003}/trigger`
+                trigger: `http://localhost:${process.env.ELIZA_ACTION_PORT || 3000}/api/trigger`
             }
         }));
     }

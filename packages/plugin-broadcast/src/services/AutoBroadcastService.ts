@@ -144,30 +144,37 @@ export class AutoBroadcastService extends Service {
                     continue;
                 }
                 
-                console.log(`Creating broadcast for document ${doc.id} (alignment: ${alignmentScore.toFixed(2)})`);
+                console.log(`Creating broadcasts for document ${doc.id} (alignment: ${alignmentScore.toFixed(2)})`);
                 
-                // Create broadcast message for Telegram with actual alignment score
-                const result = await createBroadcastMessage(
-                    this.runtime,
-                    {
-                        documentId: doc.id,
-                        client: 'telegram',
-                        maxLength: 1000
-                    },
-                    this.db
-                );
+                // Create broadcast messages for both Telegram AND Twitter
+                const clients = ['telegram', 'twitter'];
+                let clientBroadcastsCreated = 0;
                 
-                if (result.success) {
-                    // Update the broadcast with the actual alignment score
-                    this.db.db.prepare(
-                        `UPDATE broadcasts SET alignment_score = ? WHERE id = ?`
-                    ).run(alignmentScore, result.broadcastId);
+                for (const client of clients) {
+                    const result = await createBroadcastMessage(
+                        this.runtime,
+                        {
+                            documentId: doc.id,
+                            client: client,
+                            maxLength: client === 'telegram' ? 2000 : 280  // Remove length limits for better content
+                        },
+                        this.db
+                    );
                     
-                    broadcastsCreated++;
-                    console.log(`✅ Created broadcast ${result.broadcastId} for document ${doc.id}`);
-                } else {
-                    console.log(`❌ Failed to create broadcast for document ${doc.id}: ${result.error}`);
+                    if (result.success) {
+                        // Update the broadcast with the actual alignment score
+                        this.db.db.prepare(
+                            `UPDATE broadcasts SET alignment_score = ? WHERE id = ?`
+                        ).run(alignmentScore, result.broadcastId);
+                        
+                        clientBroadcastsCreated++;
+                        console.log(`✅ Created ${client} broadcast ${result.broadcastId} for document ${doc.id}`);
+                    } else {
+                        console.log(`❌ Failed to create ${client} broadcast for document ${doc.id}: ${result.error}`);
+                    }
                 }
+                
+                broadcastsCreated += clientBroadcastsCreated;
             }
             
             if (broadcastsCreated > 0) {

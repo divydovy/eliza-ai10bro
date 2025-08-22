@@ -360,11 +360,11 @@
     <script>
         // Store configuration
         let appConfig = {
-            statsPort: 3001,
-            actionPort: 3003,
+            statsPort: 3000,
+            actionPort: 3000,
             endpoints: {
                 stats: '/api/broadcast-stats',
-                trigger: 'http://localhost:3003/trigger'
+                trigger: 'http://localhost:3000/api/trigger'
             }
         };
         
@@ -504,11 +504,16 @@
             ];
             
             for (let i = 0; i < 8; i++) {
+                const status = statuses[Math.floor(Math.random() * statuses.length)];
+                const createdMinsAgo = Math.floor(Math.random() * 120) + 5; // 5-125 mins ago
+                const sentMinsAgo = status === 'sent' ? Math.floor(Math.random() * createdMinsAgo) : null; // Sent after created
+                
                 activities.push({
                     platform: platforms[Math.floor(Math.random() * platforms.length)],
-                    status: statuses[Math.floor(Math.random() * statuses.length)],
+                    status: status,
                     text: texts[i],
-                    time: `${Math.floor(Math.random() * 60)} mins ago`
+                    createdTime: `${createdMinsAgo} mins ago`,
+                    sentTime: sentMinsAgo ? `${sentMinsAgo} mins ago` : null
                 });
             }
             

@@ -122,6 +122,69 @@ export function createApiRouter(
         }
     });
 
+    router.get("/api/broadcast-stats", async (req, res) => {
+        try {
+            // Get first agent (assuming single agent setup)
+            const agent = Array.from(agents.values())[0];
+            if (!agent) {
+                res.status(404).json({ error: "No agent found" });
+                return;
+            }
+
+            // Query broadcast statistics from database adapter
+            const db = agent.databaseAdapter;
+            
+            // Get broadcast statistics using the adapter methods
+            const totalBroadcastsResult = await db.db.prepare("SELECT COUNT(*) as count FROM broadcasts").get();
+            const totalBroadcasts = totalBroadcastsResult?.count || 0;
+            
+            const pendingBroadcastsResult = await db.db.prepare("SELECT COUNT(*) as count FROM broadcasts WHERE status = 'pending'").get();
+            const pendingBroadcasts = pendingBroadcastsResult?.count || 0;
+            
+            const sentBroadcastsResult = await db.db.prepare("SELECT COUNT(*) as count FROM broadcasts WHERE status = 'sent'").get();
+            const sentBroadcasts = sentBroadcastsResult?.count || 0;
+            
+            const failedBroadcastsResult = await db.db.prepare("SELECT COUNT(*) as count FROM broadcasts WHERE status = 'failed'").get();
+            const failedBroadcasts = failedBroadcastsResult?.count || 0;
+            
+            // Get total documents (memories)
+            const totalDocsResult = await db.db.prepare("SELECT COUNT(*) as count FROM memories").get();
+            const totalDocuments = totalDocsResult?.count || 0;
+            
+            // Get recent activity (last 20 broadcasts)
+            const recentBroadcasts = await db.db.prepare(`
+                SELECT b.id, b.client as platform, b.status, b.content as text, 
+                       b.createdAt, b.sent_at as sentAt
+                FROM broadcasts b
+                ORDER BY b.createdAt DESC 
+                LIMIT 20
+            `).all();
+            
+            const recentActivity = recentBroadcasts.map(broadcast => ({
+                platform: broadcast.platform || 'telegram',
+                status: broadcast.status,
+                text: broadcast.text || 'No content',
+                createdTime: broadcast.createdAt ? new Date(broadcast.createdAt).toLocaleString() : 'Unknown',
+                sentTime: broadcast.sentAt ? new Date(broadcast.sentAt).toLocaleString() : null
+            }));
+            
+            const data = {
+                totalDocuments,
+                totalBroadcasts,
+                pendingBroadcasts,
+                sentBroadcasts,
+                failedBroadcasts,
+                docsWithoutBroadcasts: Math.max(0, totalDocuments - totalBroadcasts),
+                recentActivity
+            };
+            
+            res.json(data);
+        } catch (error) {
+            console.error("Error fetching broadcast stats:", error);
+            res.status(500).json({ error: "Failed to fetch broadcast statistics" });
+        }
+    });
+
     router.get("/agents/:agentId/:roomId/memories", async (req, res) => {
         const agentId = req.params.agentId;
         const roomId = stringToUuid(req.params.roomId);
@@ -182,6 +245,89 @@ export function createApiRouter(
             res.status(500).json({ error: "Failed to fetch memories" });
         }
     });
+
+    // Manual broadcast trigger endpoint for dashboard  
+    const triggerHandler = async (req, res) => {
+        try {
+            const agent = Array.from(agents.values())[0];
+            if (!agent) {
+                res.status(404).json({ error: "No agent found" });
+                return;
+            }
+
+            // Look for AutoBroadcastService - check multiple possible locations
+            let broadcastService = null;
+            
+            // Try agent.services (direct services array)
+            if (Array.isArray(agent.services)) {
+                broadcastService = agent.services.find(
+                    (service: any) => service.constructor.name === "_AutoBroadcastService" || service.constructor.name === "AutoBroadcastService"
+                );
+            }
+
+            // Try agent.runtime.services if it exists
+            if (!broadcastService && agent.runtime && Array.isArray(agent.runtime.services)) {
+                broadcastService = agent.runtime.services.find(
+                    (service: any) => service.constructor.name === "_AutoBroadcastService" || service.constructor.name === "AutoBroadcastService"
+                );
+            }
+
+            // Try services as a Map
+            if (!broadcastService && agent.runtime && agent.runtime.services instanceof Map) {
+                for (const service of agent.runtime.services.values()) {
+                    if (service.constructor.name === "_AutoBroadcastService" || service.constructor.name === "AutoBroadcastService") {
+                        broadcastService = service;
+                        break;
+                    }
+                }
+            }
+
+            // Try agent.services as a Map
+            if (!broadcastService && agent.services instanceof Map) {
+                for (const service of agent.services.values()) {
+                    if (service.constructor.name === "_AutoBroadcastService" || service.constructor.name === "AutoBroadcastService") {
+                        broadcastService = service;
+                        break;
+                    }
+                }
+            }
+
+            if (!broadcastService) {
+                // Log detailed debug information
+                console.log("Debug info:", {
+                    agentKeys: Object.keys(agent),
+                    hasRuntime: !!agent.runtime,
+                    runtimeKeys: agent.runtime ? Object.keys(agent.runtime) : [],
+                    servicesType: agent.services ? typeof agent.services : "undefined",
+                    servicesConstructor: agent.services ? agent.services.constructor.name : "undefined",
+                    runtimeServicesType: agent.runtime?.services ? typeof agent.runtime.services : "undefined"
+                });
+
+                res.status(404).json({ 
+                    error: "AutoBroadcastService not found. Check server logs for debug info."
+                });
+                return;
+            }
+
+            // Call checkForNewDocuments method
+            await (broadcastService as any).checkForNewDocuments();
+
+            res.json({ 
+                success: true, 
+                message: "Broadcast generation triggered successfully" 
+            });
+        } catch (error) {
+            console.error("Error triggering broadcasts:", error);
+            res.status(500).json({ 
+                success: false, 
+                error: "Failed to trigger broadcast generation" 
+            });
+        }
+    };
+    
+    // Register trigger endpoint on both paths for compatibility
+    router.post("/trigger", triggerHandler);
+    router.post("/api/trigger", triggerHandler);
 
     return router;
 }
