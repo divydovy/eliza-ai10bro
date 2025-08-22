@@ -447,10 +447,22 @@
                 data.docsWithBroadcasts :
                 Math.floor(data.totalBroadcasts / 2);
             
+            // Update the broadcast detail to show docs covered
+            const broadcastDetail = document.querySelector('#total-broadcasts').parentElement.querySelector('.stat-detail');
+            if (broadcastDetail) {
+                broadcastDetail.textContent = `From ${docsWithBroadcasts.toLocaleString()} documents`;
+            }
+            
             // Calculate coverage percentage
             const coveragePercent = Math.min(100, Math.round((docsWithBroadcasts / data.totalDocuments) * 100));
             document.getElementById('coverage-percent').textContent = coveragePercent + '%';
             document.getElementById('coverage-progress').style.width = coveragePercent + '%';
+            
+            // Update coverage detail with actual numbers
+            const coverageDetail = document.querySelector('#coverage-percent').parentElement.querySelector('.stat-detail');
+            if (coverageDetail) {
+                coverageDetail.textContent = `${docsWithBroadcasts.toLocaleString()} of ${data.totalDocuments.toLocaleString()} docs`;
+            }
             
             // Update broadcast progress
             const broadcastProgress = Math.round((data.sentBroadcasts / data.totalBroadcasts) * 100);

@@ -5,6 +5,19 @@ const fs = require('fs');
 const path = require('path');
 const Database = require('better-sqlite3');
 
+// Load environment variables from .env.broadcast
+if (fs.existsSync(path.join(__dirname, '.env.broadcast'))) {
+    const envContent = fs.readFileSync(path.join(__dirname, '.env.broadcast'), 'utf8');
+    envContent.split('\n').forEach(line => {
+        if (line && !line.startsWith('#') && line.includes('=')) {
+            const [key, value] = line.split('=');
+            if (!process.env[key.trim()]) {
+                process.env[key.trim()] = value.trim();
+            }
+        }
+    });
+}
+
 // Configuration
 const PORT = process.env.BROADCAST_API_PORT || 3001;
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'agent/data/db.sqlite');
@@ -204,12 +217,12 @@ const server = http.createServer((req, res) => {
         });
         res.end(JSON.stringify({
             statsPort: PORT,
-            actionPort: process.env.ELIZA_ACTION_PORT || 3000,
+            actionPort: process.env.ELIZA_ACTION_PORT || 3003,
             refreshInterval: 30000,
             endpoints: {
                 stats: `/api/broadcast-stats`,
                 health: `/health`,
-                trigger: `http://localhost:${process.env.ELIZA_ACTION_PORT || 3000}/api/trigger`
+                trigger: `http://localhost:${process.env.ELIZA_ACTION_PORT || 3003}/trigger`
             }
         }));
     }
