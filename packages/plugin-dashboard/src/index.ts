@@ -1,6 +1,7 @@
 import { Action, Plugin, HandlerCallback, IAgentRuntime, Memory, State, elizaLogger } from '@elizaos/core';
 import { getObsidianStatus } from './trackers/obsidian';
 import { DashboardState } from './types';
+import { broadcastServiceManager } from './services/broadcast-service-manager';
 
 const getStatusAction: Action = {
     name: 'GET_DASHBOARD_STATUS',
@@ -54,10 +55,23 @@ const getStatusAction: Action = {
         try {
             // Get Obsidian status
             const obsidianStatus = await getObsidianStatus(runtime);
+            
+            // Get Broadcast services status
+            const broadcastStatus = broadcastServiceManager.getStatus();
 
             const dashboardState: DashboardState = {
                 plugins: {
-                    obsidian: obsidianStatus
+                    obsidian: obsidianStatus,
+                    broadcast: {
+                        isActive: broadcastStatus.broadcastApi && broadcastStatus.actionApi,
+                        lastSync: new Date(),
+                        errors: [],
+                        metadata: {
+                            broadcastApi: broadcastStatus.broadcastApi,
+                            actionApi: broadcastStatus.actionApi,
+                            dashboardUrl: 'http://localhost:3002/broadcast-dashboard.html'
+                        }
+                    }
                 },
                 lastUpdated: new Date()
             };
@@ -107,9 +121,22 @@ function formatDashboardState(state: DashboardState): string {
     return lines.join('\n');
 }
 
+// Auto-start broadcast services when plugin initializes
+const initializeBroadcastServices = async () => {
+    try {
+        elizaLogger.info('Initializing broadcast dashboard services...');
+        await broadcastServiceManager.start();
+    } catch (error) {
+        elizaLogger.error('Failed to initialize broadcast services:', error);
+    }
+};
+
+// Start services immediately when plugin loads
+initializeBroadcastServices();
+
 export const dashboardPlugin: Plugin = {
     name: 'dashboard',
-    description: 'Plugin for monitoring the status of other plugins',
+    description: 'Plugin for monitoring the status of other plugins and broadcast system',
     actions: [getStatusAction],
     evaluators: [],
     services: [],

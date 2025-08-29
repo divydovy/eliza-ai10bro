@@ -138,6 +138,156 @@ app.get('/api/broadcast-stats', (req, res) => {
 });
 
 // Get broadcast trends (hourly for last 24 hours)
+// Route: /api/config
+app.get('/api/config', (req, res) => {
+    res.json({
+        statsPort: 3001,
+        actionPort: 3003,
+        endpoints: {
+            stats: '/api/broadcast-stats',
+            trigger: 'http://localhost:3003/trigger'
+        },
+        refreshInterval: 30000
+    });
+});
+
+// Route: /api/recent-documents
+app.get('/api/recent-documents', (req, res) => {
+    try {
+        const recentDocs = db.prepare(`
+            SELECT 
+                id,
+                type,
+                json_extract(content, '$.text') as text,
+                json_extract(content, '$.metadata.source') as source,
+                json_extract(content, '$.metadata.path') as path,
+                json_extract(content, '$.metadata.title') as title,
+                json_extract(content, '$.metadata.description') as description,
+                createdAt
+            FROM memories
+            WHERE type = 'documents'
+            ORDER BY createdAt DESC
+            LIMIT 20
+        `).all();
+
+        const formatted = recentDocs.map(doc => {
+            const now = Date.now();
+            const created = parseInt(doc.createdAt);
+            const minutesAgo = Math.floor((now - created) / 60000);
+            
+            let timeStr;
+            if (minutesAgo < 1) timeStr = 'Just now';
+            else if (minutesAgo < 60) timeStr = `${minutesAgo} mins ago`;
+            else if (minutesAgo < 1440) timeStr = `${Math.floor(minutesAgo / 60)} hours ago`;
+            else timeStr = `${Math.floor(minutesAgo / 1440)} days ago`;
+
+            // Extract title or first line of text
+            let displayTitle = doc.title || '';
+            if (!displayTitle && doc.text) {
+                const lines = doc.text.split('\n');
+                displayTitle = lines[0].substring(0, 100);
+            }
+            
+            // Determine source type from path or source
+            let sourceType = 'unknown';
+            const path = doc.path || doc.source || '';
+            
+            // Check for specific data sources that come from GitHub scrapers
+            if (path.includes('GDELT_Notes')) {
+                sourceType = 'github-gdelt';  // GDELT news from GitHub scraper
+            } else if (path.includes('YouTube_Notes') || path.includes('youtube')) {
+                sourceType = 'github-youtube';  // YouTube transcripts from GitHub
+            } else if (path.includes('ArXiv_Notes') || path.includes('arxiv')) {
+                sourceType = 'github-arxiv';  // ArXiv papers from GitHub
+            } else if (path.includes('Clippings/')) {
+                sourceType = 'obsidian-web';  // Web content saved to Obsidian via clipper
+            } else if (path.match(/^\d+\.\s/) || path.includes('Resources/')) {
+                sourceType = 'obsidian';  // Regular Obsidian notes
+            } else if (path.includes('Notes/') && !path.includes('_Notes')) {
+                sourceType = 'obsidian';  // Other notes in Obsidian
+            } else if (path.includes('github.com') || path.includes('GitHub')) {
+                sourceType = 'github';
+            } else if (doc.source && doc.source.includes('http')) {
+                sourceType = 'web';
+            }
+            
+            return {
+                id: doc.id,
+                title: displayTitle || 'Untitled',
+                description: doc.description || doc.text?.substring(0, 200) || '',
+                source: path || doc.source || 'unknown',
+                sourceType: sourceType,
+                createdTime: timeStr,
+                fullText: doc.text || ''
+            };
+        });
+
+        res.json(formatted);
+    } catch (error) {
+        console.error('Error fetching recent documents:', error);
+        res.status(500).json({ error: 'Failed to fetch recent documents' });
+    }
+});
+
+// Route: /api/recent-broadcasts
+app.get('/api/recent-broadcasts', (req, res) => {
+    try {
+        const recentBroadcasts = db.prepare(`
+            SELECT 
+                id,
+                content,
+                client as platform,
+                status,
+                sent_at,
+                createdAt
+            FROM broadcasts
+            ORDER BY createdAt DESC
+            LIMIT 20
+        `).all();
+
+        const formatted = recentBroadcasts.map(broadcast => {
+            const now = Date.now();
+            const created = parseInt(broadcast.createdAt);
+            const sent = broadcast.sent_at ? parseInt(broadcast.sent_at) * 1000 : null;
+            
+            const createdMinutesAgo = Math.floor((now - created) / 60000);
+            let createdTimeStr;
+            if (createdMinutesAgo < 1) createdTimeStr = 'Just now';
+            else if (createdMinutesAgo < 60) createdTimeStr = `${createdMinutesAgo} mins ago`;
+            else if (createdMinutesAgo < 1440) createdTimeStr = `${Math.floor(createdMinutesAgo / 60)} hours ago`;
+            else createdTimeStr = `${Math.floor(createdMinutesAgo / 1440)} days ago`;
+
+            let sentTimeStr = null;
+            if (sent) {
+                const sentMinutesAgo = Math.floor((now - sent) / 60000);
+                if (sentMinutesAgo < 1) sentTimeStr = 'Just now';
+                else if (sentMinutesAgo < 60) sentTimeStr = `${sentMinutesAgo} mins ago`;
+                else if (sentMinutesAgo < 1440) sentTimeStr = `${Math.floor(sentMinutesAgo / 60)} hours ago`;
+                else sentTimeStr = `${Math.floor(sentMinutesAgo / 1440)} days ago`;
+            }
+
+            // Extract first line for preview
+            const lines = broadcast.content ? broadcast.content.split('\n') : ['No content'];
+            const preview = lines[0].substring(0, 80) + (lines[0].length > 80 ? '...' : '');
+            
+            return {
+                id: broadcast.id,
+                preview: preview,
+                fullContent: broadcast.content || 'No content',
+                platform: broadcast.platform || 'unknown',
+                status: broadcast.status,
+                createdTime: createdTimeStr,
+                sentTime: sentTimeStr
+            };
+        });
+
+        res.json(formatted);
+    } catch (error) {
+        console.error('Error fetching recent broadcasts:', error);
+        res.status(500).json({ error: 'Failed to fetch recent broadcasts' });
+    }
+});
+
 app.get('/api/broadcast-trends', (req, res) => {
     try {
         const trendsQuery = `

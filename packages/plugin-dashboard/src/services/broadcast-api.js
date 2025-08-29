@@ -1,13 +1,18 @@
 #!/usr/bin/env node
 
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
-const Database = require('better-sqlite3');
+import http from 'http';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import Database from 'better-sqlite3';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load environment variables from .env.broadcast
-if (fs.existsSync(path.join(__dirname, '.env.broadcast'))) {
-    const envContent = fs.readFileSync(path.join(__dirname, '.env.broadcast'), 'utf8');
+const envPath = path.join(path.dirname(__dirname), '../../.env.broadcast');
+if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
     envContent.split('\n').forEach(line => {
         if (line && !line.startsWith('#') && line.includes('=')) {
             const [key, value] = line.split('=');
@@ -20,7 +25,7 @@ if (fs.existsSync(path.join(__dirname, '.env.broadcast'))) {
 
 // Configuration
 const PORT = process.env.BROADCAST_API_PORT || 3001;
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'agent/data/db.sqlite');
+const DB_PATH = process.env.DB_PATH || path.join(path.dirname(__dirname), '../../../../agent/data/db.sqlite');
 
 // Initialize database connection
 let db;

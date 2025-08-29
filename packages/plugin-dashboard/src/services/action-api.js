@@ -1,13 +1,18 @@
 #!/usr/bin/env node
 
-const http = require('http');
-const Database = require('better-sqlite3');
-const { exec } = require('child_process');
-const util = require('util');
-const execPromise = util.promisify(exec);
+import http from 'http';
+import Database from 'better-sqlite3';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const execPromise = promisify(exec);
 
 const PORT = process.env.ELIZA_ACTION_PORT || 3003;
-const db = new Database('./agent/data/db.sqlite');
+const db = new Database(path.join(path.dirname(__dirname), '../../../../agent/data/db.sqlite'));
 
 // Enhanced action handlers with detailed feedback
 const actionHandlers = {
@@ -52,7 +57,7 @@ const actionHandlers = {
                     });
                     
                     // Actually process the documents
-                    const { processUnprocessedDocuments } = require('./process-unprocessed-docs.js');
+                    const { processUnprocessedDocuments } = await import('./process-unprocessed-docs.js');
                     const processResult = await processUnprocessedDocuments(10);
                     
                     result.steps.push({
@@ -87,7 +92,7 @@ const actionHandlers = {
                     // Actually send the broadcast
                     try {
                         // Call the send script for this single broadcast
-                        const { execSync } = require('child_process');
+                        const { execSync } = await import('child_process');
                         
                         // First, mark this specific broadcast as ready to send
                         // (we'll use a temporary status to isolate it)
@@ -223,7 +228,9 @@ const actionHandlers = {
         
         try {
             // Check if GitHub sync is configured
-            const character = require('./characters/ai10bro.character.json');
+            const characterPath = path.join(path.dirname(__dirname), '../../../../characters/ai10bro.character.json');
+            const characterFile = await import(characterPath, { assert: { type: 'json' } });
+            const character = characterFile.default;
             const githubToken = character.settings?.secrets?.GITHUB_TOKEN;
             
             if (!githubToken) {
