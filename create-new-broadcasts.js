@@ -55,7 +55,7 @@ async function createNewBroadcasts() {
             `).run(
                 broadcastId,
                 doc.id,
-                `[BROADCAST:pending] Processing: ${title}`, // Temporary content 
+                `${title}`, // Clean title without prefix
                 'telegram',
                 'pending',
                 Date.now(),

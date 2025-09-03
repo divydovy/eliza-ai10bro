@@ -4,6 +4,7 @@ const http = require('http');
 const { exec } = require('child_process');
 const Database = require('better-sqlite3');
 const path = require('path');
+const { randomUUID } = require('crypto');
 
 const PORT = 3003;
 const db = new Database('./agent/data/db.sqlite');
@@ -94,37 +95,62 @@ const server = http.createServer((req, res) => {
                         break;
                         
                     case 'CREATE_BROADCASTS':
-                        // Check for documents without broadcasts
-                        const unprocessed = db.prepare(`
-                            SELECT COUNT(*) as count FROM memories m 
-                            WHERE m.type = 'documents'
-                            AND NOT EXISTS (
-                                SELECT 1 FROM broadcasts b WHERE b.documentId = m.id
-                            )
-                        `).get();
-                        
-                        if (unprocessed.count === 0) {
-                            res.writeHead(200, { 'Content-Type': 'application/json' });
-                            res.end(JSON.stringify({ 
-                                success: true, 
-                                action: action,
-                                steps: [
-                                    { step: 'Check documents', message: 'All documents have broadcasts', count: 0 }
-                                ]
-                            }));
-                        } else {
-                            exec('node create-new-broadcasts.js', (error, stdout, stderr) => {
-                                res.writeHead(200, { 'Content-Type': 'application/json' });
+                        // This will trigger AI-powered broadcast generation using local LLM
+                        console.log('Generating AI-powered broadcasts with local Eliza agent...');
+                        exec('node generate-ai-broadcasts-local.js', { timeout: 60000 }, (error, stdout, stderr) => {
+                            if (error) {
+                                console.error('Error creating broadcasts:', error.message);
+                                res.writeHead(500, { 'Content-Type': 'application/json' });
                                 res.end(JSON.stringify({ 
-                                    success: !error, 
+                                    success: false, 
                                     action: action,
+                                    error: error.message,
                                     steps: [
-                                        { step: 'Find unprocessed', message: `Found ${unprocessed.count} documents without broadcasts`, count: unprocessed.count },
-                                        { step: 'Create broadcasts', message: error ? error.message : 'Creating broadcasts for documents' }
+                                        { step: 'Error', message: `Failed to trigger broadcast creation: ${error.message}` }
                                     ]
                                 }));
-                            });
-                        }
+                            } else {
+                                console.log('Broadcast creation output:', stdout);
+                                // Parse the output to get details
+                                const lines = stdout.split('\n').filter(l => l.trim());
+                                const steps = [];
+                                let createdCount = 0;
+                                
+                                lines.forEach(line => {
+                                    if (line.includes('Found')) {
+                                        const match = line.match(/Found (\d+) documents/);
+                                        if (match) {
+                                            steps.push({ step: 'Scan', message: line, count: parseInt(match[1]) });
+                                        } else {
+                                            steps.push({ step: 'Scan', message: line });
+                                        }
+                                    } else if (line.includes('Creating broadcast for:')) {
+                                        steps.push({ step: 'Generate', message: line });
+                                    } else if (line.includes('Created broadcast')) {
+                                        createdCount++;
+                                        steps.push({ step: 'Create', message: line });
+                                    } else if (line.includes('Created') && line.includes('broadcasts successfully')) {
+                                        const match = line.match(/Created (\d+) broadcasts/);
+                                        if (match) {
+                                            createdCount = parseInt(match[1]);
+                                        }
+                                        steps.push({ step: 'Success', message: line, count: createdCount });
+                                    } else if (line.includes('All documents already have broadcasts')) {
+                                        steps.push({ step: 'Info', message: line });
+                                    }
+                                });
+                                
+                                res.writeHead(200, { 'Content-Type': 'application/json' });
+                                res.end(JSON.stringify({ 
+                                    success: true, 
+                                    action: action,
+                                    created: createdCount,
+                                    steps: steps.length > 0 ? steps : [
+                                        { step: 'Complete', message: 'Broadcast creation completed' }
+                                    ]
+                                }));
+                            }
+                        });
                         break;
                         
                     case 'PROCESS_QUEUE':

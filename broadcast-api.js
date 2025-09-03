@@ -45,14 +45,12 @@ app.get('/api/broadcast-stats', (req, res) => {
         `;
         const totalBroadcasts = db.prepare(totalBroadcastsQuery).get().count;
 
-        // Get broadcast status breakdown
+        // Get broadcast status breakdown from broadcasts table
         const statusQuery = `
             SELECT 
-                json_extract(content, '$.metadata.status') as status,
+                status,
                 COUNT(*) as count
-            FROM memories 
-            WHERE type = 'messages' 
-            AND json_extract(content, '$.metadata.messageType') = 'broadcast'
+            FROM broadcasts
             GROUP BY status
         `;
         const statusBreakdown = db.prepare(statusQuery).all();
@@ -68,16 +66,14 @@ app.get('/api/broadcast-stats', (req, res) => {
             else if (row.status === 'failed') failedBroadcasts = row.count;
         });
 
-        // Get recent broadcast activity
+        // Get recent broadcast activity from broadcasts table
         const recentActivityQuery = `
             SELECT 
-                json_extract(content, '$.text') as text,
-                json_extract(content, '$.metadata.status') as status,
-                json_extract(content, '$.metadata.platform') as platform,
+                content as text,
+                status,
+                client as platform,
                 createdAt
-            FROM memories 
-            WHERE type = 'messages' 
-            AND json_extract(content, '$.metadata.messageType') = 'broadcast'
+            FROM broadcasts
             ORDER BY createdAt DESC
             LIMIT 20
         `;
@@ -172,7 +168,13 @@ app.get('/api/recent-documents', (req, res) => {
 
         const formatted = recentDocs.map(doc => {
             const now = Date.now();
-            const created = parseInt(doc.createdAt);
+            // Handle both timestamp and datetime string formats
+            let created;
+            if (typeof doc.createdAt === 'string') {
+                created = new Date(doc.createdAt).getTime();
+            } else {
+                created = parseInt(doc.createdAt);
+            }
             const minutesAgo = Math.floor((now - created) / 60000);
             
             let timeStr;

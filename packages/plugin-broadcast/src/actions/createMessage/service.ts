@@ -48,21 +48,19 @@ export async function createBroadcastMessage(
 Content to analyze:
 ${document.content.text}
 
-Create a compelling broadcast that:
-- Focuses on the breakthrough itself and its practical significance
-- Reveals why it matters for humanity's future  
-- Ends with ONE specific action (researcher to follow, company to track, or platform to use)
-- ONLY includes a sharp nature comparison at the very end if it adds meaningful insight
+Create a direct, factual broadcast that:
+- States the core innovation/finding in the first sentence
+- Explains its practical significance in clear, concrete terms
+- Ends with ONE specific action (researcher, company, or platform to track)
+- AVOIDS: metaphors, "as I...", "wandering", "gazing", poetic language, nature comparisons
 - Uses actual source URLs, never generic terms like 'github' or 'obsidian'
 
 Requirements:
-- Lead with the innovation and its impact
-- Be precise and direct - no formulaic structures
-- Save any nature metaphors for the final sentence only
+- Lead with the breakthrough fact, not setup or context
+- Be specific and technical - avoid vague statements
+- NO metaphors, NO flowery language, NO personal observations
 - ${client === "telegram" ? "Use the space for rich technical detail." : "Every word must count - maximum impact."}
-${sourceUrl ? `Source URL available: ${sourceUrl}` : ""}
-
-[BROADCAST_REQUEST:${broadcastId}]`;
+${sourceUrl ? `Source URL available: ${sourceUrl}` : ""}`;
 
         const broadcastText = await generateText({
             runtime,
@@ -71,9 +69,17 @@ ${sourceUrl ? `Source URL available: ${sourceUrl}` : ""}
             maxSteps: 1
         });
 
-        // Extract the actual broadcast message from between the tags if present
+        // Extract the actual broadcast message - remove any [BROADCAST:...] prefix
+        let finalText = broadcastText.trim();
+        
+        // Remove [BROADCAST:xxx] prefix if present
+        finalText = finalText.replace(/^\[BROADCAST:[^\]]*\]\s*/, '');
+        
+        // Also handle case where content is after the tag
         const messageMatch = broadcastText.match(/\[BROADCAST:.*?\](.*?)(?=\[|$)/s);
-        let finalText = messageMatch ? messageMatch[1].trim() : broadcastText.trim();
+        if (messageMatch && messageMatch[1].trim()) {
+            finalText = messageMatch[1].trim();
+        }
         
         // Add source URL at the end if available
         if (sourceUrl) {
