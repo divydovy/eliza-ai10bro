@@ -11,15 +11,29 @@ async function sendPendingBroadcasts() {
     
     const db = new Database('./agent/data/db.sqlite');
     
-    // Get pending broadcasts
-    const pending = db.prepare('SELECT * FROM broadcasts WHERE status = ? AND client = ?').all('pending', 'telegram');
+    // Check for LIMIT environment variable
+    const limit = process.env.LIMIT ? parseInt(process.env.LIMIT) : null;
+    
+    // Get pending broadcasts - either limited or all
+    let query = 'SELECT * FROM broadcasts WHERE status = ? AND client = ?';
+    if (limit) {
+        query += ` LIMIT ${limit}`;
+    }
+    
+    const pending = db.prepare(query).all('pending', 'telegram');
     
     if (pending.length === 0) {
         console.log("No pending broadcasts to send");
         return;
     }
     
-    console.log(`Found ${pending.length} pending broadcasts`);
+    const totalPending = db.prepare('SELECT COUNT(*) as count FROM broadcasts WHERE status = ? AND client = ?').get('pending', 'telegram').count;
+    
+    if (limit) {
+        console.log(`Sending ${pending.length} of ${totalPending} pending broadcasts (LIMIT=${limit})`);
+    } else {
+        console.log(`Found ${pending.length} pending broadcasts`);
+    }
     
     // Get telegram credentials
     const character = JSON.parse(fs.readFileSync('./characters/ai10bro.character.json', 'utf-8'));
