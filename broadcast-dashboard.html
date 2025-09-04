@@ -541,8 +541,11 @@
             <button class="action-btn" onclick="triggerAction('CREATE_BROADCASTS')" id="create-broadcasts-btn" title="Generate new broadcast messages from documents without broadcasts">
                 ✨ Create Broadcasts
             </button>
-            <button class="action-btn" onclick="triggerAction('PROCESS_QUEUE')" id="process-queue-btn" title="Send the next pending broadcast to Twitter/Telegram">
-                📤 Send Next Broadcast
+            <button class="action-btn" onclick="triggerAction('SEND_TELEGRAM')" id="send-telegram-btn" title="Send next pending Telegram broadcast">
+                📱 Send to Telegram
+            </button>
+            <button class="action-btn" onclick="triggerAction('SEND_TWITTER')" id="send-twitter-btn" title="Send next pending X/Twitter broadcast">
+                🐦 Send to X
             </button>
             <button class="action-btn" onclick="refreshStats()" id="refresh-btn">
                 🔄 Refresh Stats
@@ -566,15 +569,15 @@
             </div>
             
             <div class="stat-card">
-                <div class="stat-label">Pending Broadcasts</div>
-                <div class="stat-value" id="pending-broadcasts">-</div>
-                <div class="stat-detail">Awaiting delivery</div>
+                <div class="stat-label">📱 Telegram Status</div>
+                <div class="stat-value" id="telegram-stats">-</div>
+                <div class="stat-detail" id="telegram-detail">Loading...</div>
             </div>
             
             <div class="stat-card">
-                <div class="stat-label">Sent Broadcasts</div>
-                <div class="stat-value" id="sent-broadcasts">-</div>
-                <div class="stat-detail">Successfully delivered</div>
+                <div class="stat-label">🐦 X/Twitter Status</div>
+                <div class="stat-value" id="twitter-stats">-</div>
+                <div class="stat-detail" id="twitter-detail">Loading...</div>
             </div>
             
             <div class="stat-card">
@@ -715,8 +718,18 @@
             // Update stat cards
             document.getElementById('total-docs').textContent = data.totalDocuments.toLocaleString();
             document.getElementById('total-broadcasts').textContent = data.totalBroadcasts.toLocaleString();
-            document.getElementById('pending-broadcasts').textContent = data.pendingBroadcasts.toLocaleString();
-            document.getElementById('sent-broadcasts').textContent = data.sentBroadcasts.toLocaleString();
+            
+            // Update Telegram stats
+            const telegramPending = data.telegramPending || 0;
+            const telegramSent = data.telegramSent || 0;
+            document.getElementById('telegram-stats').textContent = telegramSent.toLocaleString();
+            document.getElementById('telegram-detail').textContent = `${telegramPending} pending, ${telegramSent} sent`;
+            
+            // Update X/Twitter stats
+            const twitterPending = data.twitterPending || 0;
+            const twitterSent = data.twitterSent || 0;
+            document.getElementById('twitter-stats').textContent = twitterSent.toLocaleString();
+            document.getElementById('twitter-detail').textContent = `${twitterPending} pending, ${twitterSent} sent`;
             
             // Use provided value or calculate documents without broadcasts
             const docsWithoutBroadcasts = data.docsWithoutBroadcasts !== undefined ? 

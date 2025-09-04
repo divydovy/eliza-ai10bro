@@ -290,13 +290,13 @@ async function createAIBroadcasts() {
             
             console.log(`   📊 Quality score: ${(qualityScore * 100).toFixed(0)}%`);
             
-            // Create the broadcast entry
-            const broadcastId = randomUUID();
+            // Create TELEGRAM broadcast (long form)
+            const telegramId = randomUUID();
             db.prepare(`
                 INSERT INTO broadcasts (id, documentId, content, client, status, createdAt, alignment_score)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             `).run(
-                broadcastId,
+                telegramId,
                 doc.id,
                 broadcastText.substring(0, 750),
                 'telegram',
@@ -304,9 +304,38 @@ async function createAIBroadcasts() {
                 Date.now(),
                 qualityScore
             );
+            console.log(`   📱 Created Telegram broadcast ${telegramId.substring(0, 8)}...`);
+            
+            // Generate SHORT version for X (Twitter)
+            const xPrompt = "Create a punchy 250-char tweet about this breakthrough. Focus on the core innovation and impact. No hashtags, no fluff. Include one key metric if available.";
+            const xBroadcast = await generateWithLLM(text, xPrompt);
+            
+            if (xBroadcast) {
+                // Add source URL if available (counts as 23 chars on X)
+                let xText = xBroadcast;
+                if (validUrls.length > 0 && xBroadcast.length <= 257) { // 280 - 23 for URL
+                    xText = `${xBroadcast}\n${validUrls[0]}`;
+                }
+                
+                // Create X/TWITTER broadcast (short form)
+                const xId = randomUUID();
+                db.prepare(`
+                    INSERT INTO broadcasts (id, documentId, content, client, status, createdAt, alignment_score)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                `).run(
+                    xId,
+                    doc.id,
+                    xText.substring(0, 280),
+                    'twitter',
+                    'pending',
+                    Date.now(),
+                    qualityScore
+                );
+                console.log(`   🐦 Created X broadcast ${xId.substring(0, 8)}... (${xText.length} chars)`);
+                created++;
+            }
             
             created++;
-            console.log(`Created broadcast ${broadcastId.substring(0, 8)}...`);
         }
         
         console.log(`Created ${created} broadcasts successfully`);

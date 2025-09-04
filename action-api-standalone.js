@@ -153,17 +153,18 @@ const server = http.createServer((req, res) => {
                         });
                         break;
                         
-                    case 'PROCESS_QUEUE':
-                        // Check pending broadcasts
-                        const pending = db.prepare('SELECT COUNT(*) as count FROM broadcasts WHERE status = ?').get('pending');
+                    case 'SEND_TELEGRAM':
+                    case 'PROCESS_QUEUE': // Keep for backwards compatibility
+                        // Check pending Telegram broadcasts
+                        const telegramPending = db.prepare('SELECT COUNT(*) as count FROM broadcasts WHERE status = ? AND client = ?').get('pending', 'telegram');
                         
-                        if (pending.count === 0) {
+                        if (!telegramPending || telegramPending.count === 0) {
                             res.writeHead(200, { 'Content-Type': 'application/json' });
                             res.end(JSON.stringify({ 
                                 success: true, 
                                 action: action,
                                 steps: [
-                                    { step: 'Check queue', message: 'No pending broadcasts', count: 0 }
+                                    { step: 'Check queue', message: 'No pending Telegram broadcasts', count: 0 }
                                 ]
                             }));
                         } else {
@@ -173,8 +174,36 @@ const server = http.createServer((req, res) => {
                                     success: !error, 
                                     action: action,
                                     steps: [
-                                        { step: 'Check queue', message: `Found ${pending.count} pending broadcasts`, count: pending.count },
+                                        { step: 'Check queue', message: `Found ${telegramPending.count} pending Telegram broadcasts`, count: telegramPending.count },
                                         { step: 'Send broadcast', message: error ? error.message : 'Sent 1 broadcast to Telegram', count: 1 }
+                                    ]
+                                }));
+                            });
+                        }
+                        break;
+                        
+                    case 'SEND_TWITTER':
+                        // Check pending X/Twitter broadcasts
+                        const twitterPending = db.prepare('SELECT COUNT(*) as count FROM broadcasts WHERE status = ? AND client = ?').get('pending', 'twitter');
+                        
+                        if (!twitterPending || twitterPending.count === 0) {
+                            res.writeHead(200, { 'Content-Type': 'application/json' });
+                            res.end(JSON.stringify({ 
+                                success: true, 
+                                action: action,
+                                steps: [
+                                    { step: 'Check queue', message: 'No pending X broadcasts', count: 0 }
+                                ]
+                            }));
+                        } else {
+                            exec('LIMIT=1 node send-x-broadcasts.js', (error, stdout, stderr) => {
+                                res.writeHead(200, { 'Content-Type': 'application/json' });
+                                res.end(JSON.stringify({ 
+                                    success: !error, 
+                                    action: action,
+                                    steps: [
+                                        { step: 'Check queue', message: `Found ${twitterPending.count} pending X broadcasts`, count: twitterPending.count },
+                                        { step: 'Send broadcast', message: error ? error.message : 'Sent 1 broadcast to X', count: 1 }
                                     ]
                                 }));
                             });
