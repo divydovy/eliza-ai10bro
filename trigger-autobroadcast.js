@@ -11,31 +11,34 @@ const { randomUUID } = require('crypto');
 const axios = require('axios');
 const fs = require('fs');
 
-// Use local LLM for broadcast generation
-const AGENT_URL = 'http://localhost:3000';
-const AGENT_ID = '7298724c-f4fa-0ff3-b2aa-3660e54108d4';
-
+// Use Ollama directly for broadcast generation
 async function generateWithLLM(text, broadcastPrompt) {
     try {
-        const response = await axios.post(`${AGENT_URL}/${AGENT_ID}/message`, {
-            text: `${broadcastPrompt}\n\nContent to analyze:\n${text.substring(0, 3000)}\n\nGenerate a broadcast message (max 750 characters).`,
-            userId: 'broadcast-generator',
-            userName: 'BroadcastGenerator'
+        const response = await axios.post('http://localhost:11434/api/generate', {
+            model: 'qwen2.5:14b',
+            prompt: `${broadcastPrompt}\n\nContent to analyze:\n${text.substring(0, 3000)}\n\nGenerate a broadcast message (max 750 characters).`,
+            stream: false,
+            options: {
+                temperature: 0.7,
+                max_tokens: 200
+            }
         }, {
             headers: { 'Content-Type': 'application/json' },
             timeout: 30000
         });
         
-        if (response.data && response.data.text) {
-            // Clean up any prefixes
-            return response.data.text
+        if (response.data && response.data.response) {
+            // Clean up any prefixes and trim to 750 chars
+            const cleanedText = response.data.response
                 .replace(/^\[BROADCAST:[^\]]*\]\s*/i, '')
                 .replace(/^BROADCAST:\s*/i, '')
                 .trim();
+            
+            return cleanedText.substring(0, 750);
         }
         return null;
     } catch (error) {
-        console.error(`LLM unavailable: ${error.message}`);
+        console.error(`Ollama unavailable: ${error.message}`);
         return null;
     }
 }
@@ -191,20 +194,20 @@ async function generateBroadcastContent(text, characterPrompt) {
 
 async function createAIBroadcasts() {
     try {
-        // First check if agent is running
+        // Check if Ollama is available
         try {
-            const agentCheck = await axios.get(`${AGENT_URL}/agents`, { timeout: 2000 });
-            if (!agentCheck.data?.agents?.length) {
-                console.error('❌ No Eliza agent running. Please start the agent first.');
-                console.log('💡 Run: pnpm start --character=characters/ai10bro.character.json');
-                return { error: 'Agent not running', created: 0 };
+            const ollamaCheck = await axios.get('http://localhost:11434/api/tags', { timeout: 2000 });
+            if (!ollamaCheck.data?.models?.some(m => m.name.includes('qwen2.5'))) {
+                console.error('❌ Ollama model qwen2.5:14b not found');
+                console.log('💡 Run: ollama pull qwen2.5:14b');
+                return { error: 'Model not available', created: 0 };
             }
-            console.log('✅ Agent is running, proceeding with broadcast generation');
+            console.log('✅ Ollama is running with qwen2.5:14b, proceeding with broadcast generation');
         } catch (error) {
-            console.error('❌ Cannot connect to Eliza agent at port 3000');
-            console.log('💡 Broadcast generation requires the agent to be running.');
-            console.log('💡 Run: pnpm start --character=characters/ai10bro.character.json');
-            return { error: 'Agent not available', created: 0 };
+            console.error('❌ Cannot connect to Ollama at port 11434');
+            console.log('💡 Broadcast generation requires Ollama to be running.');
+            console.log('💡 Run: ollama serve');
+            return { error: 'Ollama not available', created: 0 };
         }
         
         const dbPath = path.join(process.cwd(), 'agent/data/db.sqlite');
