@@ -2,9 +2,56 @@
 
 const Database = require('better-sqlite3');
 const fs = require('fs');
-const { exec } = require('child_process');
-const util = require('util');
-const execPromise = util.promisify(exec);
+const https = require('https');
+
+function escapeMarkdown(text) {
+    // Escape special Markdown characters for Telegram
+    return text.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
+}
+
+function sendTelegramMessage(botToken, chatId, text) {
+    return new Promise((resolve, reject) => {
+        // Escape markdown in URLs and other special characters
+        const escapedText = text.replace(/(https?:\/\/[^\s]+)/g, (url) => {
+            return url.replace(/_/g, '\\_');
+        });
+        
+        const data = JSON.stringify({
+            chat_id: chatId,
+            text: escapedText,
+            parse_mode: 'Markdown',
+            disable_web_page_preview: false
+        });
+
+        const options = {
+            hostname: 'api.telegram.org',
+            port: 443,
+            path: `/bot${botToken}/sendMessage`,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(data)
+            }
+        };
+
+        const req = https.request(options, (res) => {
+            let body = '';
+            res.on('data', chunk => body += chunk);
+            res.on('end', () => {
+                try {
+                    const result = JSON.parse(body);
+                    resolve(result);
+                } catch (e) {
+                    reject(new Error(`Invalid response: ${body}`));
+                }
+            });
+        });
+
+        req.on('error', reject);
+        req.write(data);
+        req.end();
+    });
+}
 
 async function sendPendingBroadcasts() {
     console.log("📤 Sending pending broadcasts to Telegram...\n");
@@ -50,15 +97,8 @@ async function sendPendingBroadcasts() {
         let success = true;
         for (const chatId of chatIds) {
             try {
-                const telegramUrl = `https://api.telegram.org/bot${token}/sendMessage`;
-                const { stdout: response } = await execPromise(`curl -s -X POST "${telegramUrl}" -H "Content-Type: application/json" -d '${JSON.stringify({
-                    chat_id: chatId.trim(),
-                    text: broadcast.content,
-                    parse_mode: 'Markdown',
-                    disable_web_page_preview: false
-                })}'`);
+                const result = await sendTelegramMessage(token, chatId.trim(), broadcast.content);
                 
-                const result = JSON.parse(response);
                 if (result.ok) {
                     console.log(`   ✅ Sent to chat ${chatId}`);
                 } else {
