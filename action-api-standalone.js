@@ -97,7 +97,7 @@ const server = http.createServer((req, res) => {
                     case 'CREATE_BROADCASTS':
                         // This will trigger AI-powered broadcast generation using local LLM
                         console.log('Generating AI-powered broadcasts with local Eliza agent...');
-                        exec('node generate-ai-broadcasts-local.js', { timeout: 60000 }, (error, stdout, stderr) => {
+                        exec('node trigger-autobroadcast.js', { timeout: 60000 }, (error, stdout, stderr) => {
                             if (error) {
                                 console.error('Error creating broadcasts:', error.message);
                                 res.writeHead(500, { 'Content-Type': 'application/json' });
