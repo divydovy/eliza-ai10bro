@@ -219,15 +219,16 @@ async function createAIBroadcasts() {
         const broadcastPrompt = character.settings?.broadcastPrompt || 
             "Write a sharp, direct broadcast about this breakthrough. State the core innovation first, then explain why it matters. End with ONE concrete action. Max 750 chars.";
         
-        // Get documents without broadcasts (limit to 5)
+        // Get documents without broadcasts (limit configurable via LIMIT env var)
+        const limit = parseInt(process.env.LIMIT) || 5;
         const docsWithoutBroadcasts = db.prepare(`
             SELECT m.id, m.content 
             FROM memories m 
             LEFT JOIN broadcasts b ON m.id = b.documentId 
             WHERE m.type = 'documents' 
             AND b.documentId IS NULL 
-            LIMIT 5
-        `).all();
+            LIMIT ?
+        `).all(limit);
         
         console.log(`Found ${docsWithoutBroadcasts.length} documents without broadcasts`);
         

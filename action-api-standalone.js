@@ -238,5 +238,6 @@ server.listen(PORT, () => {
     console.log('  - SYNC_GITHUB');
     console.log('  - IMPORT_OBSIDIAN');
     console.log('  - CREATE_BROADCASTS');
-    console.log('  - PROCESS_QUEUE');
+    console.log('  - SEND_TELEGRAM');
+    console.log('  - SEND_TWITTER');
 });

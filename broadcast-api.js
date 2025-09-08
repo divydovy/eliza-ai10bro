@@ -4,6 +4,7 @@ const express = require('express');
 const Database = require('better-sqlite3');
 const path = require('path');
 const cors = require('cors');
+const fs = require('fs');
 
 // Configuration
 const PORT = process.env.BROADCAST_API_PORT || 3001;
@@ -316,6 +317,33 @@ app.get('/health', (req, res) => {
         status: 'healthy', 
         database: db ? 'connected' : 'disconnected',
         uptime: process.uptime()
+    });
+});
+
+// Serve log files
+app.get('/api/logs/send', (req, res) => {
+    const logPath = path.join(__dirname, 'logs', 'broadcast-send.log');
+    fs.readFile(logPath, 'utf8', (err, data) => {
+        if (err) {
+            res.status(500).send('Log file not found');
+            return;
+        }
+        // Get last 20 lines
+        const lines = data.trim().split('\n').slice(-20);
+        res.send(lines.join('\n'));
+    });
+});
+
+app.get('/api/logs/creation', (req, res) => {
+    const logPath = path.join(__dirname, 'logs', 'broadcast-creation.log');
+    fs.readFile(logPath, 'utf8', (err, data) => {
+        if (err) {
+            res.status(500).send('Log file not found');
+            return;
+        }
+        // Get last 20 lines
+        const lines = data.trim().split('\n').slice(-20);
+        res.send(lines.join('\n'));
     });
 });
 
