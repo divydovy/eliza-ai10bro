@@ -356,6 +356,7 @@ app.get('/api/source-metrics', (req, res) => {
                     WHEN json_extract(content, '$.metadata.sourceType') = 'reddit' THEN 'reddit'
                     WHEN json_extract(content, '$.metadata.sourceType') = 'podcast' THEN 'podcast'
                     WHEN json_extract(content, '$.metadata.source') LIKE '%github.com%' THEN 'github-direct'
+                    WHEN json_extract(content, '$.metadata.source') LIKE '%reddit.com%' THEN 'reddit'
                     WHEN json_extract(content, '$.metadata.source') LIKE 'http%' THEN 'web-direct'
                     ELSE 'other'
                 END as source_type,
