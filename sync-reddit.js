@@ -70,7 +70,7 @@ function fetchRedditJSON(subreddit, sortBy = 'hot', limit = 25) {
 }
 
 // Process and save Reddit posts
-async function processRedditPosts(db, subreddit, posts) {
+async function processRedditPosts(db, subreddit, posts, agentId, roomId) {
     let imported = 0;
     let skipped = 0;
     
@@ -141,9 +141,9 @@ ${url && url !== permalink ? `**Link:** ${url}` : ''}
                 docId,
                 'documents',
                 JSON.stringify({ text: content, metadata }),
-                'ai10bro',
-                'ai10bro-room',
-                'ai10bro',
+                null,  // userId can be null
+                roomId,
+                agentId,
                 Date.now(),
                 Buffer.from(embedding.buffer)
             );
@@ -163,6 +163,17 @@ async function main() {
         const dbPath = path.join(__dirname, 'agent/data/db.sqlite');
         const db = new Database(dbPath);
         
+        // Get the actual agentId from the database
+        const agent = db.prepare("SELECT id FROM accounts WHERE name = 'ai10bro' LIMIT 1").get();
+        if (!agent) {
+            throw new Error('ai10bro agent not found in database');
+        }
+        const agentId = agent.id;
+        
+        // Get an existing room ID to use for the foreign key
+        const room = db.prepare("SELECT id FROM rooms LIMIT 1").get();
+        const roomId = room ? room.id : null;
+        
         console.log('🤖 Reddit Sync for AI10BRO');
         console.log('=' .repeat(50));
         console.log(`📚 Syncing ${SUBREDDITS.length} subreddits`);
@@ -178,11 +189,11 @@ async function main() {
             try {
                 // Fetch hot posts
                 const hotPosts = await fetchRedditJSON(subreddit, 'hot', 25);
-                const hotResults = await processRedditPosts(db, subreddit, hotPosts);
+                const hotResults = await processRedditPosts(db, subreddit, hotPosts, agentId, roomId);
                 
                 // Fetch top posts (week)
                 const topPosts = await fetchRedditJSON(subreddit, 'top', 10);
-                const topResults = await processRedditPosts(db, subreddit, topPosts);
+                const topResults = await processRedditPosts(db, subreddit, topPosts, agentId, roomId);
                 
                 const imported = hotResults.imported + topResults.imported;
                 const skipped = hotResults.skipped + topResults.skipped;
