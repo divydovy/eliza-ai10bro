@@ -569,15 +569,9 @@
             </div>
             
             <div class="stat-card">
-                <div class="stat-label">📱 Telegram Status</div>
-                <div class="stat-value" id="telegram-stats">-</div>
-                <div class="stat-detail" id="telegram-detail">Loading...</div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-label">🐦 X/Twitter Status</div>
-                <div class="stat-value" id="twitter-stats">-</div>
-                <div class="stat-detail" id="twitter-detail">Loading...</div>
+                <div class="stat-label">📡 Platform Status</div>
+                <div class="stat-value" id="platform-stats">-</div>
+                <div class="stat-detail" id="platform-detail">Loading...</div>
             </div>
             
             <div class="stat-card">
@@ -745,17 +739,39 @@
             document.getElementById('total-docs').textContent = data.totalDocuments.toLocaleString();
             document.getElementById('total-broadcasts').textContent = data.totalBroadcasts.toLocaleString();
             
-            // Update Telegram stats
-            const telegramPending = data.telegramPending || 0;
-            const telegramSent = data.telegramSent || 0;
-            document.getElementById('telegram-stats').textContent = telegramSent.toLocaleString();
-            document.getElementById('telegram-detail').textContent = `${telegramPending} pending, ${telegramSent} sent`;
-            
-            // Update X/Twitter stats
-            const twitterPending = data.twitterPending || 0;
-            const twitterSent = data.twitterSent || 0;
-            document.getElementById('twitter-stats').textContent = twitterSent.toLocaleString();
-            document.getElementById('twitter-detail').textContent = `${twitterPending} pending, ${twitterSent} sent`;
+            // Update Platform stats (consolidated)
+            if (data.platformStats) {
+                let totalPlatformSent = 0;
+                let totalPlatformPending = 0;
+                let platformDetails = [];
+                
+                // Define which platforms are currently enabled
+                const enabledPlatforms = ['telegram']; // Only Telegram is enabled now
+                
+                for (const [platform, stats] of Object.entries(data.platformStats)) {
+                    totalPlatformSent += stats.sent || 0;
+                    totalPlatformPending += stats.pending || 0;
+                    
+                    const icon = platform === 'telegram' ? '📱' : platform === 'twitter' ? '🐦' : '📡';
+                    const isEnabled = enabledPlatforms.includes(platform);
+                    const statusIcon = isEnabled ? '✅' : '⏸️';
+                    
+                    let detail = `${icon} ${platform}: ${stats.sent || 0} sent`;
+                    if (stats.pending > 0) {
+                        detail += `, ${stats.pending} pending`;
+                    }
+                    detail += ` ${statusIcon}`;
+                    
+                    platformDetails.push(detail);
+                }
+                
+                document.getElementById('platform-stats').textContent = `${totalPlatformSent} sent, ${totalPlatformPending} pending`;
+                document.getElementById('platform-detail').innerHTML = platformDetails.join('<br>') || 'No active platforms';
+            } else {
+                // Fallback for old API
+                document.getElementById('platform-stats').textContent = data.sentBroadcasts.toLocaleString();
+                document.getElementById('platform-detail').textContent = 'Total sent across all platforms';
+            }
             
             // Use provided value or calculate documents without broadcasts
             const docsWithoutBroadcasts = data.docsWithoutBroadcasts !== undefined ? 

@@ -116,6 +116,32 @@ app.get('/api/broadcast-stats', (req, res) => {
         `;
         const docsWithBroadcasts = db.prepare(docsWithBroadcastsQuery).get().count;
 
+        // Get platform statistics
+        const platformStatsQuery = `
+            SELECT 
+                client as platform,
+                status,
+                COUNT(*) as count
+            FROM broadcasts
+            GROUP BY client, status
+        `;
+        const platformStats = db.prepare(platformStatsQuery).all();
+        
+        // Format platform statistics
+        const platforms = {};
+        platformStats.forEach(row => {
+            if (!platforms[row.platform]) {
+                platforms[row.platform] = {
+                    sent: 0,
+                    pending: 0,
+                    failed: 0,
+                    total: 0
+                };
+            }
+            platforms[row.platform][row.status] = row.count;
+            platforms[row.platform].total += row.count;
+        });
+
         // Send response
         res.json({
             totalDocuments: totalDocs,
@@ -125,6 +151,7 @@ app.get('/api/broadcast-stats', (req, res) => {
             failedBroadcasts: failedBroadcasts,
             docsWithBroadcasts: docsWithBroadcasts,
             docsWithoutBroadcasts: Math.max(0, totalDocs - docsWithBroadcasts),
+            platformStats: platforms,
             recentActivity: formattedActivity,
             lastUpdated: new Date().toISOString()
         });
