@@ -338,6 +338,114 @@ app.get('/api/broadcast-trends', (req, res) => {
     }
 });
 
+// Source quality metrics endpoint
+app.get('/api/source-metrics', (req, res) => {
+    try {
+        // Get source breakdown with detailed categorization
+        const sourceAnalysisQuery = `
+            SELECT 
+                CASE 
+                    WHEN json_extract(content, '$.metadata.path') LIKE '%GDELT_Notes%' THEN 'github-gdelt'
+                    WHEN json_extract(content, '$.metadata.path') LIKE '%YouTube_Notes%' THEN 'github-youtube'
+                    WHEN json_extract(content, '$.metadata.path') LIKE '%ArXiv_Notes%' THEN 'github-arxiv'
+                    WHEN json_extract(content, '$.metadata.path') LIKE '%SciHub%' THEN 'github-scihub'
+                    WHEN json_extract(content, '$.metadata.path') LIKE '%Clippings/%' THEN 'obsidian'
+                    WHEN json_extract(content, '$.metadata.path') LIKE '%Resources/%' THEN 'obsidian'
+                    WHEN json_extract(content, '$.metadata.path') LIKE '%Notes/%' AND 
+                         json_extract(content, '$.metadata.path') NOT LIKE '%_Notes%' THEN 'obsidian'
+                    WHEN json_extract(content, '$.metadata.source') LIKE '%github.com%' THEN 'github-direct'
+                    WHEN json_extract(content, '$.metadata.source') LIKE 'http%' THEN 'web-direct'
+                    ELSE 'other'
+                END as source_type,
+                COUNT(*) as total_docs,
+                AVG(CASE 
+                    WHEN json_extract(content, '$.metadata.alignment_score') IS NOT NULL 
+                    THEN CAST(json_extract(content, '$.metadata.alignment_score') AS REAL)
+                    ELSE NULL 
+                END) as avg_alignment,
+                COUNT(CASE 
+                    WHEN id IN (
+                        SELECT DISTINCT json_extract(content, '$.metadata.sourceMemoryId')
+                        FROM memories 
+                        WHERE type = 'messages' 
+                        AND json_extract(content, '$.metadata.messageType') = 'broadcast'
+                    ) THEN 1 
+                END) as docs_with_broadcasts,
+                MAX(createdAt) as last_import
+            FROM memories
+            WHERE type = 'documents'
+            GROUP BY source_type
+            ORDER BY total_docs DESC
+        `;
+        
+        const sourceMetrics = db.prepare(sourceAnalysisQuery).all();
+        
+        // Calculate totals and percentages
+        let totalDocuments = 0;
+        let totalWithBroadcasts = 0;
+        let totalAlignmentSum = 0;
+        let alignmentCount = 0;
+        
+        const enrichedMetrics = sourceMetrics.map(source => {
+            totalDocuments += source.total_docs;
+            totalWithBroadcasts += source.docs_with_broadcasts;
+            
+            if (source.avg_alignment) {
+                totalAlignmentSum += source.avg_alignment * source.total_docs;
+                alignmentCount += source.total_docs;
+            }
+            
+            const broadcastRate = source.total_docs > 0 ? 
+                (source.docs_with_broadcasts / source.total_docs * 100).toFixed(1) : 0;
+            
+            // Determine source category
+            let category = 'Other';
+            if (source.source_type.startsWith('github-')) category = 'GitHub Scrapers';
+            else if (source.source_type.startsWith('obsidian') || source.source_type === 'obsidian') category = 'Obsidian';
+            else if (source.source_type === 'web-direct') category = 'Web Direct';
+            
+            return {
+                source: source.source_type,
+                category: category,
+                documents: source.total_docs,
+                broadcasts: source.docs_with_broadcasts,
+                broadcastRate: parseFloat(broadcastRate),
+                alignmentScore: source.avg_alignment ? source.avg_alignment.toFixed(2) : null,
+                lastImport: source.last_import
+            };
+        });
+        
+        // Overall metrics
+        const overallBroadcastRate = totalDocuments > 0 ? 
+            (totalWithBroadcasts / totalDocuments * 100).toFixed(1) : 0;
+        const overallAlignment = alignmentCount > 0 ? 
+            (totalAlignmentSum / alignmentCount).toFixed(2) : null;
+        
+        res.json({
+            sources: enrichedMetrics,
+            summary: {
+                totalSources: sourceMetrics.length,
+                totalDocuments: totalDocuments,
+                documentsWithBroadcasts: totalWithBroadcasts,
+                overallBroadcastRate: parseFloat(overallBroadcastRate),
+                overallAlignmentScore: overallAlignment ? parseFloat(overallAlignment) : null,
+                topPerformers: enrichedMetrics
+                    .filter(s => s.broadcastRate > 0)
+                    .sort((a, b) => b.broadcastRate - a.broadcastRate)
+                    .slice(0, 3)
+                    .map(s => ({
+                        source: s.source,
+                        rate: s.broadcastRate + '%'
+                    }))
+            },
+            lastUpdated: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Error fetching source metrics:', error);
+        res.status(500).json({ error: 'Failed to fetch source metrics' });
+    }
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
     res.json({ 
