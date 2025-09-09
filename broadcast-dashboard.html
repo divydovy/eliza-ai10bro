@@ -657,17 +657,14 @@
         
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-label">Total Documents</div>
+                <div class="stat-label">📚 Knowledge Base</div>
                 <div class="stat-value" id="total-docs">-</div>
-                <div class="stat-detail">Knowledge base entries</div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-label">Total Broadcasts</div>
-                <div class="stat-value" id="total-broadcasts">-</div>
-                <div class="stat-detail">Messages created</div>
+                <div class="stat-detail">
+                    <span id="total-broadcasts">-</span> broadcasts • 
+                    <span id="coverage-percent">-</span> coverage
+                </div>
                 <div class="progress-bar">
-                    <div class="progress-fill" id="broadcast-progress"></div>
+                    <div class="progress-fill" id="coverage-progress"></div>
                 </div>
             </div>
             
@@ -678,18 +675,9 @@
             </div>
             
             <div class="stat-card">
-                <div class="stat-label">Documents Without Broadcasts</div>
+                <div class="stat-label">🎯 To Process</div>
                 <div class="stat-value" id="docs-without-broadcasts">-</div>
-                <div class="stat-detail">Need processing</div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-label">Broadcast Coverage</div>
-                <div class="stat-value" id="coverage-percent">-</div>
-                <div class="stat-detail">Documents with broadcasts</div>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="coverage-progress"></div>
-                </div>
+                <div class="stat-detail">Documents needing broadcasts</div>
             </div>
         </div>
         
