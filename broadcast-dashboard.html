@@ -835,6 +835,15 @@
         }
         
         function updateDashboard(data) {
+            console.log('updateDashboard called with data:', {
+                hasRecentBroadcasts: !!data.recentBroadcasts,
+                recentBroadcastsLength: data.recentBroadcasts?.length,
+                hasRecentDocuments: !!data.recentDocuments,
+                recentDocumentsLength: data.recentDocuments?.length,
+                hasRecentActivity: !!data.recentActivity,
+                recentActivityLength: data.recentActivity?.length
+            });
+            
             // Update stat cards
             document.getElementById('total-docs').textContent = data.totalDocuments.toLocaleString();
             document.getElementById('total-broadcasts').textContent = data.totalBroadcasts.toLocaleString();
@@ -901,9 +910,12 @@
                 coverageDetail.textContent = `${docsWithBroadcasts.toLocaleString()} of ${data.totalDocuments.toLocaleString()} docs`;
             }
             
-            // Update broadcast progress
-            const broadcastProgress = Math.round((data.sentBroadcasts / data.totalBroadcasts) * 100);
-            document.getElementById('broadcast-progress').style.width = broadcastProgress + '%';
+            // Update broadcast progress (if element exists)
+            const broadcastProgressElement = document.getElementById('broadcast-progress');
+            if (broadcastProgressElement) {
+                const broadcastProgress = Math.round((data.sentBroadcasts / data.totalBroadcasts) * 100);
+                broadcastProgressElement.style.width = broadcastProgress + '%';
+            }
             
             // Update activity list
             // Update activity list with broadcasts if available, otherwise use mock
@@ -1245,13 +1257,15 @@
         
         // Initial load - fetch config first, then data
         fetchConfig().then(() => {
-            fetchData();
-            fetchSourceMetrics();
-            refreshLogs();
+            // Run each function with error handling
+            fetchData().catch(err => console.error('Error in fetchData:', err));
+            fetchSourceMetrics().catch(err => console.error('Error in fetchSourceMetrics:', err));
+            refreshLogs().catch(err => console.error('Error in refreshLogs:', err));
+            
             // Auto-refresh data (not config) every 30 seconds
-            setInterval(fetchData, appConfig.refreshInterval || 30000);
-            setInterval(fetchSourceMetrics, 60000); // Refresh source metrics every minute
-            setInterval(refreshLogs, 60000); // Refresh logs every minute
+            setInterval(() => fetchData().catch(console.error), appConfig.refreshInterval || 30000);
+            setInterval(() => fetchSourceMetrics().catch(console.error), 60000); // Refresh source metrics every minute
+            setInterval(() => refreshLogs().catch(console.error), 60000); // Refresh logs every minute
         });
         
         // Function to refresh logs
