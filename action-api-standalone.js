@@ -69,11 +69,11 @@ const server = http.createServer((req, res) => {
                         }));
                         
                         // Run the actual sync in background (don't wait for it)
-                        exec('node sync-github-direct.js', { timeout: 300000 }, (error, stdout, stderr) => {
+                        exec('node sync-github-multi-repo.js', { timeout: 300000 }, (error, stdout, stderr) => {
                             if (error) {
                                 console.error('Background GitHub sync error:', error.message);
                             } else {
-                                const completeLine = stdout.split('\n').find(l => l.includes('Sync complete:'));
+                                const completeLine = stdout.split('\n').find(l => l.includes('SYNC COMPLETE'));
                                 if (completeLine) {
                                     console.log('Background sync completed:', completeLine);
                                 }
@@ -83,15 +83,36 @@ const server = http.createServer((req, res) => {
                         
                     case 'IMPORT_OBSIDIAN':
                     case 'CREATE_KNOWLEDGE':  // Alias for backwards compatibility
-                        res.writeHead(200, { 'Content-Type': 'application/json' });
-                        res.end(JSON.stringify({ 
-                            success: true, 
-                            action: action,
-                            steps: [
-                                { step: 'Connect vault', message: 'Connecting to Obsidian vault' },
-                                { step: 'Import', message: 'Obsidian import will be available soon' }
-                            ]
-                        }));
+                        console.log('Importing Obsidian vault...');
+                        exec('node import-obsidian.js', { timeout: 30000 }, (error, stdout, stderr) => {
+                            if (error) {
+                                console.error('Error importing Obsidian:', error.message);
+                                res.writeHead(500, { 'Content-Type': 'application/json' });
+                                res.end(JSON.stringify({ 
+                                    success: false, 
+                                    action: action,
+                                    error: error.message,
+                                    steps: [
+                                        { step: 'Error', message: `Failed to import Obsidian: ${error.message}` }
+                                    ]
+                                }));
+                            } else {
+                                console.log('Obsidian import output:', stdout);
+                                const lines = stdout.split('\n').filter(l => l.trim());
+                                const importedMatch = stdout.match(/Imported: (\d+) new documents/);
+                                const skippedMatch = stdout.match(/Skipped: (\d+) existing documents/);
+                                
+                                res.writeHead(200, { 'Content-Type': 'application/json' });
+                                res.end(JSON.stringify({ 
+                                    success: true, 
+                                    action: action,
+                                    imported: importedMatch ? parseInt(importedMatch[1]) : 0,
+                                    skipped: skippedMatch ? parseInt(skippedMatch[1]) : 0,
+                                    steps: lines.filter(l => l.includes('✓') || l.includes('✅') || l.includes('📚'))
+                                        .map(l => ({ step: 'Import', message: l.trim() }))
+                                }));
+                            }
+                        });
                         break;
                         
                     case 'CREATE_BROADCASTS':
@@ -210,6 +231,34 @@ const server = http.createServer((req, res) => {
                         }
                         break;
                         
+                    case 'SEND_FARCASTER':
+                        // Check pending Farcaster broadcasts
+                        const farcasterPending = db.prepare('SELECT COUNT(*) as count FROM broadcasts WHERE status = ? AND client = ?').get('pending', 'farcaster');
+                        
+                        if (!farcasterPending || farcasterPending.count === 0) {
+                            res.writeHead(200, { 'Content-Type': 'application/json' });
+                            res.end(JSON.stringify({ 
+                                success: true, 
+                                action: action,
+                                steps: [
+                                    { step: 'Check queue', message: 'No pending Farcaster broadcasts', count: 0 }
+                                ]
+                            }));
+                        } else {
+                            exec('LIMIT=1 node send-farcaster-broadcasts.js', (error, stdout, stderr) => {
+                                res.writeHead(200, { 'Content-Type': 'application/json' });
+                                res.end(JSON.stringify({ 
+                                    success: !error, 
+                                    action: action,
+                                    steps: [
+                                        { step: 'Check queue', message: `Found ${farcasterPending.count} pending Farcaster broadcasts`, count: farcasterPending.count },
+                                        { step: 'Send broadcast', message: error ? error.message : 'Sent 1 broadcast to Farcaster', count: 1 }
+                                    ]
+                                }));
+                            });
+                        }
+                        break;
+                        
                     default:
                         res.writeHead(400, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: `Unknown action: ${action}` }));
@@ -240,4 +289,5 @@ server.listen(PORT, () => {
     console.log('  - CREATE_BROADCASTS');
     console.log('  - SEND_TELEGRAM');
     console.log('  - SEND_TWITTER');
+    console.log('  - SEND_FARCASTER');
 });

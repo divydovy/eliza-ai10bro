@@ -187,11 +187,12 @@ app.get('/api/recent-documents', (req, res) => {
                 json_extract(content, '$.metadata.path') as path,
                 json_extract(content, '$.metadata.title') as title,
                 json_extract(content, '$.metadata.description') as description,
+                json_extract(content, '$.metadata.sourceType') as metaSourceType,
                 createdAt
             FROM memories
             WHERE type = 'documents'
-            ORDER BY createdAt DESC
-            LIMIT 20
+            ORDER BY ROWID DESC
+            LIMIT 50
         `).all();
 
         const formatted = recentDocs.map(doc => {
@@ -218,17 +219,26 @@ app.get('/api/recent-documents', (req, res) => {
                 displayTitle = lines[0].substring(0, 100);
             }
             
-            // Determine source type from path or source
+            // Determine source type from metadata, path or source URL
             let sourceType = 'unknown';
             const path = doc.path || doc.source || '';
+            const source = doc.source || '';
             
+            // First check if metadata already has sourceType
+            if (doc.metaSourceType) {
+                sourceType = doc.metaSourceType;
+            }
+            // Check for arxiv patterns in source URL or path
+            else if (source.includes('arxiv.org') || path.toLowerCase().includes('arxiv')) {
+                sourceType = 'arxiv';
+            }
             // Check for specific data sources that come from GitHub scrapers
-            if (path.includes('GDELT_Notes')) {
+            else if (path.includes('GDELT_Notes')) {
                 sourceType = 'github-gdelt';  // GDELT news from GitHub scraper
             } else if (path.includes('YouTube_Notes') || path.includes('youtube')) {
                 sourceType = 'github-youtube';  // YouTube transcripts from GitHub
-            } else if (path.includes('ArXiv_Notes') || path.includes('arxiv')) {
-                sourceType = 'github-arxiv';  // ArXiv papers from GitHub
+            } else if (path.includes('ArXiv_Notes')) {
+                sourceType = 'github-arxiv';  // ArXiv papers from GitHub scraper
             } else if (path.includes('Clippings/')) {
                 sourceType = 'obsidian-web';  // Web content saved to Obsidian via clipper
             } else if (path.match(/^\d+\.\s/) || path.includes('Resources/')) {
@@ -237,6 +247,12 @@ app.get('/api/recent-documents', (req, res) => {
                 sourceType = 'obsidian';  // Other notes in Obsidian
             } else if (path.includes('github.com') || path.includes('GitHub')) {
                 sourceType = 'github';
+            } else if (source.includes('reddit.com')) {
+                sourceType = 'reddit';
+            } else if (source.includes('nature.com')) {
+                sourceType = 'nature';
+            } else if (source.includes('youtube.com') || source.includes('youtu.be')) {
+                sourceType = 'youtube';
             } else if (doc.source && doc.source.includes('http')) {
                 sourceType = 'web';
             }
@@ -374,7 +390,8 @@ app.get('/api/source-metrics', (req, res) => {
                         AND json_extract(content, '$.metadata.messageType') = 'broadcast'
                     ) THEN 1 
                 END) as docs_with_broadcasts,
-                MAX(createdAt) as last_import
+                MAX(createdAt) as last_import,
+                MAX(ROWID) as last_rowid
             FROM memories
             WHERE type = 'documents'
             GROUP BY source_type

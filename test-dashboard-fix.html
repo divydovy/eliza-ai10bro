@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard Debug</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        .success { color: green; }
+        .error { color: red; }
+        pre { background: #f0f0f0; padding: 10px; overflow: auto; }
+    </style>
+</head>
+<body>
+    <h1>Dashboard Debug Test</h1>
+    
+    <div class="section">
+        <h2>Step 1: Check Stats API</h2>
+        <div id="stats-result"></div>
+    </div>
+    
+    <div class="section">
+        <h2>Step 2: Check Recent Broadcasts</h2>
+        <div id="broadcasts-result"></div>
+    </div>
+    
+    <div class="section">
+        <h2>Step 3: Check Recent Documents</h2>
+        <div id="documents-result"></div>
+    </div>
+    
+    <div class="section">
+        <h2>Step 4: Test Dashboard Update Function</h2>
+        <div id="dashboard-result"></div>
+    </div>
+    
+    <script>
+        async function runTests() {
+            // Test 1: Stats API
+            try {
+                const statsResponse = await fetch('http://localhost:3001/api/broadcast-stats');
+                const stats = await statsResponse.json();
+                document.getElementById('stats-result').innerHTML = 
+                    `<span class="success">✅ Stats API working</span>
+                     <pre>${JSON.stringify(stats, null, 2).substring(0, 500)}...</pre>`;
+            } catch (e) {
+                document.getElementById('stats-result').innerHTML = 
+                    `<span class="error">❌ Stats API failed: ${e.message}</span>`;
+            }
+            
+            // Test 2: Recent Broadcasts
+            try {
+                const broadcastsResponse = await fetch('http://localhost:3001/api/recent-broadcasts');
+                const broadcasts = await broadcastsResponse.json();
+                document.getElementById('broadcasts-result').innerHTML = 
+                    `<span class="success">✅ Recent Broadcasts API working (${broadcasts.length} items)</span>
+                     <pre>${JSON.stringify(broadcasts.slice(0, 2), null, 2)}</pre>`;
+            } catch (e) {
+                document.getElementById('broadcasts-result').innerHTML = 
+                    `<span class="error">❌ Recent Broadcasts failed: ${e.message}</span>`;
+            }
+            
+            // Test 3: Recent Documents
+            try {
+                const docsResponse = await fetch('http://localhost:3001/api/recent-documents');
+                const docs = await docsResponse.json();
+                document.getElementById('documents-result').innerHTML = 
+                    `<span class="success">✅ Recent Documents API working (${docs.length} items)</span>
+                     <pre>${JSON.stringify(docs.slice(0, 2), null, 2)}</pre>`;
+            } catch (e) {
+                document.getElementById('documents-result').innerHTML = 
+                    `<span class="error">❌ Recent Documents failed: ${e.message}</span>`;
+            }
+            
+            // Test 4: Simulate Dashboard Update
+            try {
+                // Fetch all data like the dashboard does
+                const statsResponse = await fetch('http://localhost:3001/api/broadcast-stats');
+                const data = await statsResponse.json();
+                
+                // Add recent broadcasts
+                const broadcastsResponse = await fetch('http://localhost:3001/api/recent-broadcasts');
+                data.recentBroadcasts = await broadcastsResponse.json();
+                
+                // Add recent documents
+                const docsResponse = await fetch('http://localhost:3001/api/recent-documents');
+                data.recentDocuments = await docsResponse.json();
+                
+                document.getElementById('dashboard-result').innerHTML = 
+                    `<span class="success">✅ Dashboard data structure ready</span>
+                     <pre>
+data.recentBroadcasts: ${data.recentBroadcasts ? data.recentBroadcasts.length + ' items' : 'undefined'}
+data.recentDocuments: ${data.recentDocuments ? data.recentDocuments.length + ' items' : 'undefined'}
+data.recentActivity: ${data.recentActivity ? data.recentActivity.length + ' items' : 'undefined'}
+
+First broadcast: ${data.recentBroadcasts?.[0]?.preview || 'N/A'}
+First document: ${data.recentDocuments?.[0]?.title || 'N/A'}
+                     </pre>`;
+            } catch (e) {
+                document.getElementById('dashboard-result').innerHTML = 
+                    `<span class="error">❌ Dashboard simulation failed: ${e.message}</span>`;
+            }
+        }
+        
+        runTests();
+    </script>
+</body>
+</html>

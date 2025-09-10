@@ -194,6 +194,48 @@ async function generateBroadcastContent(text, characterPrompt) {
 
 async function createAIBroadcasts() {
     try {
+        // Load character configuration for enabled clients
+        const characterPath = path.join(process.cwd(), 'characters/ai10bro.character.json');
+        const character = JSON.parse(fs.readFileSync(characterPath, 'utf-8'));
+        
+        // Map character clients to broadcast clients
+        const clientMapping = {
+            'telegram': 'telegram',
+            'twitter': 'twitter',
+            'x': 'twitter',
+            'farcaster': 'farcaster',
+            'bluesky': 'bluesky',
+            'discord': 'discord'
+        };
+        
+        // Get enabled clients from character file
+        const enabledClients = (character.clients || [])
+            .map(client => clientMapping[client.toLowerCase()])
+            .filter(client => client && ['telegram', 'twitter', 'farcaster', 'bluesky'].includes(client));
+        
+        console.log('📋 Loaded character configuration');
+        console.log(`   Enabled clients: ${enabledClients.join(', ') || 'none'}`);
+        
+        // Load additional config for prioritization settings
+        const configPath = path.join(process.cwd(), 'broadcast-config.json');
+        let config = {
+            prioritization: { recencyBias: true, recencyWindow: 7, recencyWindowUnit: 'days' },
+            limits: { maxBroadcastsPerRun: 5 }
+        };
+        
+        if (fs.existsSync(configPath)) {
+            const loadedConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+            // Only use prioritization and limits from config file, not enabledClients
+            config.prioritization = loadedConfig.prioritization || config.prioritization;
+            config.limits = loadedConfig.limits || config.limits;
+        }
+        
+        if (enabledClients.length === 0) {
+            console.log('⚠️  No broadcast clients are enabled');
+            console.log('💡 Add broadcast clients to character file (telegram, twitter, farcaster)');
+            return { error: 'No clients enabled', created: 0 };
+        }
+        
         // Check if Ollama is available
         try {
             const ollamaCheck = await axios.get('http://localhost:11434/api/tags', { timeout: 2000 });
@@ -213,22 +255,67 @@ async function createAIBroadcasts() {
         const dbPath = path.join(process.cwd(), 'agent/data/db.sqlite');
         const db = Database(dbPath);
         
-        // Load character configuration
-        const characterPath = path.join(process.cwd(), 'characters/ai10bro.character.json');
-        const character = JSON.parse(fs.readFileSync(characterPath, 'utf-8'));
+        // Use already loaded character data
         const broadcastPrompt = character.settings?.broadcastPrompt || 
             "Write a sharp, direct broadcast about this breakthrough. State the core innovation first, then explain why it matters. End with ONE concrete action. Max 750 chars.";
         
-        // Get documents without broadcasts (limit configurable via LIMIT env var)
-        const limit = parseInt(process.env.LIMIT) || 5;
-        const docsWithoutBroadcasts = db.prepare(`
-            SELECT m.id, m.content 
-            FROM memories m 
-            LEFT JOIN broadcasts b ON m.id = b.documentId 
-            WHERE m.type = 'documents' 
-            AND b.documentId IS NULL 
-            LIMIT ?
-        `).all(limit);
+        // Get documents without broadcasts, with recency bias if configured
+        const limit = parseInt(process.env.LIMIT) || config.limits.maxBroadcastsPerRun || 5;
+        let query;
+        let docsWithoutBroadcasts;
+        
+        if (config.prioritization.recencyBias) {
+            // Calculate the cutoff timestamp for recent documents
+            const windowMs = config.prioritization.recencyWindow * 24 * 60 * 60 * 1000;
+            const cutoffTime = Date.now() - windowMs;
+            
+            // First try to get recent documents without broadcasts
+            query = `
+                SELECT m.id, m.content, m.createdAt 
+                FROM memories m 
+                LEFT JOIN broadcasts b ON m.id = b.documentId 
+                WHERE m.type = 'documents' 
+                AND b.documentId IS NULL 
+                AND m.createdAt > ?
+                ORDER BY m.createdAt DESC
+                LIMIT ?
+            `;
+            
+            docsWithoutBroadcasts = db.prepare(query).all(cutoffTime, limit);
+            
+            // If we don't have enough recent docs, backfill with older ones
+            if (docsWithoutBroadcasts.length < limit) {
+                const remainingLimit = limit - docsWithoutBroadcasts.length;
+                const olderDocs = db.prepare(`
+                    SELECT m.id, m.content, m.createdAt 
+                    FROM memories m 
+                    LEFT JOIN broadcasts b ON m.id = b.documentId 
+                    WHERE m.type = 'documents' 
+                    AND b.documentId IS NULL 
+                    AND m.createdAt <= ?
+                    ORDER BY m.createdAt DESC
+                    LIMIT ?
+                `).all(cutoffTime, remainingLimit);
+                
+                docsWithoutBroadcasts = [...docsWithoutBroadcasts, ...olderDocs];
+                
+                if (docsWithoutBroadcasts.length > 0) {
+                    const recentCount = docsWithoutBroadcasts.filter(d => d.createdAt > cutoffTime).length;
+                    console.log(`📅 Found ${recentCount} recent docs (last ${config.prioritization.recencyWindow} days) and ${docsWithoutBroadcasts.length - recentCount} older docs`);
+                }
+            }
+        } else {
+            // No recency bias - get any documents without broadcasts
+            docsWithoutBroadcasts = db.prepare(`
+                SELECT m.id, m.content, m.createdAt 
+                FROM memories m 
+                LEFT JOIN broadcasts b ON m.id = b.documentId 
+                WHERE m.type = 'documents' 
+                AND b.documentId IS NULL 
+                ORDER BY m.createdAt DESC
+                LIMIT ?
+            `).all(limit);
+        }
         
         console.log(`Found ${docsWithoutBroadcasts.length} documents without broadcasts`);
         
@@ -291,52 +378,104 @@ async function createAIBroadcasts() {
             
             console.log(`   📊 Quality score: ${(qualityScore * 100).toFixed(0)}%`);
             
-            // Create TELEGRAM broadcast (long form)
-            const telegramId = randomUUID();
-            db.prepare(`
-                INSERT INTO broadcasts (id, documentId, content, client, status, createdAt, alignment_score)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            `).run(
-                telegramId,
-                doc.id,
-                broadcastText.substring(0, 750),
-                'telegram',
-                'pending',
-                Date.now(),
-                qualityScore
-            );
-            console.log(`   📱 Created Telegram broadcast ${telegramId.substring(0, 8)}...`);
-            
-            // Generate SHORT version for X (Twitter)
-            const xPrompt = "Create a punchy 250-char tweet about this breakthrough. Focus on the core innovation and impact. No hashtags, no fluff. Include one key metric if available.";
-            const xBroadcast = await generateWithLLM(text, xPrompt);
-            
-            if (xBroadcast) {
-                // Add source URL if available (counts as 23 chars on X)
-                let xText = xBroadcast;
-                if (validUrls.length > 0 && xBroadcast.length <= 257) { // 280 - 23 for URL
-                    xText = `${xBroadcast}\n${validUrls[0]}`;
-                }
-                
-                // Create X/TWITTER broadcast (short form)
-                const xId = randomUUID();
+            // Create broadcasts only for enabled clients
+            if (enabledClients.includes('telegram')) {
+                // Create TELEGRAM broadcast (long form)
+                const telegramId = randomUUID();
                 db.prepare(`
                     INSERT INTO broadcasts (id, documentId, content, client, status, createdAt, alignment_score)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                 `).run(
-                    xId,
+                    telegramId,
                     doc.id,
-                    xText.substring(0, 280),
-                    'twitter',
+                    broadcastText.substring(0, 750),
+                    'telegram',
                     'pending',
                     Date.now(),
                     qualityScore
                 );
-                console.log(`   🐦 Created X broadcast ${xId.substring(0, 8)}... (${xText.length} chars)`);
+                console.log(`   📱 Created Telegram broadcast ${telegramId.substring(0, 8)}...`);
                 created++;
             }
             
-            created++;
+            if (enabledClients.includes('twitter')) {
+                // Generate SHORT version for X (Twitter)
+                const xPrompt = "Create a punchy 250-char tweet about this breakthrough. Focus on the core innovation and impact. No hashtags, no fluff. Include one key metric if available.";
+                const xBroadcast = await generateWithLLM(text, xPrompt);
+                
+                if (xBroadcast) {
+                    // Add source URL if available (counts as 23 chars on X)
+                    let xText = xBroadcast;
+                    if (validUrls.length > 0 && xBroadcast.length <= 257) { // 280 - 23 for URL
+                        xText = `${xBroadcast}\n${validUrls[0]}`;
+                    }
+                    
+                    // Create X/TWITTER broadcast (short form)
+                    const xId = randomUUID();
+                    db.prepare(`
+                        INSERT INTO broadcasts (id, documentId, content, client, status, createdAt, alignment_score)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    `).run(
+                        xId,
+                        doc.id,
+                        xText.substring(0, 280),
+                        'twitter',
+                        'pending',
+                        Date.now(),
+                        qualityScore
+                    );
+                    console.log(`   🐦 Created X broadcast ${xId.substring(0, 8)}... (${xText.length} chars)`);
+                    created++;
+                }
+            }
+            
+            if (enabledClients.includes('farcaster')) {
+                // Generate SHORT version for Farcaster (320 char limit)
+                const fcPrompt = "Create a concise 300-char post about this breakthrough. Focus on the core innovation. No hashtags.";
+                const fcBroadcast = await generateWithLLM(text, fcPrompt);
+                
+                if (fcBroadcast) {
+                    const farcasterId = randomUUID();
+                    db.prepare(`
+                        INSERT INTO broadcasts (id, documentId, content, client, status, createdAt, alignment_score)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    `).run(
+                        farcasterId,
+                        doc.id,
+                        fcBroadcast.substring(0, 320),
+                        'farcaster',
+                        'pending',
+                        Date.now(),
+                        qualityScore
+                    );
+                    console.log(`   🎭 Created Farcaster broadcast ${farcasterId.substring(0, 8)}...`);
+                    created++;
+                }
+            }
+            
+            if (enabledClients.includes('bluesky')) {
+                // Generate SHORT version for Bluesky (300 char limit)
+                const bskyPrompt = "Create a sharp 280-char post about this breakthrough. State the innovation and its impact. No hashtags.";
+                const bskyBroadcast = await generateWithLLM(text, bskyPrompt);
+                
+                if (bskyBroadcast) {
+                    const blueskyId = randomUUID();
+                    db.prepare(`
+                        INSERT INTO broadcasts (id, documentId, content, client, status, createdAt, alignment_score)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    `).run(
+                        blueskyId,
+                        doc.id,
+                        bskyBroadcast.substring(0, 300),
+                        'bluesky',
+                        'pending',
+                        Date.now(),
+                        qualityScore
+                    );
+                    console.log(`   🦋 Created Bluesky broadcast ${blueskyId.substring(0, 8)}...`);
+                    created++;
+                }
+            }
         }
         
         console.log(`Created ${created} broadcasts successfully`);

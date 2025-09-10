@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard Debug Test</title>
+</head>
+<body>
+    <h1>Dashboard API Test</h1>
+    <div id="output"></div>
+    
+    <script>
+        async function testAPIs() {
+            const output = document.getElementById('output');
+            let html = '';
+            
+            // Test broadcast stats
+            try {
+                const statsResponse = await fetch('http://localhost:3001/api/broadcast-stats');
+                const stats = await statsResponse.json();
+                html += '<h2>Stats API: ✅</h2>';
+                html += `<pre>${JSON.stringify(stats, null, 2).substring(0, 500)}...</pre>`;
+            } catch (e) {
+                html += '<h2>Stats API: ❌</h2>';
+                html += `<pre>${e.message}</pre>`;
+            }
+            
+            // Test recent broadcasts
+            try {
+                const broadcastsResponse = await fetch('http://localhost:3001/api/recent-broadcasts');
+                const broadcasts = await broadcastsResponse.json();
+                html += '<h2>Recent Broadcasts API: ✅</h2>';
+                html += `<p>Count: ${broadcasts.length}</p>`;
+                if (broadcasts.length > 0) {
+                    html += `<pre>${JSON.stringify(broadcasts[0], null, 2)}</pre>`;
+                }
+            } catch (e) {
+                html += '<h2>Recent Broadcasts API: ❌</h2>';
+                html += `<pre>${e.message}</pre>`;
+            }
+            
+            // Test recent documents
+            try {
+                const docsResponse = await fetch('http://localhost:3001/api/recent-documents');
+                const docs = await docsResponse.json();
+                html += '<h2>Recent Documents API: ✅</h2>';
+                html += `<p>Count: ${docs.length}</p>`;
+                if (docs.length > 0) {
+                    html += `<pre>${JSON.stringify(docs[0], null, 2).substring(0, 300)}...</pre>`;
+                }
+            } catch (e) {
+                html += '<h2>Recent Documents API: ❌</h2>';
+                html += `<pre>${e.message}</pre>`;
+            }
+            
+            // Test source metrics
+            try {
+                const metricsResponse = await fetch('http://localhost:3001/api/source-metrics');
+                const metrics = await metricsResponse.json();
+                html += '<h2>Source Metrics API: ✅</h2>';
+                html += `<pre>${JSON.stringify(metrics, null, 2).substring(0, 500)}...</pre>`;
+            } catch (e) {
+                html += '<h2>Source Metrics API: ❌</h2>';
+                html += `<pre>${e.message}</pre>`;
+            }
+            
+            output.innerHTML = html;
+        }
+        
+        testAPIs();
+    </script>
+</body>
+</html>

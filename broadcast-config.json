@@ -1,0 +1,21 @@
+{
+  "prioritization": {
+    "recencyBias": true,
+    "recencyWindow": 7,
+    "recencyWindowUnit": "days",
+    "priorityOrder": [
+      "recent",
+      "highQuality",
+      "backfill"
+    ]
+  },
+  "limits": {
+    "maxBroadcastsPerRun": 5,
+    "maxBroadcastsPerDocument": 2,
+    "minTimeBetweenBroadcasts": 300000
+  },
+  "qualityThresholds": {
+    "minimum": 0.5,
+    "preferred": 0.7
+  }
+}

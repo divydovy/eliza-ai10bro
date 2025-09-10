@@ -650,6 +650,9 @@
             <button class="action-btn" onclick="triggerAction('SEND_TWITTER')" id="send-twitter-btn" title="Send next pending X/Twitter broadcast">
                 🐦 Send to X
             </button>
+            <button class="action-btn" onclick="triggerAction('SEND_FARCASTER')" id="send-farcaster-btn" title="Send next pending Farcaster broadcast">
+                🎭 Send to Farcaster
+            </button>
             <button class="action-btn" onclick="refreshStats()" id="refresh-btn">
                 🔄 Refresh Stats
             </button>
@@ -732,7 +735,7 @@
                         • 📤 <b>Send Broadcasts:</b> 1/hour @ 00:00, 04:00, 08:00, 12:00, 16:00, 20:00<br>
                         • ✨ <b>Create Broadcasts:</b> 10/4hrs @ 02:00, 06:00, 10:00, 14:00, 18:00, 22:00<br>
                         • 🔄 <b>GitHub Sync:</b> Full sync @ 01:00, 07:00, 13:00, 19:00<br>
-                        • 📝 <b>Obsidian Import:</b> Every 5 minutes (continuous)
+                        • 🧠 <b>Obsidian Import:</b> Manual trigger via button (plugin not automated)
                     </p>
                 </div>
             </div>
@@ -974,7 +977,7 @@
                 return;
             }
             
-            countElement.textContent = documents.length.toString();
+            countElement.textContent = `${documents.length} / 50`;
             
             documents.forEach(doc => {
                 const item = document.createElement('div');
@@ -989,26 +992,57 @@
                     sourceLabel = 'GDELT';
                 } else if (doc.sourceType === 'github-youtube') {
                     sourceLabel = 'YouTube';
-                } else if (doc.sourceType === 'github-arxiv') {
+                } else if (doc.sourceType === 'github-arxiv' || doc.sourceType === 'arxiv') {
                     sourceLabel = 'ArXiv';
                 } else if (doc.sourceType === 'obsidian') {
                     sourceLabel = 'Obsidian';
                 } else if (doc.sourceType === 'github') {
                     sourceLabel = 'GitHub';
+                } else if (doc.sourceType === 'reddit') {
+                    sourceLabel = 'Reddit';
+                } else if (doc.sourceType === 'nature') {
+                    sourceLabel = 'Nature';
+                } else if (doc.sourceType === 'youtube') {
+                    sourceLabel = 'YouTube';
+                } else if (doc.sourceType === 'web') {
+                    sourceLabel = 'Web';
                 }
                 
+                // Truncate title for display
+                const displayTitle = doc.title || 'Untitled';
+                const truncatedTitle = displayTitle.length > 80 ? displayTitle.substring(0, 77) + '...' : displayTitle;
+                
+                // Get source color
+                const sourceColors = {
+                    'obsidian': '#7c3aed',
+                    'obsidian-web': '#7c3aed',
+                    'github': '#2563eb',
+                    'github-gdelt': '#dc2626',
+                    'github-youtube': '#ef4444',
+                    'github-arxiv': '#059669',
+                    'arxiv': '#059669',
+                    'reddit': '#ff4500',
+                    'nature': '#0ea5e9',
+                    'youtube': '#ef4444',
+                    'web': '#f59e0b',
+                    'unknown': '#6b7280'
+                };
+                const color = sourceColors[doc.sourceType] || sourceColors['unknown'];
+                
                 item.innerHTML = `
-                    <div class="knowledge-title">${doc.title}</div>
-                    ${doc.description ? `<div class="knowledge-description">${doc.description}</div>` : ''}
-                    <div class="knowledge-meta">
-                        <span class="knowledge-source ${doc.sourceType}">${sourceLabel}</span>
-                        <span>${doc.createdTime}</span>
+                    <span class="source-badge" style="background: ${color}; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; min-width: 70px; text-align: center; color: white;">
+                        ${sourceLabel}
+                    </span>
+                    <div class="knowledge-title" style="flex: 1; padding: 0 10px;" title="${displayTitle}">
+                        ${truncatedTitle}
                     </div>
+                    <span style="color: #6b7280; font-size: 0.9em;">${doc.createdTime}</span>
                     <div class="knowledge-tooltip">
-                        <strong>Full Content:</strong><br><br>
-                        ${doc.fullText || 'No content available'}
-                        <br><br>
-                        <strong>Source:</strong> ${doc.source}
+                        <strong>${displayTitle}</strong><br>
+                        <span style="font-size: 0.85em; color: #9ca3af;">${doc.source || 'No source'}</span><br><br>
+                        <div style="max-height: 250px; overflow-y: auto; font-size: 0.9em;">
+                            ${doc.fullText ? doc.fullText.substring(0, 500) + (doc.fullText.length > 500 ? '...' : '') : 'No content available'}
+                        </div>
                     </div>
                 `;
                 
@@ -1199,6 +1233,7 @@
                 // Sort sources by broadcast rate (quality metric)
                 const sortedSources = data.sources.sort((a, b) => b.broadcastRate - a.broadcastRate);
                 
+                
                 metricsGrid.innerHTML = sortedSources.map((source, index) => {
                     const isTop = index < 3;
                     const broadcastPercent = source.broadcastRate || 0;
@@ -1226,6 +1261,11 @@
                             <div class="quality-bar">
                                 <div class="quality-fill" style="width: ${broadcastPercent}%"></div>
                             </div>
+                            
+                            ${source.lastImport ? `<div class="metric-stats" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+                                <span class="metric-label" style="font-size: 0.75em; opacity: 0.7;">Last added:</span>
+                                <span class="metric-value" style="font-size: 0.75em; opacity: 0.9;">${getTimeAgo(new Date(source.lastImport))}</span>
+                            </div>` : ''}
                         </div>
                     `;
                 }).join('');
@@ -1235,6 +1275,26 @@
                 document.getElementById('metrics-grid').innerHTML = 
                     '<div style="color: #feb2b2;">Failed to load source metrics</div>';
             }
+        }
+        
+        function getTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            const intervals = {
+                year: 31536000,
+                month: 2592000,
+                week: 604800,
+                day: 86400,
+                hour: 3600,
+                minute: 60
+            };
+            
+            for (const [unit, secondsInUnit] of Object.entries(intervals)) {
+                const interval = Math.floor(seconds / secondsInUnit);
+                if (interval >= 1) {
+                    return interval === 1 ? `1 ${unit} ago` : `${interval} ${unit}s ago`;
+                }
+            }
+            return 'just now';
         }
         
         function formatSourceName(source) {
