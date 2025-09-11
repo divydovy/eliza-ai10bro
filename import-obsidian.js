@@ -65,6 +65,23 @@ try {
     const markdownFiles = getAllMarkdownFiles(vaultPath);
     console.log(`📚 Found ${markdownFiles.length} markdown files`);
     
+    // Get the actual agentId from the database
+    const agent = db.prepare("SELECT id FROM accounts WHERE name = 'ai10bro'").get();
+    if (!agent) {
+        console.error('❌ ai10bro agent not found in database. Please ensure the agent has been run at least once.');
+        process.exit(1);
+    }
+    const agentId = agent.id;
+    
+    // Get an existing room ID to use for the foreign key
+    const room = db.prepare("SELECT id FROM rooms LIMIT 1").get();
+    const roomId = room ? room.id : null;
+    
+    if (!roomId) {
+        console.error('❌ No rooms found in database. Please ensure the agent has been run at least once.');
+        process.exit(1);
+    }
+    
     // Prepare statements
     const checkStmt = db.prepare(`
         SELECT id FROM memories 
@@ -110,10 +127,10 @@ try {
                 docId,
                 'documents',
                 JSON.stringify(document),
-                null, // No embedding for now
-                character.id || 'ai10bro',
-                character.id || 'ai10bro',
-                `obsidian-${character.id || 'ai10bro'}`,
+                '[]', // Empty embedding array to satisfy NOT NULL constraint
+                agentId, // Use the actual agent ID from the database
+                agentId, // Use the actual agent ID from the database
+                roomId, // Use the existing room ID from the database
                 Date.now()
             );
             

@@ -14,13 +14,23 @@ const fs = require('fs');
 // Use Ollama directly for broadcast generation
 async function generateWithLLM(text, broadcastPrompt) {
     try {
+        // Check if content is too minimal (just a title)
+        const lines = text.split('\n').filter(l => l.trim());
+        const hasMinimalContent = lines.length < 3 || text.length < 150;
+        
+        // Enhanced prompt for minimal content
+        const enhancedPrompt = hasMinimalContent ? 
+            `You are given a title or minimal content about a breakthrough. Research your knowledge to provide context and explain why this matters. ${broadcastPrompt}` :
+            broadcastPrompt;
+        
         const response = await axios.post('http://localhost:11434/api/generate', {
             model: 'qwen2.5:14b',
-            prompt: `${broadcastPrompt}\n\nContent to analyze:\n${text.substring(0, 3000)}\n\nGenerate a broadcast message (max 750 characters).`,
+            prompt: `${enhancedPrompt}\n\nContent to analyze:\n${text.substring(0, 3000)}\n\nIMPORTANT: Generate a detailed broadcast message with at least 3 sentences explaining the innovation, its impact, and what to track. Must be 300-750 characters.`,
             stream: false,
             options: {
                 temperature: 0.7,
-                max_tokens: 200
+                max_tokens: 200,
+                min_tokens: 100
             }
         }, {
             headers: { 'Content-Type': 'application/json' },
@@ -369,10 +379,10 @@ async function createAIBroadcasts() {
             // Score based on content characteristics
             if (broadcastText.length > 100) qualityScore += 0.1;
             if (broadcastText.match(/\d+(?:\.\d+)?%|\d+x|\d+\s+(?:tons|MW|GW)/)) qualityScore += 0.15; // Has metrics
-            if (broadcastText.match(/https?:\/\//)) qualityScore += 0.1; // Has source URL
-            if (!broadcastText.includes('Track this breakthrough')) qualityScore += 0.1; // No generic ending
+            if (broadcastText.match(/https?:\/\//)) qualityScore += 0.25; // Has source URL - CRITICAL for credibility
+            if (!broadcastText.includes('Track this breakthrough')) qualityScore += 0.05; // No generic ending
             if (broadcastText.match(/[A-Z][a-z]+\s+(?:University|Labs|Corporation|Initiative)/)) qualityScore += 0.1; // Has entity
-            if (wasLLMGenerated) qualityScore += 0.15; // LLM-generated
+            // Removed LLM bonus since it's now required, not optional
             
             qualityScore = Math.min(qualityScore, 0.99); // Cap at 0.99
             

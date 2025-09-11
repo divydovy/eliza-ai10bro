@@ -424,6 +424,17 @@ app.get('/api/source-metrics', (req, res) => {
             else if (source.source_type.startsWith('obsidian') || source.source_type === 'obsidian') category = 'Obsidian';
             else if (source.source_type === 'web-direct') category = 'Web Direct';
             
+            // Format the timestamp properly
+            let formattedLastImport = source.last_import;
+            if (typeof formattedLastImport === 'number') {
+                // Check if it's milliseconds (13 digits) or seconds (10 digits)
+                if (formattedLastImport > 1000000000000) {
+                    formattedLastImport = new Date(formattedLastImport).toISOString().replace('T', ' ').slice(0, 19);
+                } else {
+                    formattedLastImport = new Date(formattedLastImport * 1000).toISOString().replace('T', ' ').slice(0, 19);
+                }
+            }
+            
             return {
                 source: source.source_type,
                 category: category,
@@ -431,7 +442,7 @@ app.get('/api/source-metrics', (req, res) => {
                 broadcasts: source.docs_with_broadcasts,
                 broadcastRate: parseFloat(broadcastRate),
                 alignmentScore: source.avg_alignment ? source.avg_alignment.toFixed(2) : null,
-                lastImport: source.last_import
+                lastImport: formattedLastImport
             };
         });
         
