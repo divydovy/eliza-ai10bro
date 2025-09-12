@@ -267,7 +267,7 @@ async function createAIBroadcasts() {
         
         // Use already loaded character data
         const broadcastPrompt = character.settings?.broadcastPrompt || 
-            "Write a sharp, direct broadcast about this breakthrough. State the core innovation first, then explain why it matters. End with ONE concrete action. Max 750 chars.";
+            "Write a compelling broadcast about this scientific breakthrough. Include: 1) The core innovation and what makes it unique, 2) Specific metrics or achievements when available, 3) Why this matters for the field and society, 4) Real-world applications or implications. Be informative and engaging. Target 300-500 characters for optimal engagement.";
         
         // Get documents without broadcasts, with recency bias if configured
         const limit = parseInt(process.env.LIMIT) || config.limits.maxBroadcastsPerRun || 5;
@@ -338,13 +338,35 @@ async function createAIBroadcasts() {
         
         for (const doc of docsWithoutBroadcasts) {
             const content = JSON.parse(doc.content);
-            const text = content.text || content.title || 'No content';
+            
+            // Build comprehensive text from all available fields
+            let text = '';
+            if (content.text) {
+                text = content.text;
+            } else if (content.content) {
+                text = content.content;
+            } else if (content.description) {
+                text = content.description;
+            } else if (content.summary) {
+                text = content.summary;
+            } else if (content.title) {
+                // If only title exists, create a richer prompt for the LLM
+                text = `Title: ${content.title}\n\nGenerate a comprehensive broadcast about this topic, researching from your knowledge to provide context, implications, and concrete details.`;
+            } else {
+                text = JSON.stringify(content).substring(0, 1000);
+            }
+            
+            // Ensure minimum content length for quality broadcasts
+            if (text.length < 100 && content.title) {
+                text = `Topic: ${content.title}\n\nElaborate on this breakthrough with specific details, metrics, and implications. Draw from your knowledge to create an informative broadcast.`;
+            }
             
             // Extract title for logging
             const titleMatch = text.match(/title:\s*"?([^"\n]+)"?/i) || 
                              text.match(/^#\s*(.+)/m) ||
+                             content.title ||
                              text.match(/^(.{0,100})/);
-            const title = titleMatch ? titleMatch[1].trim() : 'Untitled';
+            const title = typeof titleMatch === 'string' ? titleMatch : (titleMatch ? titleMatch[1].trim() : 'Untitled');
             
             console.log(`Creating broadcast for: ${title.substring(0, 60)}...`);
             

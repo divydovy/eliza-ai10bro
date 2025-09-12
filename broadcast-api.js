@@ -175,6 +175,144 @@ app.get('/api/config', (req, res) => {
     });
 });
 
+// Dashboard compatibility endpoints
+app.get('/api/stats', (req, res) => {
+    try {
+        // Get total documents
+        const totalDocs = db.prepare(`
+            SELECT COUNT(*) as count 
+            FROM memories 
+            WHERE type = 'documents'
+        `).get().count;
+
+        // Get documents with broadcasts
+        const docsWithBroadcasts = db.prepare(`
+            SELECT COUNT(DISTINCT documentId) as count
+            FROM broadcasts
+            WHERE documentId IS NOT NULL
+        `).get().count;
+
+        // Get pending broadcasts
+        const pendingBroadcasts = db.prepare(`
+            SELECT COUNT(*) as count
+            FROM broadcasts
+            WHERE status = 'pending'
+        `).get().count;
+
+        // Get sent broadcasts
+        const sentBroadcasts = db.prepare(`
+            SELECT COUNT(*) as count
+            FROM broadcasts
+            WHERE status = 'sent'
+        `).get().count;
+
+        // Calculate coverage percentage
+        const coverage = totalDocs > 0 ? ((docsWithBroadcasts / totalDocs) * 100).toFixed(1) : 0;
+        
+        // Total broadcasts is sent + pending
+        const totalBroadcasts = sentBroadcasts + pendingBroadcasts;
+
+        res.json({
+            totalDocuments: totalDocs,
+            totalBroadcasts: totalBroadcasts, // Dashboard expects this
+            docsWithBroadcasts: docsWithBroadcasts,
+            sentBroadcasts: sentBroadcasts,
+            pendingBroadcasts: pendingBroadcasts,
+            coverage: coverage + '%'
+        });
+    } catch (error) {
+        console.error('Error in /api/stats:', error);
+        res.status(500).json({ error: 'Failed to fetch stats' });
+    }
+});
+
+app.get('/api/sources', (req, res) => {
+    try {
+        const sources = db.prepare(`
+            SELECT 
+                json_extract(content, '$.metadata.sourceType') as source,
+                COUNT(*) as count,
+                MAX(createdAt) as lastImport
+            FROM memories
+            WHERE type = 'documents'
+            AND json_extract(content, '$.metadata.sourceType') IS NOT NULL
+            GROUP BY json_extract(content, '$.metadata.sourceType')
+            ORDER BY count DESC
+            LIMIT 20
+        `).all();
+
+        res.json(sources.map(s => ({
+            name: s.source || 'Unknown',
+            count: s.count,
+            lastImport: new Date(parseInt(s.lastImport)).toISOString()
+        })));
+    } catch (error) {
+        console.error('Error in /api/sources:', error);
+        res.status(500).json({ error: 'Failed to fetch sources' });
+    }
+});
+
+app.get('/api/recent', (req, res) => {
+    try {
+        const recent = db.prepare(`
+            SELECT 
+                json_extract(content, '$.metadata.title') as title,
+                json_extract(content, '$.metadata.sourceType') as source,
+                createdAt
+            FROM memories
+            WHERE type = 'documents'
+            ORDER BY ROWID DESC
+            LIMIT 50
+        `).all();
+
+        res.json(recent.map(doc => ({
+            title: doc.title || 'Untitled',
+            source: doc.source || 'Unknown',
+            time: new Date(parseInt(doc.createdAt)).toISOString()
+        })));
+    } catch (error) {
+        console.error('Error in /api/recent:', error);
+        res.status(500).json({ error: 'Failed to fetch recent documents' });
+    }
+});
+
+app.get('/api/broadcasts', (req, res) => {
+    try {
+        const broadcasts = db.prepare(`
+            SELECT 
+                content,
+                status,
+                client as platform,
+                createdAt,
+                sent_at
+            FROM broadcasts
+            WHERE status = 'sent'
+            ORDER BY sent_at DESC, createdAt DESC
+            LIMIT 20
+        `).all();
+
+        res.json(broadcasts.map(b => {
+            let broadcastText = '';
+            try {
+                const content = JSON.parse(b.content);
+                broadcastText = content.text || b.content;
+            } catch {
+                broadcastText = b.content || '';
+            }
+
+            return {
+                text: broadcastText.substring(0, 200),
+                platform: b.platform || 'telegram',
+                status: b.status,
+                time: new Date(parseInt(b.sent_at || b.createdAt)).toISOString()
+            };
+        }));
+    } catch (error) {
+        console.error('Error in /api/broadcasts:', error);
+        res.status(500).json({ error: 'Failed to fetch broadcasts' });
+    }
+});
+
 // Route: /api/recent-documents
 app.get('/api/recent-documents', (req, res) => {
     try {
