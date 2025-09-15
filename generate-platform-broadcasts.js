@@ -21,21 +21,23 @@ const PLATFORM_LIMITS = {
 // Platform-specific prompts
 const PLATFORM_PROMPTS = {
     twitter: `Create a compelling Twitter/X post about this scientific breakthrough. 
-Must be under 280 characters including any URLs.
-Use relevant hashtags sparingly.
-Focus on the most impactful aspect.
-Be concise and engaging.`,
+Must be under 240 characters to leave room for a URL.
+IMPORTANT: End with a complete thought, not mid-sentence.
+Use 1-2 relevant hashtags maximum.
+Focus on ONE key finding or impact.`,
     
     bluesky: `Create an engaging BlueSky post about this scientific breakthrough.
-Must be under 300 characters including any URLs.
-Focus on key innovation and impact.
-Be conversational but informative.`,
+Must be under 250 characters to leave room for a URL.
+IMPORTANT: End with a complete thought, not mid-sentence.
+Focus on the single most important finding.
+Be clear and direct.`,
     
     telegram: `Create a detailed Telegram broadcast about this scientific breakthrough.
-Can be up to 4000 characters.
+Can be up to 3900 characters to leave room for URL.
 Include context, implications, and technical details.
 Structure with clear paragraphs.
-Add relevant emojis for readability.`,
+Add relevant emojis for readability.
+IMPORTANT: End with complete thoughts, not mid-sentence.`,
     
     farcaster: `Create a Farcaster cast about this scientific breakthrough.
 Must be under 320 characters.
@@ -155,14 +157,23 @@ Output ONLY the summary, no explanation. Must be under ${maxLength - 20} charact
     return null;
 }
 
-async function generatePlatformBroadcasts(documentId, content) {
+async function generatePlatformBroadcasts(documentId, content, sourceUrl = '') {
     const broadcasts = {};
+    
+    // Extract URL from content if available
+    const url = sourceUrl || 
+                (typeof content === 'string' && content.match(/https?:\/\/[^\s]+/)?.[0]) ||
+                '';
     
     for (const [platform, limit] of Object.entries(PLATFORM_LIMITS)) {
         const prompt = PLATFORM_PROMPTS[platform];
-        console.log(`\n📱 Generating ${platform} broadcast (max ${limit} chars)...`);
         
-        const broadcast = await generateWithLLM(content, prompt, limit);
+        // Reserve space for URL if we have one
+        const effectiveLimit = url ? limit - url.length - 5 : limit; // 5 chars for "\n\n🔗 "
+        
+        console.log(`\n📱 Generating ${platform} broadcast (max ${effectiveLimit} chars + URL)...`);
+        
+        const broadcast = await generateWithLLM(content, prompt, effectiveLimit);
         
         if (broadcast) {
             // Quality checks
@@ -184,10 +195,14 @@ async function generatePlatformBroadcasts(documentId, content) {
             if (quality.hasMetrics) quality.score += 0.05;
             if (quality.hasEntity) quality.score += 0.05;
             
+            // Add URL to the broadcast text if available
+            const finalBroadcast = url ? `${broadcast}\n\n🔗 ${url}` : broadcast;
+            
             broadcasts[platform] = {
-                text: broadcast,
-                length: quality.length,
-                quality: quality
+                text: finalBroadcast,
+                length: finalBroadcast.length,
+                quality: quality,
+                url: url
             };
             
             console.log(`   ✅ Generated: ${quality.length} chars (${quality.withinLimit ? 'within' : 'EXCEEDS'} limit)`);
