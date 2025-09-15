@@ -258,7 +258,7 @@ async function updateBroadcastsWithPlatformVersions() {
         // Store broadcasts in database
         const insertStmt = db.prepare(`
             INSERT INTO broadcasts (
-                id, documentId, content, client, status, alignment_score, created_at
+                id, documentId, content, client, status, alignment_score, createdAt
             ) VALUES (?, ?, ?, ?, ?, ?, ?)
         `);
         
