@@ -8,6 +8,8 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 const { execSync } = require('child_process');
+const https = require('https');
+const http = require('http');
 
 // Platform character limits
 const PLATFORM_LIMITS = {
@@ -49,6 +51,88 @@ Must be under 500 characters.
 Be visual and engaging.
 Focus on human impact and real-world applications.`
 };
+
+// Open Graph image extraction function
+async function extractOpenGraphImage(url) {
+    return new Promise((resolve) => {
+        if (!url || !url.startsWith('http')) {
+            resolve(null);
+            return;
+        }
+        
+        const protocol = url.startsWith('https://') ? https : http;
+        const timeoutMs = 5000; // 5 second timeout
+        
+        const request = protocol.get(url, { 
+            timeout: timeoutMs,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; ElizaBroadcast/1.0)'
+            }
+        }, (response) => {
+            let html = '';
+            let size = 0;
+            const maxSize = 500000; // 500KB limit
+            
+            response.on('data', (chunk) => {
+                size += chunk.length;
+                if (size > maxSize) {
+                    request.destroy();
+                    resolve(null);
+                    return;
+                }
+                html += chunk;
+                
+                // Early detection - stop once we find og:image
+                const ogImageMatch = html.match(/<meta[^>]*property=['"](og:image)['"][^>]*content=['"]([^'"]+)['"]/i);
+                if (ogImageMatch) {
+                    request.destroy();
+                    const imageUrl = ogImageMatch[2];
+                    // Convert relative URLs to absolute
+                    if (imageUrl.startsWith('//')) {
+                        resolve(`https:${imageUrl}`);
+                    } else if (imageUrl.startsWith('/')) {
+                        const urlObj = new URL(url);
+                        resolve(`${urlObj.protocol}//${urlObj.host}${imageUrl}`);
+                    } else if (imageUrl.startsWith('http')) {
+                        resolve(imageUrl);
+                    } else {
+                        resolve(null);
+                    }
+                    return;
+                }
+            });
+            
+            response.on('end', () => {
+                // Final check if we didn't find it during streaming
+                const ogImageMatch = html.match(/<meta[^>]*property=['"](og:image)['"][^>]*content=['"]([^'"]+)['"]/i);
+                if (ogImageMatch) {
+                    const imageUrl = ogImageMatch[2];
+                    if (imageUrl.startsWith('//')) {
+                        resolve(`https:${imageUrl}`);
+                    } else if (imageUrl.startsWith('/')) {
+                        const urlObj = new URL(url);
+                        resolve(`${urlObj.protocol}//${urlObj.host}${imageUrl}`);
+                    } else if (imageUrl.startsWith('http')) {
+                        resolve(imageUrl);
+                    } else {
+                        resolve(null);
+                    }
+                } else {
+                    resolve(null);
+                }
+            });
+            
+            response.on('error', () => resolve(null));
+        });
+        
+        request.on('timeout', () => {
+            request.destroy();
+            resolve(null);
+        });
+        
+        request.on('error', () => resolve(null));
+    });
+}
 
 async function generateWithLLM(text, prompt, maxLength, maxAttempts = 3) {
     try {
@@ -165,6 +249,18 @@ async function generatePlatformBroadcasts(documentId, content, sourceUrl = '') {
                 (typeof content === 'string' && content.match(/https?:\/\/[^\s]+/)?.[0]) ||
                 '';
     
+    // Extract Open Graph image if we have a URL
+    let ogImage = null;
+    if (url) {
+        console.log(`\n🖼️  Extracting Open Graph image from: ${url}`);
+        ogImage = await extractOpenGraphImage(url);
+        if (ogImage) {
+            console.log(`   ✅ Found OG image: ${ogImage.substring(0, 80)}...`);
+        } else {
+            console.log(`   ℹ️  No OG image found`);
+        }
+    }
+    
     for (const [platform, limit] of Object.entries(PLATFORM_LIMITS)) {
         const prompt = PLATFORM_PROMPTS[platform];
         
@@ -202,7 +298,8 @@ async function generatePlatformBroadcasts(documentId, content, sourceUrl = '') {
                 text: finalBroadcast,
                 length: finalBroadcast.length,
                 quality: quality,
-                url: url
+                url: url,
+                ogImage: ogImage
             };
             
             console.log(`   ✅ Generated: ${quality.length} chars (${quality.withinLimit ? 'within' : 'EXCEEDS'} limit)`);
@@ -267,12 +364,15 @@ async function updateBroadcastsWithPlatformVersions() {
                 const broadcastId = `${doc.id.substring(0, 8)}-${platform}-${Date.now()}`;
                 const broadcastContent = JSON.stringify({
                     text: data.text,
+                    url: data.url,
+                    ogImage: data.ogImage,
                     metadata: {
                         platform: platform,
                         characterCount: data.length,
                         qualityScore: data.quality.score,
                         qualityChecks: data.quality,
-                        generatedAt: new Date().toISOString()
+                        generatedAt: new Date().toISOString(),
+                        hasOGImage: !!data.ogImage
                     }
                 });
                 
