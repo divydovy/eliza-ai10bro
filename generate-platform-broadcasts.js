@@ -330,7 +330,7 @@ async function updateBroadcastsWithPlatformVersions() {
         LEFT JOIN broadcasts b ON b.documentId = m.id
         WHERE m.type = 'documents'
         AND b.id IS NULL
-        LIMIT 5
+        LIMIT 50
     `).all();
     
     console.log(`📚 Found ${documents.length} documents without broadcasts\n`);

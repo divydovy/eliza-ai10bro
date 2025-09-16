@@ -432,7 +432,7 @@ app.get('/api/recent-broadcasts', (req, res) => {
         const formatted = recentBroadcasts.map(broadcast => {
             const now = Date.now();
             const created = parseInt(broadcast.createdAt);
-            const sent = broadcast.sent_at ? parseInt(broadcast.sent_at) * 1000 : null;
+            const sent = broadcast.sent_at ? parseInt(broadcast.sent_at) : null;
             
             const createdMinutesAgo = Math.floor((now - created) / 60000);
             let createdTimeStr;
