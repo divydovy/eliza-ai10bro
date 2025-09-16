@@ -1,6 +1,7 @@
 import { PostgresDatabaseAdapter } from "@elizaos/adapter-postgres";
 import { SqliteDatabaseAdapter } from "@elizaos/adapter-sqlite";
 import { AutoClientInterface } from "@elizaos/client-auto";
+import { BlueskyClient } from "@elizaos/client-bluesky";
 import { DiscordClientInterface } from "@elizaos/client-discord";
 import { FarcasterAgentClient } from "@elizaos/client-farcaster";
 import { LensAgentClient } from "@elizaos/client-lens";
@@ -428,6 +429,15 @@ export async function initializeClients(
             clients.farcaster = farcasterClient;
         }
     }
+
+    if (clientTypes.includes(Clients.BLUESKY)) {
+        const blueskyClient = new BlueskyClient(runtime);
+        if (blueskyClient) {
+            await blueskyClient.start();
+            clients.bluesky = blueskyClient;
+        }
+    }
+
     if (clientTypes.includes("lens")) {
         const lensClient = new LensAgentClient(runtime);
         lensClient.start();
