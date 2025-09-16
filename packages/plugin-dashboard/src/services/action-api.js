@@ -12,7 +12,8 @@ const __dirname = path.dirname(__filename);
 const execPromise = promisify(exec);
 
 const PORT = process.env.ELIZA_ACTION_PORT || 3003;
-const db = new Database(path.join(path.dirname(__dirname), '../../../../agent/data/db.sqlite'));
+const DB_PATH = process.env.DB_PATH || path.join(process.cwd(), 'agent/data/db.sqlite');
+const db = new Database(DB_PATH);
 
 // Enhanced action handlers with detailed feedback
 const actionHandlers = {

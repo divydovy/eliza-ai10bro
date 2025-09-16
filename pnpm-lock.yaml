@@ -117,6 +117,9 @@ importers:
       '@elizaos/client-auto':
         specifier: workspace:*
         version: link:../packages/client-auto
+      '@elizaos/client-bluesky':
+        specifier: workspace:*
+        version: link:../packages/client-bluesky
       '@elizaos/client-direct':
         specifier: workspace:*
         version: link:../packages/client-direct

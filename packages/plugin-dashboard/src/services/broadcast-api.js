@@ -25,7 +25,7 @@ if (fs.existsSync(envPath)) {
 
 // Configuration
 const PORT = process.env.BROADCAST_API_PORT || 3001;
-const DB_PATH = process.env.DB_PATH || path.join(path.dirname(__dirname), '../../../../agent/data/db.sqlite');
+const DB_PATH = process.env.DB_PATH || path.join(process.cwd(), 'agent/data/db.sqlite');
 
 // Initialize database connection
 let db;
@@ -194,16 +194,29 @@ const server = http.createServer((req, res) => {
     }
     // Route: /broadcast-dashboard.html
     else if (req.url === '/broadcast-dashboard.html' && req.method === 'GET') {
-        const dashboardPath = path.join(__dirname, 'broadcast-dashboard.html');
-        fs.readFile(dashboardPath, 'utf8', (err, data) => {
-            if (err) {
-                res.writeHead(404, { 'Content-Type': 'text/plain' });
-                res.end('Dashboard not found');
-            } else {
+        // Try multiple possible locations for the dashboard HTML
+        const possiblePaths = [
+            path.join(__dirname, '../public/broadcast-dashboard.html'),
+            path.join(__dirname, 'broadcast-dashboard.html'),
+            path.join(process.cwd(), 'broadcast-dashboard.html'),
+            path.join(process.cwd(), 'packages/plugin-dashboard/src/public/broadcast-dashboard.html')
+        ];
+
+        let fileFound = false;
+        for (const dashboardPath of possiblePaths) {
+            if (fs.existsSync(dashboardPath)) {
+                const data = fs.readFileSync(dashboardPath, 'utf8');
                 res.writeHead(200, { 'Content-Type': 'text/html' });
                 res.end(data);
+                fileFound = true;
+                break;
             }
-        });
+        }
+
+        if (!fileFound) {
+            res.writeHead(404, { 'Content-Type': 'text/plain' });
+            res.end('Dashboard not found');
+        }
     }
     // Route: /health
     else if (req.url === '/health' && req.method === 'GET') {
@@ -230,6 +243,173 @@ const server = http.createServer((req, res) => {
                 trigger: `http://localhost:${process.env.ELIZA_ACTION_PORT || 3003}/trigger`
             }
         }));
+    }
+    // Route: /api/recent-broadcasts
+    else if (req.url === '/api/recent-broadcasts' && req.method === 'GET') {
+        try {
+            const broadcasts = db.prepare(`
+                SELECT
+                    content,
+                    status,
+                    client as platform,
+                    createdAt,
+                    sent_at
+                FROM broadcasts
+                ORDER BY createdAt DESC
+                LIMIT 20
+            `).all();
+
+            const formattedBroadcasts = broadcasts.map(b => {
+                let content = b.content;
+                try {
+                    const parsed = JSON.parse(content);
+                    content = parsed.text || content;
+                } catch (e) {
+                    // Content is plain text
+                }
+
+                return {
+                    preview: content.substring(0, 100) + (content.length > 100 ? '...' : ''),
+                    fullContent: content,
+                    status: b.status || 'pending',
+                    platform: b.platform || 'unknown',
+                    createdTime: new Date(parseInt(b.createdAt)).toLocaleString(),
+                    sentTime: b.sent_at ? new Date(parseInt(b.sent_at)).toLocaleString() : null
+                };
+            });
+
+            res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+            res.end(JSON.stringify(formattedBroadcasts));
+        } catch (error) {
+            console.error('Error fetching recent broadcasts:', error);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Failed to fetch broadcasts' }));
+        }
+    }
+    // Route: /api/recent-documents
+    else if (req.url === '/api/recent-documents' && req.method === 'GET') {
+        try {
+            const documents = db.prepare(`
+                SELECT
+                    content,
+                    createdAt,
+                    type
+                FROM memories
+                WHERE type = 'documents'
+                ORDER BY createdAt DESC
+                LIMIT 50
+            `).all();
+
+            const formattedDocs = documents.map(doc => {
+                let parsed = {};
+                try {
+                    parsed = JSON.parse(doc.content);
+                } catch (e) {
+                    parsed = { text: doc.content };
+                }
+
+                const source = parsed.source || parsed.url || '';
+                let sourceType = 'unknown';
+
+                if (source.includes('obsidian')) sourceType = 'obsidian';
+                else if (source.includes('github')) sourceType = 'github';
+                else if (source.includes('arxiv')) sourceType = 'arxiv';
+                else if (source.includes('gdelt')) sourceType = 'github-gdelt';
+                else if (source.includes('youtube')) sourceType = 'youtube';
+                else if (source.includes('reddit')) sourceType = 'reddit';
+                else if (source.includes('nature')) sourceType = 'nature';
+                else if (source.includes('http')) sourceType = 'web';
+
+                return {
+                    title: parsed.title || parsed.text?.substring(0, 100) || 'Untitled',
+                    source: source,
+                    sourceType: sourceType,
+                    createdTime: new Date(parseInt(doc.createdAt)).toLocaleString(),
+                    fullText: parsed.text || doc.content
+                };
+            });
+
+            res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+            res.end(JSON.stringify(formattedDocs));
+        } catch (error) {
+            console.error('Error fetching recent documents:', error);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Failed to fetch documents' }));
+        }
+    }
+    // Route: /api/source-metrics
+    else if (req.url === '/api/source-metrics' && req.method === 'GET') {
+        try {
+            const metrics = db.prepare(`
+                SELECT
+                    CASE
+                        WHEN content LIKE '%gdelt%' THEN 'github-gdelt'
+                        WHEN content LIKE '%youtube%' THEN 'github-youtube'
+                        WHEN content LIKE '%arxiv%' THEN 'github-arxiv'
+                        WHEN content LIKE '%obsidian%' THEN 'obsidian'
+                        WHEN content LIKE '%github%' THEN 'github'
+                        WHEN content LIKE '%reddit%' THEN 'reddit'
+                        WHEN content LIKE '%nature%' THEN 'nature'
+                        ELSE 'other'
+                    END as source,
+                    COUNT(*) as documents,
+                    SUM(CASE WHEN b.id IS NOT NULL THEN 1 ELSE 0 END) as broadcasts,
+                    MAX(m.createdAt) as lastImport
+                FROM memories m
+                LEFT JOIN broadcasts b ON b.document_id = m.id
+                WHERE m.type = 'documents'
+                GROUP BY source
+                ORDER BY broadcasts DESC
+            `).all();
+
+            const formattedMetrics = {
+                sources: metrics.map(m => ({
+                    source: m.source,
+                    documents: m.documents,
+                    broadcasts: m.broadcasts,
+                    broadcastRate: m.documents > 0 ? (m.broadcasts / m.documents) * 100 : 0,
+                    lastImport: m.lastImport ? new Date(parseInt(m.lastImport)).toISOString() : null
+                }))
+            };
+
+            res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+            res.end(JSON.stringify(formattedMetrics));
+        } catch (error) {
+            console.error('Error fetching source metrics:', error);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Failed to fetch metrics' }));
+        }
+    }
+    // Route: /api/platform-stats
+    else if (req.url === '/api/platform-stats' && req.method === 'GET') {
+        try {
+            const stats = db.prepare(`
+                SELECT
+                    client as platform,
+                    status,
+                    COUNT(*) as count
+                FROM broadcasts
+                GROUP BY client, status
+            `).all();
+
+            const platformStats = {};
+            stats.forEach(stat => {
+                const platform = stat.platform || 'unknown';
+                if (!platformStats[platform]) {
+                    platformStats[platform] = { sent: 0, pending: 0, failed: 0 };
+                }
+                if (stat.status === 'sent') platformStats[platform].sent = stat.count;
+                else if (stat.status === 'pending') platformStats[platform].pending = stat.count;
+                else if (stat.status === 'failed') platformStats[platform].failed = stat.count;
+            });
+
+            res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+            res.end(JSON.stringify(platformStats));
+        } catch (error) {
+            console.error('Error fetching platform stats:', error);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Failed to fetch platform stats' }));
+        }
     }
     // Default route
     else {

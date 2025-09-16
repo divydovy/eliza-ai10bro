@@ -114,7 +114,7 @@ Post:`;
                 modelClass: ModelClass.SMALL
             });
 
-            const text = response.trim();
+            const text = typeof response === 'string' ? response.trim() : (response as any).text?.trim() || "";
 
             if (text && text.length <= 300) {
                 const post = await this.agent.post({
@@ -195,7 +195,7 @@ Response:`;
                 modelClass: ModelClass.SMALL
             });
 
-            const replyText = response.trim();
+            const replyText = typeof response === 'string' ? response.trim() : (response as any).text?.trim() || "";
 
             if (replyText && replyText.length <= 300) {
                 // Create reply
