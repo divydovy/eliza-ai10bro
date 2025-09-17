@@ -73,9 +73,19 @@ async function sendPendingBroadcasts() {
             try {
                 console.log(`📡 Sending broadcast ${broadcast.id} to Bluesky...`);
 
+                // Parse the JSON content to extract the text
+                let messageText;
+                try {
+                    const parsed = JSON.parse(broadcast.content);
+                    messageText = parsed.text || broadcast.content;
+                } catch (e) {
+                    // If parsing fails, use content as-is
+                    messageText = broadcast.content;
+                }
+
                 // Post to Bluesky
                 const post = await agent.post({
-                    text: broadcast.message,
+                    text: messageText,
                     createdAt: new Date().toISOString()
                 });
 

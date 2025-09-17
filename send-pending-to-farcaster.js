@@ -71,10 +71,20 @@ async function sendPendingBroadcasts() {
             try {
                 console.log(`📡 Sending broadcast ${broadcast.id} to Farcaster...`);
 
+                // Parse the JSON content to extract the text
+                let messageText;
+                try {
+                    const parsed = JSON.parse(broadcast.content);
+                    messageText = parsed.text || broadcast.content;
+                } catch (e) {
+                    // If parsing fails, use content as-is
+                    messageText = broadcast.content;
+                }
+
                 // Post to Farcaster
                 const result = await client.publishCast({
                     signerUuid: signerUuid,
-                    text: broadcast.message,
+                    text: messageText,
                 });
 
                 // Mark as sent in database
