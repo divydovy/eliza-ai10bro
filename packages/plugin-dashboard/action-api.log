@@ -1,0 +1,12 @@
+/Users/davidlockie/Documents/Projects/Eliza/node_modules/better-sqlite3/lib/database.js:65
+		throw new TypeError('Cannot open database because the directory does not exist');
+		      ^
+
+TypeError: Cannot open database because the directory does not exist
+    at new Database (/Users/davidlockie/Documents/Projects/Eliza/node_modules/better-sqlite3/lib/database.js:65:9)
+    at file:///Users/davidlockie/Documents/Projects/Eliza/packages/plugin-dashboard/src/services/action-api.js:16:12
+    at ModuleJob.run (node:internal/modules/esm/module_job:271:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:547:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)
+
+Node.js v23.3.0

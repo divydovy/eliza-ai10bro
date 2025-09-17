@@ -1,0 +1,9 @@
+✅ Connected to database at: /Users/davidlockie/Documents/Projects/Eliza/agent/data/db.sqlite
+
+🚀 Broadcast Dashboard API Server (Simple Version)
+==================================================
+📊 Dashboard: http://localhost:3001/broadcast-dashboard.html
+🔌 API Endpoint: http://localhost:3001/api/broadcast-stats
+💚 Health: http://localhost:3001/health
+==================================================
+    

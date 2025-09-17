@@ -1,0 +1,17 @@
+
+🎯 Enhanced Action API Server
+=============================
+Port: 3003
+Endpoint: http://localhost:3003/trigger
+Health: http://localhost:3003/health
+=============================
+    
+📋 Processing action: PROCESS_QUEUE
+(node:85922) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+📋 Processing action: PROCESS_QUEUE
+(node:98595) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+📋 Processing action: PROCESS_QUEUE
+(node:99076) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)

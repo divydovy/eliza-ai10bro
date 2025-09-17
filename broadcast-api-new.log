@@ -1,0 +1,89 @@
+✅ Connected to database at: /Users/davidlockie/Documents/Projects/Eliza/agent/data/db.sqlite
+
+🚀 Broadcast Dashboard API Server (Simple Version)
+==================================================
+📊 Dashboard: http://localhost:3001/broadcast-dashboard.html
+🔌 API Endpoint: http://localhost:3001/api/broadcast-stats
+💚 Health: http://localhost:3001/health
+==================================================
+    
+Error fetching source metrics: SqliteError: ambiguous column name: content
+    at Database.prepare (/Users/davidlockie/Documents/Projects/Eliza/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+    at Server.<anonymous> (file:///Users/davidlockie/Documents/Projects/Eliza/packages/plugin-dashboard/src/services/broadcast-api.js:343:32)
+    at Server.emit (node:events:513:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17) {
+  code: 'SQLITE_ERROR'
+}
+Error fetching source metrics: SqliteError: ambiguous column name: content
+    at Database.prepare (/Users/davidlockie/Documents/Projects/Eliza/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+    at Server.<anonymous> (file:///Users/davidlockie/Documents/Projects/Eliza/packages/plugin-dashboard/src/services/broadcast-api.js:343:32)
+    at Server.emit (node:events:513:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17) {
+  code: 'SQLITE_ERROR'
+}
+Error fetching source metrics: SqliteError: ambiguous column name: content
+    at Database.prepare (/Users/davidlockie/Documents/Projects/Eliza/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+    at Server.<anonymous> (file:///Users/davidlockie/Documents/Projects/Eliza/packages/plugin-dashboard/src/services/broadcast-api.js:343:32)
+    at Server.emit (node:events:513:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17) {
+  code: 'SQLITE_ERROR'
+}
+Error fetching source metrics: SqliteError: ambiguous column name: content
+    at Database.prepare (/Users/davidlockie/Documents/Projects/Eliza/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+    at Server.<anonymous> (file:///Users/davidlockie/Documents/Projects/Eliza/packages/plugin-dashboard/src/services/broadcast-api.js:343:32)
+    at Server.emit (node:events:513:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17) {
+  code: 'SQLITE_ERROR'
+}
+Error fetching source metrics: SqliteError: ambiguous column name: content
+    at Database.prepare (/Users/davidlockie/Documents/Projects/Eliza/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+    at Server.<anonymous> (file:///Users/davidlockie/Documents/Projects/Eliza/packages/plugin-dashboard/src/services/broadcast-api.js:343:32)
+    at Server.emit (node:events:513:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17) {
+  code: 'SQLITE_ERROR'
+}
+Error fetching source metrics: SqliteError: ambiguous column name: content
+    at Database.prepare (/Users/davidlockie/Documents/Projects/Eliza/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+    at Server.<anonymous> (file:///Users/davidlockie/Documents/Projects/Eliza/packages/plugin-dashboard/src/services/broadcast-api.js:343:32)
+    at Server.emit (node:events:513:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17) {
+  code: 'SQLITE_ERROR'
+}
+Error fetching source metrics: SqliteError: ambiguous column name: content
+    at Database.prepare (/Users/davidlockie/Documents/Projects/Eliza/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+    at Server.<anonymous> (file:///Users/davidlockie/Documents/Projects/Eliza/packages/plugin-dashboard/src/services/broadcast-api.js:343:32)
+    at Server.emit (node:events:513:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17) {
+  code: 'SQLITE_ERROR'
+}
+Error fetching source metrics: SqliteError: ambiguous column name: content
+    at Database.prepare (/Users/davidlockie/Documents/Projects/Eliza/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+    at Server.<anonymous> (file:///Users/davidlockie/Documents/Projects/Eliza/packages/plugin-dashboard/src/services/broadcast-api.js:343:32)
+    at Server.emit (node:events:513:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17) {
+  code: 'SQLITE_ERROR'
+}
+Error fetching source metrics: SqliteError: ambiguous column name: content
+    at Database.prepare (/Users/davidlockie/Documents/Projects/Eliza/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+    at Server.<anonymous> (file:///Users/davidlockie/Documents/Projects/Eliza/packages/plugin-dashboard/src/services/broadcast-api.js:343:32)
+    at Server.emit (node:events:513:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17) {
+  code: 'SQLITE_ERROR'
+}
+Error fetching source metrics: SqliteError: ambiguous column name: content
+    at Database.prepare (/Users/davidlockie/Documents/Projects/Eliza/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+    at Server.<anonymous> (file:///Users/davidlockie/Documents/Projects/Eliza/packages/plugin-dashboard/src/services/broadcast-api.js:343:32)
+    at Server.emit (node:events:513:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17) {
+  code: 'SQLITE_ERROR'
+}
