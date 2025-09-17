@@ -316,6 +316,219 @@ const actionHandlers = {
         }
         
         return result;
+    },
+
+    async SEND_FARCASTER() {
+        const result = {
+            action: 'SEND_FARCASTER',
+            started: new Date().toISOString(),
+            steps: []
+        };
+
+        try {
+            // Check pending Farcaster broadcasts
+            const pending = db.prepare('SELECT COUNT(*) as count FROM broadcasts WHERE client = ? AND status = ?').get('farcaster', 'pending');
+            result.steps.push({
+                step: 'Check pending',
+                message: `Found ${pending.count} pending Farcaster broadcasts`,
+                count: pending.count
+            });
+
+            if (pending.count === 0) {
+                result.steps.push({
+                    step: 'No broadcasts',
+                    message: 'No pending Farcaster broadcasts to send',
+                    status: 'info'
+                });
+                result.success = true;
+                result.completed = new Date().toISOString();
+                return result;
+            }
+
+            // Get one broadcast to send
+            const broadcast = db.prepare('SELECT * FROM broadcasts WHERE client = ? AND status = ? LIMIT 1').get('farcaster', 'pending');
+            if (broadcast) {
+                result.steps.push({
+                    step: 'Sending broadcast',
+                    message: `Sending Farcaster broadcast ${broadcast.id}...`,
+                    broadcastId: broadcast.id
+                });
+
+                // Execute send script
+                const { execSync } = await import('child_process');
+                const output = execSync(`BROADCAST_ID=${broadcast.id} node send-pending-to-farcaster.js`, {
+                    encoding: 'utf8',
+                    timeout: 30000
+                });
+
+                // Check if it was sent
+                const updatedBroadcast = db.prepare('SELECT status FROM broadcasts WHERE id = ?').get(broadcast.id);
+                if (updatedBroadcast.status === 'sent') {
+                    result.steps.push({
+                        step: 'Success',
+                        message: `Farcaster broadcast sent successfully!`,
+                        status: 'success'
+                    });
+                } else {
+                    result.steps.push({
+                        step: 'Failed',
+                        message: `Failed to send Farcaster broadcast`,
+                        status: 'error'
+                    });
+                }
+            }
+
+            result.success = true;
+            result.completed = new Date().toISOString();
+
+        } catch (error) {
+            result.success = false;
+            result.error = error.message;
+        }
+
+        return result;
+    },
+
+    async SEND_BLUESKY() {
+        const result = {
+            action: 'SEND_BLUESKY',
+            started: new Date().toISOString(),
+            steps: []
+        };
+
+        try {
+            // Check pending Bluesky broadcasts
+            const pending = db.prepare('SELECT COUNT(*) as count FROM broadcasts WHERE client = ? AND status = ?').get('bluesky', 'pending');
+            result.steps.push({
+                step: 'Check pending',
+                message: `Found ${pending.count} pending Bluesky broadcasts`,
+                count: pending.count
+            });
+
+            if (pending.count === 0) {
+                result.steps.push({
+                    step: 'No broadcasts',
+                    message: 'No pending Bluesky broadcasts to send',
+                    status: 'info'
+                });
+                result.success = true;
+                result.completed = new Date().toISOString();
+                return result;
+            }
+
+            // Get one broadcast to send
+            const broadcast = db.prepare('SELECT * FROM broadcasts WHERE client = ? AND status = ? LIMIT 1').get('bluesky', 'pending');
+            if (broadcast) {
+                result.steps.push({
+                    step: 'Sending broadcast',
+                    message: `Sending Bluesky broadcast ${broadcast.id}...`,
+                    broadcastId: broadcast.id
+                });
+
+                // Execute send script
+                const { execSync } = await import('child_process');
+                const output = execSync(`BROADCAST_ID=${broadcast.id} node send-pending-to-bluesky.js`, {
+                    encoding: 'utf8',
+                    timeout: 30000
+                });
+
+                // Check if it was sent
+                const updatedBroadcast = db.prepare('SELECT status FROM broadcasts WHERE id = ?').get(broadcast.id);
+                if (updatedBroadcast.status === 'sent') {
+                    result.steps.push({
+                        step: 'Success',
+                        message: `Bluesky broadcast sent successfully!`,
+                        status: 'success'
+                    });
+                } else {
+                    result.steps.push({
+                        step: 'Failed',
+                        message: `Failed to send Bluesky broadcast`,
+                        status: 'error'
+                    });
+                }
+            }
+
+            result.success = true;
+            result.completed = new Date().toISOString();
+
+        } catch (error) {
+            result.success = false;
+            result.error = error.message;
+        }
+
+        return result;
+    },
+
+    async SEND_TELEGRAM() {
+        const result = {
+            action: 'SEND_TELEGRAM',
+            started: new Date().toISOString(),
+            steps: []
+        };
+
+        try {
+            // Check pending Telegram broadcasts
+            const pending = db.prepare('SELECT COUNT(*) as count FROM broadcasts WHERE client = ? AND status = ?').get('telegram', 'pending');
+            result.steps.push({
+                step: 'Check pending',
+                message: `Found ${pending.count} pending Telegram broadcasts`,
+                count: pending.count
+            });
+
+            if (pending.count === 0) {
+                result.steps.push({
+                    step: 'No broadcasts',
+                    message: 'No pending Telegram broadcasts to send',
+                    status: 'info'
+                });
+                result.success = true;
+                result.completed = new Date().toISOString();
+                return result;
+            }
+
+            // Get one broadcast to send
+            const broadcast = db.prepare('SELECT * FROM broadcasts WHERE client = ? AND status = ? LIMIT 1').get('telegram', 'pending');
+            if (broadcast) {
+                result.steps.push({
+                    step: 'Sending broadcast',
+                    message: `Sending Telegram broadcast ${broadcast.id}...`,
+                    broadcastId: broadcast.id
+                });
+
+                // Execute send script
+                const { execSync } = await import('child_process');
+                const output = execSync(`BROADCAST_ID=${broadcast.id} node send-pending-to-telegram.js`, {
+                    encoding: 'utf8',
+                    timeout: 30000
+                });
+
+                // Check if it was sent
+                const updatedBroadcast = db.prepare('SELECT status FROM broadcasts WHERE id = ?').get(broadcast.id);
+                if (updatedBroadcast.status === 'sent') {
+                    result.steps.push({
+                        step: 'Success',
+                        message: `Telegram broadcast sent successfully!`,
+                        status: 'success'
+                    });
+                } else {
+                    result.steps.push({
+                        step: 'Failed',
+                        message: `Failed to send Telegram broadcast`,
+                        status: 'error'
+                    });
+                }
+            }
+
+            result.success = true;
+            result.completed = new Date().toISOString();
+
+        } catch (error) {
+            result.success = false;
+            result.error = error.message;
+        }
+
+        return result;
     }
 };
 

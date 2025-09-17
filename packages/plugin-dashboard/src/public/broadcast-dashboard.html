@@ -647,8 +647,14 @@
             <button class="action-btn" onclick="triggerAction('SEND_TELEGRAM')" id="send-telegram-btn" title="Send next pending Telegram broadcast">
                 📱 Send to Telegram
             </button>
-            <button class="action-btn" onclick="triggerAction('SEND_TWITTER')" id="send-twitter-btn" title="Send next pending X/Twitter broadcast">
-                🐦 Send to X
+            <button class="action-btn" disabled style="opacity: 0.5; cursor: not-allowed;" title="X/Twitter API requires $100/month Basic tier subscription">
+                🐦 Send to X (API $100/mo)
+            </button>
+            <button class="action-btn" onclick="triggerAction('SEND_FARCASTER')" id="send-farcaster-btn" title="Send next pending Farcaster broadcast">
+                🟣 Send to Farcaster
+            </button>
+            <button class="action-btn" onclick="triggerAction('SEND_BLUESKY')" id="send-bluesky-btn" title="Send next pending Bluesky broadcast">
+                🦋 Send to Bluesky
             </button>
             <button class="action-btn" onclick="refreshStats()" id="refresh-btn">
                 🔄 Refresh Stats
@@ -739,12 +745,9 @@
                     </div>
                 </div>
                 <div style="margin-top: 10px; padding: 10px; background: #312e81; border-radius: 5px;">
-                    <p style="margin: 0; color: #a5b4fc; font-size: 14px;">
+                    <p id="schedule-content" style="margin: 0; color: #a5b4fc; font-size: 14px;">
                         <strong>🕐 Automation Schedule:</strong><br>
-                        • 📤 <b>Send Broadcasts:</b> 1/hour @ 00:00, 04:00, 08:00, 12:00, 16:00, 20:00<br>
-                        • ✨ <b>Create Broadcasts:</b> 10/4hrs @ 02:00, 06:00, 10:00, 14:00, 18:00, 22:00<br>
-                        • 🔄 <b>GitHub Sync:</b> Full sync @ 01:00, 07:00, 13:00, 19:00<br>
-                        • 📝 <b>Obsidian Import:</b> Every 5 minutes (continuous)
+                        <span style="color: #a78bfa;">Loading schedule...</span>
                     </p>
                 </div>
             </div>
@@ -1184,6 +1187,31 @@
             }, 500);
         }
         
+        async function fetchSchedule() {
+            try {
+                const response = await fetch('/api/schedule');
+                const data = await response.json();
+
+                const scheduleContent = document.getElementById('schedule-content');
+                if (!data.schedule || data.schedule.length === 0) {
+                    scheduleContent.innerHTML = `<strong>🕐 Automation Schedule:</strong><br><span style="color: #ef4444;">No scheduled tasks found</span>`;
+                    return;
+                }
+
+                let scheduleHTML = '<strong>🕐 Automation Schedule:</strong><br>';
+                data.schedule.forEach(task => {
+                    scheduleHTML += `• ${task.icon} <b>${task.name}:</b> ${task.description} @ ${task.times.join(', ')}<br>`;
+                    scheduleHTML += `  <span style="font-size: 12px; color: #9ca3af;">${task.interval}</span><br>`;
+                });
+
+                scheduleContent.innerHTML = scheduleHTML;
+            } catch (error) {
+                console.error('Error fetching schedule:', error);
+                const scheduleContent = document.getElementById('schedule-content');
+                scheduleContent.innerHTML = `<strong>🕐 Automation Schedule:</strong><br><span style="color: #ef4444;">Failed to load schedule</span>`;
+            }
+        }
+
         async function fetchSourceMetrics() {
             try {
                 const response = await fetch('/api/source-metrics');
@@ -1281,6 +1309,7 @@
         fetchConfig().then(() => {
             fetchData();
             fetchSourceMetrics();
+            fetchSchedule();
             refreshLogs();
             // Auto-refresh data (not config) every 30 seconds
             setInterval(fetchData, appConfig.refreshInterval || 30000);
