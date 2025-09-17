@@ -416,6 +416,70 @@ const server = http.createServer((req, res) => {
             res.end(JSON.stringify({ error: 'Failed to fetch metrics' }));
         }
     }
+    // Route: /api/schedule
+    else if (req.url === '/api/schedule' && req.method === 'GET') {
+        try {
+            const schedule = [];
+            const launchAgentDir = `${process.env.HOME}/Library/LaunchAgents`;
+            const elizaAgents = ['com.eliza.github-sync', 'com.eliza.broadcast-create', 'com.eliza.broadcast-send'];
+
+            for (const agent of elizaAgents) {
+                const plistPath = `${launchAgentDir}/${agent}.plist`;
+                if (fs.existsSync(plistPath)) {
+                    try {
+                        const plistContent = fs.readFileSync(plistPath, 'utf8');
+
+                        // Parse hours from the plist file
+                        const hourMatches = plistContent.matchAll(/<key>Hour<\/key>\s*<integer>(\d+)<\/integer>/g);
+                        const times = [];
+                        for (const match of hourMatches) {
+                            const hour = parseInt(match[1]);
+                            times.push(`${String(hour).padStart(2, '0')}:00`);
+                        }
+                        times.sort();
+
+                        let name = '';
+                        let icon = '';
+                        let description = '';
+                        if (agent.includes('github-sync')) {
+                            name = 'GitHub Sync';
+                            icon = '🔄';
+                            description = 'Full repository sync';
+                        } else if (agent.includes('broadcast-create')) {
+                            name = 'Create Broadcasts';
+                            icon = '✨';
+                            description = 'Generate new broadcasts';
+                        } else if (agent.includes('broadcast-send')) {
+                            name = 'Send Broadcasts';
+                            icon = '📤';
+                            description = '1 broadcast per run';
+                        }
+
+                        const interval = times.length > 1 ?
+                            `Every ${24 / times.length} hours` :
+                            'Daily';
+
+                        schedule.push({
+                            name,
+                            icon,
+                            description,
+                            times,
+                            interval
+                        });
+                    } catch (err) {
+                        console.log(`Could not parse ${agent}:`, err.message);
+                    }
+                }
+            }
+
+            res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+            res.end(JSON.stringify({ schedule }));
+        } catch (error) {
+            console.error('Error fetching schedule:', error);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Failed to fetch schedule' }));
+        }
+    }
     // Route: /api/platform-stats
     else if (req.url === '/api/platform-stats' && req.method === 'GET') {
         try {

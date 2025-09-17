@@ -100,8 +100,37 @@ const actionHandlers = {
                         db.prepare('UPDATE broadcasts SET status = ? WHERE id = ?')
                             .run('sending', broadcast.id);
                         
-                        // Now call the actual send script
-                        const output = execSync(`node send-pending-to-telegram.js`, { 
+                        // Determine the appropriate send script based on the broadcast client
+                        let sendScript;
+                        const client = broadcast.client || 'telegram'; // default to telegram
+
+                        switch (client.toLowerCase()) {
+                            case 'telegram':
+                                sendScript = 'send-pending-to-telegram.js';
+                                break;
+                            case 'bluesky':
+                                sendScript = 'send-pending-to-bluesky.js';
+                                break;
+                            case 'farcaster':
+                                sendScript = 'send-pending-to-farcaster.js';
+                                break;
+                            case 'threads':
+                                sendScript = 'send-pending-to-threads.js';
+                                break;
+                            case 'twitter':
+                            case 'x':
+                                sendScript = 'send-pending-to-twitter.js';
+                                break;
+                            default:
+                                console.log(`⚠️ Unknown client '${client}', defaulting to Telegram`);
+                                sendScript = 'send-pending-to-telegram.js';
+                                break;
+                        }
+
+                        console.log(`📤 Sending broadcast ${broadcast.id} via ${client} using ${sendScript}`);
+
+                        // Now call the appropriate send script
+                        const output = execSync(`node ${sendScript}`, {
                             encoding: 'utf8',
                             env: { ...process.env, BROADCAST_ID: broadcast.id }
                         });
