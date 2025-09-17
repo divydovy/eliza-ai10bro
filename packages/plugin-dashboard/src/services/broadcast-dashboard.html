@@ -1202,27 +1202,49 @@
                 metricsGrid.innerHTML = sortedSources.map((source, index) => {
                     const isTop = index < 3;
                     const broadcastPercent = source.broadcastRate || 0;
-                    
+
+                    // Format last import date
+                    let lastUpdated = 'Never';
+                    if (source.lastImport) {
+                        const importDate = new Date(source.lastImport);
+                        const now = new Date();
+                        const hoursDiff = Math.floor((now - importDate) / (1000 * 60 * 60));
+                        const daysDiff = Math.floor(hoursDiff / 24);
+
+                        if (daysDiff > 0) {
+                            lastUpdated = `${daysDiff} day${daysDiff > 1 ? 's' : ''} ago`;
+                        } else if (hoursDiff > 0) {
+                            lastUpdated = `${hoursDiff} hour${hoursDiff > 1 ? 's' : ''} ago`;
+                        } else {
+                            lastUpdated = 'Recently';
+                        }
+                    }
+
                     return `
                         <div class="metric-card ${isTop ? 'top-performer' : ''}">
                             ${isTop ? `<span class="top-badge">TOP ${index + 1}</span>` : ''}
                             <div class="metric-source">${formatSourceName(source.source)}</div>
-                            
+
                             <div class="metric-stats">
                                 <span class="metric-label">Documents:</span>
                                 <span class="metric-value">${source.documents}</span>
                             </div>
-                            
+
                             <div class="metric-stats">
                                 <span class="metric-label">Broadcasts:</span>
                                 <span class="metric-value">${source.broadcasts} (${broadcastPercent.toFixed(1)}%)</span>
                             </div>
-                            
+
                             <div class="metric-stats">
                                 <span class="metric-label">Quality Score:</span>
                                 <span class="metric-value">${broadcastPercent.toFixed(1)}%</span>
                             </div>
-                            
+
+                            <div class="metric-stats" style="font-size: 0.85em; opacity: 0.8;">
+                                <span class="metric-label">Last Updated:</span>
+                                <span class="metric-value">${lastUpdated}</span>
+                            </div>
+
                             <div class="quality-bar">
                                 <div class="quality-fill" style="width: ${broadcastPercent}%"></div>
                             </div>

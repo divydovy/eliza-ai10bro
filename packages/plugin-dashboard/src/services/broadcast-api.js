@@ -91,6 +91,26 @@ const server = http.createServer((req, res) => {
                 pendingBroadcasts = totalBroadcasts;
             }
 
+            // Get platform-specific stats
+            const platformStats = {};
+            const platformBreakdown = db.prepare(`
+                SELECT
+                    client as platform,
+                    status,
+                    COUNT(*) as count
+                FROM broadcasts
+                GROUP BY client, status
+            `).all();
+
+            platformBreakdown.forEach(row => {
+                if (!platformStats[row.platform]) {
+                    platformStats[row.platform] = { sent: 0, pending: 0, failed: 0 };
+                }
+                if (row.status === 'sent') platformStats[row.platform].sent = row.count;
+                else if (row.status === 'pending') platformStats[row.platform].pending = row.count;
+                else if (row.status === 'failed') platformStats[row.platform].failed = row.count;
+            });
+
             // Get recent broadcast activity from broadcasts table
             const recentActivity = db.prepare(`
                 SELECT 
@@ -180,6 +200,7 @@ const server = http.createServer((req, res) => {
                 failedBroadcasts: failedBroadcasts,
                 docsWithBroadcasts: docsWithBroadcasts,
                 docsWithoutBroadcasts: Math.max(0, totalDocs - docsWithBroadcasts),
+                platformStats: platformStats,
                 recentActivity: formattedActivity,
                 lastUpdated: new Date().toISOString()
             };
@@ -320,11 +341,21 @@ const server = http.createServer((req, res) => {
                 else if (source.includes('nature')) sourceType = 'nature';
                 else if (source.includes('http')) sourceType = 'web';
 
+                // Handle both timestamp and datetime string formats
+                let createdTime;
+                if (typeof doc.createdAt === 'string' && doc.createdAt.includes('-')) {
+                    // SQLite datetime format: "2025-09-13 06:03:18"
+                    createdTime = new Date(doc.createdAt + ' UTC').toLocaleString();
+                } else {
+                    // Unix timestamp (milliseconds)
+                    createdTime = new Date(parseInt(doc.createdAt)).toLocaleString();
+                }
+
                 return {
                     title: parsed.title || parsed.text?.substring(0, 100) || 'Untitled',
                     source: source,
                     sourceType: sourceType,
-                    createdTime: new Date(parseInt(doc.createdAt)).toLocaleString(),
+                    createdTime: createdTime,
                     fullText: parsed.text || doc.content
                 };
             });
@@ -343,20 +374,20 @@ const server = http.createServer((req, res) => {
             const metrics = db.prepare(`
                 SELECT
                     CASE
-                        WHEN content LIKE '%gdelt%' THEN 'github-gdelt'
-                        WHEN content LIKE '%youtube%' THEN 'github-youtube'
-                        WHEN content LIKE '%arxiv%' THEN 'github-arxiv'
-                        WHEN content LIKE '%obsidian%' THEN 'obsidian'
-                        WHEN content LIKE '%github%' THEN 'github'
-                        WHEN content LIKE '%reddit%' THEN 'reddit'
-                        WHEN content LIKE '%nature%' THEN 'nature'
+                        WHEN m.content LIKE '%gdelt%' THEN 'github-gdelt'
+                        WHEN m.content LIKE '%youtube%' THEN 'github-youtube'
+                        WHEN m.content LIKE '%arxiv%' THEN 'github-arxiv'
+                        WHEN m.content LIKE '%obsidian%' THEN 'obsidian'
+                        WHEN m.content LIKE '%github%' THEN 'github'
+                        WHEN m.content LIKE '%reddit%' THEN 'reddit'
+                        WHEN m.content LIKE '%nature%' THEN 'nature'
                         ELSE 'other'
                     END as source,
                     COUNT(*) as documents,
                     SUM(CASE WHEN b.id IS NOT NULL THEN 1 ELSE 0 END) as broadcasts,
                     MAX(m.createdAt) as lastImport
                 FROM memories m
-                LEFT JOIN broadcasts b ON b.document_id = m.id
+                LEFT JOIN broadcasts b ON b.documentId = m.id
                 WHERE m.type = 'documents'
                 GROUP BY source
                 ORDER BY broadcasts DESC
@@ -368,7 +399,12 @@ const server = http.createServer((req, res) => {
                     documents: m.documents,
                     broadcasts: m.broadcasts,
                     broadcastRate: m.documents > 0 ? (m.broadcasts / m.documents) * 100 : 0,
-                    lastImport: m.lastImport ? new Date(parseInt(m.lastImport)).toISOString() : null
+                    // Handle both timestamp and datetime string formats for lastImport
+                    lastImport: m.lastImport ? (
+                        typeof m.lastImport === 'string' && m.lastImport.includes('-') ?
+                            new Date(m.lastImport + ' UTC').toISOString() :
+                            new Date(parseInt(m.lastImport)).toISOString()
+                    ) : null
                 }))
             };
 
