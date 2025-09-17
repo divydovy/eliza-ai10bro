@@ -421,7 +421,7 @@ const server = http.createServer((req, res) => {
         try {
             const schedule = [];
             const launchAgentDir = `${process.env.HOME}/Library/LaunchAgents`;
-            const elizaAgents = ['com.eliza.github-sync', 'com.eliza.broadcast-create', 'com.eliza.broadcast-send'];
+            const elizaAgents = ['com.eliza.github-sync', 'com.eliza.broadcast-create', 'com.eliza.broadcast-send', 'com.ai10bro.obsidian-update'];
 
             for (const agent of elizaAgents) {
                 const plistPath = `${launchAgentDir}/${agent}.plist`;
@@ -429,14 +429,34 @@ const server = http.createServer((req, res) => {
                     try {
                         const plistContent = fs.readFileSync(plistPath, 'utf8');
 
-                        // Parse hours from the plist file
+                        // Parse schedule from the plist file
+                        let times = [];
+                        let interval = '';
+
+                        // Check for StartCalendarInterval (hour-based scheduling)
                         const hourMatches = plistContent.matchAll(/<key>Hour<\/key>\s*<integer>(\d+)<\/integer>/g);
-                        const times = [];
-                        for (const match of hourMatches) {
-                            const hour = parseInt(match[1]);
-                            times.push(`${String(hour).padStart(2, '0')}:00`);
+                        if (hourMatches) {
+                            for (const match of hourMatches) {
+                                const hour = parseInt(match[1]);
+                                times.push(`${String(hour).padStart(2, '0')}:00`);
+                            }
+                            times.sort();
                         }
-                        times.sort();
+
+                        // Check for StartInterval (seconds-based scheduling)
+                        const intervalMatch = plistContent.match(/<key>StartInterval<\/key>\s*<integer>(\d+)<\/integer>/);
+                        if (intervalMatch && times.length === 0) {
+                            const seconds = parseInt(intervalMatch[1]);
+                            const minutes = Math.floor(seconds / 60);
+                            if (minutes < 60) {
+                                interval = `Every ${minutes} minutes`;
+                                times = ['Continuous'];
+                            } else {
+                                const hours = Math.floor(minutes / 60);
+                                interval = `Every ${hours} hour${hours > 1 ? 's' : ''}`;
+                                times = ['Continuous'];
+                            }
+                        }
 
                         let name = '';
                         let icon = '';
@@ -453,11 +473,18 @@ const server = http.createServer((req, res) => {
                             name = 'Send Broadcasts';
                             icon = '📤';
                             description = '1 broadcast per run';
+                        } else if (agent.includes('obsidian-update')) {
+                            name = 'Obsidian Import';
+                            icon = '🧠';
+                            description = 'Import from Obsidian vault';
                         }
 
-                        const interval = times.length > 1 ?
-                            `Every ${24 / times.length} hours` :
-                            'Daily';
+                        // Use computed interval for StartInterval agents, otherwise calculate from times
+                        if (!interval) {
+                            interval = times.length > 1 ?
+                                `Every ${24 / times.length} hours` :
+                                'Daily';
+                        }
 
                         schedule.push({
                             name,
