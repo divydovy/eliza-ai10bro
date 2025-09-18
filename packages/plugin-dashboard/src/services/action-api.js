@@ -529,6 +529,121 @@ const actionHandlers = {
         }
 
         return result;
+    },
+
+    async SEND_TO_ALL() {
+        const result = {
+            action: 'SEND_TO_ALL',
+            started: new Date().toISOString(),
+            platforms: [],
+            steps: []
+        };
+
+        try {
+            // Get documentId that has pending broadcasts for multiple platforms
+            const multiPlatformDoc = db.prepare(`
+                SELECT documentId
+                FROM broadcasts
+                WHERE status = 'pending'
+                AND client IN ('telegram', 'farcaster', 'bluesky')
+                GROUP BY documentId
+                HAVING COUNT(DISTINCT client) >= 2
+                ORDER BY COUNT(DISTINCT client) DESC
+                LIMIT 1
+            `).get();
+
+            // Fall back to any pending broadcast if no multi-platform doc exists
+            const targetDoc = multiPlatformDoc || db.prepare(`
+                SELECT documentId
+                FROM broadcasts
+                WHERE status = 'pending'
+                LIMIT 1
+            `).get();
+
+            if (!targetDoc) {
+                result.steps.push({
+                    step: 'No broadcasts',
+                    message: 'No pending broadcasts found for any platform',
+                    status: 'info'
+                });
+                result.success = true;
+                return result;
+            }
+
+            // Get broadcasts for this document across all platforms
+            const broadcasts = db.prepare(`
+                SELECT id, client, content
+                FROM broadcasts
+                WHERE documentId = ?
+                AND status = 'pending'
+                AND client IN ('telegram', 'farcaster', 'bluesky')
+            `).all(targetDoc.documentId);
+
+            result.steps.push({
+                step: 'Found broadcasts',
+                message: `Sending to ${broadcasts.length} platform(s): ${broadcasts.map(b => b.client).join(', ')}`,
+                documentId: targetDoc.documentId
+            });
+
+            // Execute send scripts in parallel
+            const { exec } = await import('child_process');
+            const { promisify } = await import('util');
+            const execPromise = promisify(exec);
+
+            const sendPromises = broadcasts.map(async (b) => {
+                try {
+                    const output = await execPromise(`BROADCAST_ID=${b.id} node send-pending-to-${b.client}.js`, {
+                        encoding: 'utf8',
+                        timeout: 30000
+                    });
+
+                    // Check if it was sent
+                    const updated = db.prepare('SELECT status FROM broadcasts WHERE id = ?').get(b.id);
+                    return {
+                        platform: b.client,
+                        success: updated.status === 'sent',
+                        broadcastId: b.id,
+                        status: updated.status
+                    };
+                } catch (error) {
+                    return {
+                        platform: b.client,
+                        success: false,
+                        error: error.message,
+                        broadcastId: b.id
+                    };
+                }
+            });
+
+            const results = await Promise.all(sendPromises);
+            result.platforms = results;
+
+            // Summary
+            const successful = results.filter(r => r.success).length;
+            const failed = results.filter(r => !r.success).length;
+
+            result.steps.push({
+                step: 'Complete',
+                message: `Sent to ${successful} platform(s), ${failed} failed`,
+                successful,
+                failed
+            });
+
+            result.success = successful > 0;
+
+            result.completed = new Date().toISOString();
+
+        } catch (error) {
+            result.success = false;
+            result.error = error.message;
+            result.steps.push({
+                step: 'Error',
+                message: error.message,
+                status: 'error'
+            });
+        }
+
+        return result;
     }
 };
 

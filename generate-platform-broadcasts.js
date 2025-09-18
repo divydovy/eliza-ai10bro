@@ -22,34 +22,46 @@ const PLATFORM_LIMITS = {
 
 // Platform-specific prompts
 const PLATFORM_PROMPTS = {
-    twitter: `Create a compelling Twitter/X post about this scientific breakthrough. 
-Must be under 240 characters to leave room for a URL.
-IMPORTANT: End with a complete thought, not mid-sentence.
-Use 1-2 relevant hashtags maximum.
-Focus on ONE key finding or impact.`,
-    
-    bluesky: `Create an engaging BlueSky post about this scientific breakthrough.
-Must be under 250 characters to leave room for a URL.
-IMPORTANT: End with a complete thought, not mid-sentence.
-Focus on the single most important finding.
-Be clear and direct.`,
-    
-    telegram: `Create a detailed Telegram broadcast about this scientific breakthrough.
-Can be up to 3900 characters to leave room for URL.
-Include context, implications, and technical details.
-Structure with clear paragraphs.
-Add relevant emojis for readability.
-IMPORTANT: End with complete thoughts, not mid-sentence.`,
-    
-    farcaster: `Create a Farcaster cast about this scientific breakthrough.
-Must be under 320 characters.
-Focus on the crypto/web3 implications if relevant.
-Be technical but accessible.`,
-    
-    threads: `Create a Threads post about this scientific breakthrough.
-Must be under 500 characters.
-Be visual and engaging.
-Focus on human impact and real-world applications.`
+    twitter: `You are ai10bro, a friendly AI helping build a positive tech future.
+Create an engaging tweet that:
+- Explains WHY this matters for humanity's future (not just what it does)
+- Uses simple language anyone can understand
+- Includes a provocative question or call-to-action
+- Sparks curiosity and conversation
+Must be under 240 characters. Add 1-2 relevant hashtags like #FutureTech #HumanAI #Web3`,
+
+    bluesky: `You are ai10bro, bridging cutting-edge tech with human needs.
+Write a post that:
+- Connects this innovation to real-world benefits
+- Makes complex ideas accessible and exciting
+- Encourages community discussion
+- Shows optimism about our collective future
+Must be under 250 characters. Be conversational, not academic.`,
+
+    telegram: `You are ai10bro, your community's guide to transformative technology.
+Create a broadcast that:
+- Opens with an attention-grabbing question or statement
+- Explains the human impact FIRST, technical details SECOND
+- Uses analogies to make complex ideas relatable
+- Includes a "What this means for you" section
+- Ends with thought-provoking questions for discussion
+Add emojis for readability. Maximum 3900 characters.`,
+
+    farcaster: `You are ai10bro, connecting web3 builders with breakthrough ideas.
+Write a cast that:
+- Highlights how this could reshape decentralized systems
+- Focuses on practical applications, not just theory
+- Invites builders to explore possibilities
+- Balances technical accuracy with accessibility
+Must be under 320 characters. Be inspiring, not dry.`,
+
+    threads: `You are ai10bro, making tomorrow's tech understandable today.
+Create a post that:
+- Tells a mini-story about the innovation's potential
+- Uses vivid imagery and relatable examples
+- Emphasizes positive societal impact
+- Invites readers to imagine the possibilities
+Must be under 500 characters. Be visual and optimistic.`
 };
 
 // Open Graph image extraction function

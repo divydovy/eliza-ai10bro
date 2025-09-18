@@ -647,8 +647,8 @@
             <button class="action-btn" onclick="triggerAction('SEND_TELEGRAM')" id="send-telegram-btn" title="Send next pending Telegram broadcast">
                 📱 Send to Telegram
             </button>
-            <button class="action-btn" disabled style="opacity: 0.5; cursor: not-allowed;" title="X/Twitter API requires $100/month Basic tier subscription">
-                🐦 Send to X (API $100/mo)
+            <button class="action-btn" onclick="triggerAction('SEND_TO_ALL')" id="send-all-btn" title="Send one broadcast to all active platforms" style="background: linear-gradient(45deg, #1DA1F2, #833AB4, #5865F2); color: white; font-weight: bold;">
+                🚀 Send to All Platforms
             </button>
             <button class="action-btn" onclick="triggerAction('SEND_FARCASTER')" id="send-farcaster-btn" title="Send next pending Farcaster broadcast">
                 🟣 Send to Farcaster
