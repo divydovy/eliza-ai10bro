@@ -6,6 +6,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getNextBroadcastsRoundRobin } from './process-queue-round-robin.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -77,102 +78,111 @@ const actionHandlers = {
                     }
                 }
             } else {
-                // Process next pending broadcast (just one)
-                const broadcast = db.prepare('SELECT * FROM broadcasts WHERE status = ? LIMIT 1').get('pending');
-                if (broadcast) {
-                    result.steps.push({
-                        step: 'Processing next broadcast',
-                        message: `Sending 1 broadcast to ${broadcast.client}...`,
-                        items: [{
-                            id: broadcast.id,
-                            client: broadcast.client,
-                            preview: broadcast.content ? broadcast.content.substring(0, 50) + '...' : 'No content'
-                        }]
-                    });
-                    
-                    // Actually send the broadcast
-                    try {
-                        // Call the send script for this single broadcast
-                        const { execSync } = await import('child_process');
-                        
-                        // First, mark this specific broadcast as ready to send
-                        // (we'll use a temporary status to isolate it)
-                        db.prepare('UPDATE broadcasts SET status = ? WHERE id = ?')
-                            .run('sending', broadcast.id);
-                        
-                        // Determine the appropriate send script based on the broadcast client
-                        let sendScript;
-                        const client = broadcast.client || 'telegram'; // default to telegram
+                // Use round-robin distribution to get next broadcast(s)
+                const broadcastsToSend = await getNextBroadcastsRoundRobin(db, 1); // Send 1 by default
 
-                        switch (client.toLowerCase()) {
-                            case 'telegram':
-                                sendScript = 'send-pending-to-telegram.js';
-                                break;
-                            case 'bluesky':
-                                sendScript = 'send-pending-to-bluesky.js';
-                                break;
-                            case 'farcaster':
-                                sendScript = 'send-pending-to-farcaster.js';
-                                break;
-                            case 'threads':
-                                sendScript = 'send-pending-to-threads.js';
-                                break;
-                            case 'twitter':
-                            case 'x':
-                                sendScript = 'send-pending-to-twitter.js';
-                                break;
-                            default:
-                                console.log(`⚠️ Unknown client '${client}', defaulting to Telegram`);
-                                sendScript = 'send-pending-to-telegram.js';
-                                break;
-                        }
-
-                        console.log(`📤 Sending broadcast ${broadcast.id} via ${client} using ${sendScript}`);
-
-                        // Now call the appropriate send script
-                        const output = execSync(`node ${sendScript}`, {
-                            encoding: 'utf8',
-                            env: { ...process.env, BROADCAST_ID: broadcast.id }
-                        });
-                        
-                        // Check if it was actually sent
-                        const updatedBroadcast = db.prepare('SELECT status FROM broadcasts WHERE id = ?').get(broadcast.id);
-                        
-                        if (updatedBroadcast.status === 'sent') {
-                            result.steps.push({
-                                step: 'Sent successfully',
-                                message: `Broadcast sent to ${broadcast.client}!`,
-                                details: output.trim().split('\n').pop(),
-                                status: 'success'
-                            });
-                        } else {
-                            // If not sent, revert to pending
-                            db.prepare('UPDATE broadcasts SET status = ? WHERE id = ?')
-                                .run('pending', broadcast.id);
-                            
-                            result.steps.push({
-                                step: 'Send failed',
-                                message: `Failed to send broadcast to ${broadcast.client}`,
-                                status: 'error'
-                            });
-                        }
-                    } catch (error) {
-                        // Revert to pending on error
-                        db.prepare('UPDATE broadcasts SET status = ? WHERE id = ?')
-                            .run('pending', broadcast.id);
-                        
-                        result.steps.push({
-                            step: 'Send error',
-                            message: error.message,
-                            status: 'error'
-                        });
-                    }
-                } else {
+                if (broadcastsToSend.length === 0) {
                     result.steps.push({
                         step: 'No broadcasts',
                         message: 'No pending broadcasts to send',
                         status: 'info'
                     });
+                } else {
+                    // Track broadcasts by platform
+                    const platformCounts = {};
+                    broadcastsToSend.forEach(b => {
+                        platformCounts[b.client] = (platformCounts[b.client] || 0) + 1;
+                    });
+
+                    result.steps.push({
+                        step: 'Selected broadcasts',
+                        message: `Processing ${broadcastsToSend.length} broadcast(s) using round-robin`,
+                        platforms: platformCounts
+                    });
+
+                    // Process each broadcast
+                    for (const broadcast of broadcastsToSend) {
+                        try {
+                            // Call the send script for this broadcast
+                            const { execSync } = await import('child_process');
+
+                            // Mark as sending to prevent race conditions
+                            db.prepare('UPDATE broadcasts SET status = ? WHERE id = ?')
+                                .run('sending', broadcast.id);
+
+                            // Determine the send script based on client
+                            let sendScript;
+                            const client = broadcast.client || 'telegram';
+
+                            switch (client.toLowerCase()) {
+                                case 'telegram':
+                                    sendScript = 'send-pending-to-telegram.js';
+                                    break;
+                                case 'bluesky':
+                                    sendScript = 'send-pending-to-bluesky.js';
+                                    break;
+                                case 'farcaster':
+                                    sendScript = 'send-pending-to-farcaster.js';
+                                    break;
+                                case 'threads':
+                                    sendScript = 'send-pending-to-threads.js';
+                                    break;
+                                case 'twitter':
+                                case 'x':
+                                    sendScript = 'send-pending-to-twitter.js';
+                                    break;
+                                default:
+                                    console.log(`⚠️ Unknown client '${client}', defaulting to Telegram`);
+                                    sendScript = 'send-pending-to-telegram.js';
+                                    break;
+                            }
+
+                            console.log(`📤 Sending broadcast ${broadcast.id} via ${client} using ${sendScript}`);
+
+                            // Execute the send script
+                            const output = execSync(`node ${sendScript}`, {
+                                encoding: 'utf8',
+                                env: { ...process.env, BROADCAST_ID: broadcast.id }
+                            });
+
+                            // Check if it was sent successfully
+                            const updatedBroadcast = db.prepare('SELECT status FROM broadcasts WHERE id = ?').get(broadcast.id);
+
+                            if (updatedBroadcast.status === 'sent') {
+                                result.steps.push({
+                                    step: 'Sent',
+                                    platform: client,
+                                    message: `Successfully sent ${client} broadcast`,
+                                    broadcastId: broadcast.id,
+                                    status: 'success'
+                                });
+                            } else {
+                                // If not sent, revert to pending
+                                db.prepare('UPDATE broadcasts SET status = ? WHERE id = ?')
+                                    .run('pending', broadcast.id);
+
+                                result.steps.push({
+                                    step: 'Failed',
+                                    platform: client,
+                                    message: `Failed to send ${client} broadcast`,
+                                    broadcastId: broadcast.id,
+                                    status: 'error'
+                                });
+                            }
+                        } catch (error) {
+                            console.error(`Error processing broadcast ${broadcast.id}:`, error.message);
+
+                            // Mark as failed
+                            db.prepare('UPDATE broadcasts SET status = ? WHERE id = ?')
+                                .run('failed', broadcast.id);
+
+                            result.steps.push({
+                                step: 'Error',
+                                message: `Error processing broadcast ${broadcast.id}: ${error.message}`,
+                                status: 'error'
+                            });
+                        }
+                    }
                 }
             }
             
