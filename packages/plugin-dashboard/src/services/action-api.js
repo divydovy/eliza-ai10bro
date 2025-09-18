@@ -18,6 +18,105 @@ const db = new Database(DB_PATH);
 
 // Enhanced action handlers with detailed feedback
 const actionHandlers = {
+    async CREATE_BROADCASTS() {
+        const result = {
+            action: 'CREATE_BROADCASTS',
+            started: new Date().toISOString(),
+            steps: []
+        };
+
+        try {
+            // Check for documents without broadcasts
+            const unprocessed = db.prepare(`
+                SELECT COUNT(*) as count FROM memories m
+                WHERE m.type = 'documents'
+                AND NOT EXISTS (
+                    SELECT 1 FROM broadcasts b WHERE b.documentId = m.id
+                ) AND json_extract(m.content, '$.text') IS NOT NULL
+                AND length(json_extract(m.content, '$.text')) > 100
+            `).get();
+
+            result.steps.push({
+                step: 'Check unprocessed',
+                message: `Found ${unprocessed.count} documents without broadcasts`,
+                count: unprocessed.count
+            });
+
+            if (unprocessed.count === 0) {
+                result.steps.push({
+                    step: 'Complete',
+                    message: 'All documents already have broadcasts',
+                    status: 'info'
+                });
+                result.success = true;
+                result.completed = new Date().toISOString();
+                return result;
+            }
+
+            // Process documents and create broadcasts for all platforms
+            const docsToProcess = db.prepare(`
+                SELECT id, content FROM memories m
+                WHERE m.type = 'documents'
+                AND NOT EXISTS (
+                    SELECT 1 FROM broadcasts b WHERE b.documentId = m.id
+                ) AND json_extract(m.content, '$.text') IS NOT NULL
+                AND length(json_extract(m.content, '$.text')) > 100
+                LIMIT 10
+            `).all();
+
+            const platforms = ['telegram', 'farcaster', 'bluesky'];
+            let createdCount = 0;
+
+            for (const doc of docsToProcess) {
+                const content = JSON.parse(doc.content);
+                const text = content.text;
+
+                // Generate broadcast message (simplified version)
+                const broadcastMessage = text.length > 280
+                    ? text.substring(0, 277) + '...'
+                    : text;
+
+                // Create broadcast for each platform
+                for (const platform of platforms) {
+                    const broadcastId = `${doc.id}-${platform}-${Date.now()}`;
+
+                    db.prepare(`
+                        INSERT INTO broadcasts (id, documentId, client, content, status, createdAt)
+                        VALUES (?, ?, ?, ?, 'pending', datetime('now'))
+                    `).run(
+                        broadcastId,
+                        doc.id,
+                        platform,
+                        JSON.stringify({ text: broadcastMessage })
+                    );
+
+                    createdCount++;
+                }
+            }
+
+            result.steps.push({
+                step: 'Created broadcasts',
+                message: `Created ${createdCount} broadcasts (${docsToProcess.length} docs × ${platforms.length} platforms)`,
+                count: createdCount,
+                platforms: platforms
+            });
+
+            result.success = true;
+            result.completed = new Date().toISOString();
+
+        } catch (error) {
+            result.success = false;
+            result.error = error.message;
+            result.steps.push({
+                step: 'Error',
+                message: error.message,
+                status: 'error'
+            });
+        }
+
+        return result;
+    },
+
     async PROCESS_QUEUE() {
         const result = {
             action: 'PROCESS_QUEUE',
@@ -58,24 +157,12 @@ const actionHandlers = {
                         status: 'initiated'
                     });
                     
-                    // Actually process the documents
-                    const { processUnprocessedDocuments } = await import('./process-unprocessed-docs.js');
-                    const processResult = await processUnprocessedDocuments(10);
-                    
+                    // Suggest running CREATE_BROADCASTS instead
                     result.steps.push({
-                        step: 'Processing complete',
-                        message: `Created ${processResult.processed} new broadcasts`,
-                        count: processResult.processed
+                        step: 'Suggestion',
+                        message: 'Run CREATE_BROADCASTS action to generate new broadcasts for unprocessed documents',
+                        status: 'info'
                     });
-                    
-                    if (processResult.failed > 0) {
-                        result.steps.push({
-                            step: 'Failed',
-                            message: `Failed to process ${processResult.failed} documents`,
-                            count: processResult.failed,
-                            status: 'warning'
-                        });
-                    }
                 }
             } else {
                 // Use round-robin distribution to get next broadcast(s)
