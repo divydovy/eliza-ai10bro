@@ -74,11 +74,11 @@ async function sendPendingBroadcasts() {
                 // Parse the JSON content to extract the text
                 let messageText;
                 try {
-                    const parsed = JSON.parse(broadcast.content);
-                    messageText = parsed.text || broadcast.content;
+                    const parsed = JSON.parse(broadcast.message);
+                    messageText = parsed.text || broadcast.message;
                 } catch (e) {
                     // If parsing fails, use content as-is
-                    messageText = broadcast.content;
+                    messageText = broadcast.message;
                 }
 
                 // Post to Farcaster
