@@ -79,7 +79,8 @@ const actionHandlers = {
                 }
             } else {
                 // Use round-robin distribution to get next broadcast(s)
-                const broadcastsToSend = await getNextBroadcastsRoundRobin(db, 1); // Send 1 by default
+                // Send 3 broadcasts (1 per platform) for fair distribution
+                const broadcastsToSend = await getNextBroadcastsRoundRobin(db, 3); // Send 3 (one per platform)
 
                 if (broadcastsToSend.length === 0) {
                     result.steps.push({

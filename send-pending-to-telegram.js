@@ -50,10 +50,19 @@ async function sendPendingBroadcasts() {
         
         for (const broadcast of pendingBroadcasts) {
             console.log(`\n📱 Sending broadcast ${broadcast.id}...`);
-            
+
+            // Parse JSON content to extract text
+            let messageText;
+            try {
+                const parsed = JSON.parse(broadcast.message);
+                messageText = parsed.text || broadcast.message;
+            } catch (e) {
+                messageText = broadcast.message;
+            }
+
             // Clean message (remove broadcast tags)
-            const cleanMessage = broadcast.message.replace(/\[BROADCAST:[^\]]+\]\s*/, '');
-            
+            const cleanMessage = messageText.replace(/\[BROADCAST:[^\]]+\]\s*/, '');
+
             let success = false;
             for (const chatId of chatIds) {
                 try {
