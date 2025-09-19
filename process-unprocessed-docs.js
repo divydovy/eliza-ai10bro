@@ -68,11 +68,15 @@ CRITICAL: Write ONLY in ENGLISH, regardless of the source language.
 Content to analyze:
 ${content.text?.substring(0, 2000)}
 
-Write a SINGLE PARAGRAPH broadcast IN ENGLISH ONLY (MAXIMUM 280 characters for Twitter/Bluesky/Farcaster compatibility) that:
-1. States what this innovation is and its specific impact/metrics
-2. Explains WHY this matters for humanity's sustainable future
-3. Connects it to natural systems, regenerative principles, or solving major global challenges where relevant
-4. Ends with ONE clear action: follow a researcher, try a tool, watch for a trend, or support a technology
+Write a SINGLE PARAGRAPH broadcast IN ENGLISH ONLY (MAXIMUM 280 characters for Twitter/Bluesky/Farcaster compatibility) following this EXACT structure:
+
+START with WHY this matters (20-50 chars): "Solving [problem]" or "Regenerating [system]" or "Enabling [sustainable future]"
+THEN briefly state WHAT it is (50-100 chars): the specific innovation/discovery
+THEN add impact/metric if space allows (30-50 chars): quantified benefit or scale
+END with action verb (20-30 chars): "Track [trend]" or "Support [tech]" or "Follow [researcher]"
+
+EXAMPLE STRUCTURE:
+"Solving water scarcity: Solar desalination mimics mangrove roots, produces 5L/day at $0.02/L. Track biomimetic water tech."
 
 PRIORITIZE innovations that:
 - Solve climate, health, or social equity challenges
@@ -80,13 +84,18 @@ PRIORITIZE innovations that:
 - Create regenerative rather than extractive value
 - Enable sustainable abundance
 
-AVOID:
-- Generic tech enthusiasm without mission connection
-- Vague generalizations
-- Multiple calls to action
-- Technical jargon without purpose
+CRITICAL RULES:
+- ALWAYS start with mission-relevant "why" (solving/regenerating/enabling)
+- Keep total under 280 characters
+- Use present tense action verbs
+- Include ONE specific metric when possible
+- End with clear action
 
-Remember: Connect every innovation to our mission of sustainable, humane technological evolution.
+AVOID:
+- Starting with "Researchers" or institution names
+- Generic enthusiasm without problem-solution clarity
+- Multiple actions or vague suggestions
+- Burying the impact at the end
 
 [BROADCAST_REQUEST:${doc.id}]`;
 
