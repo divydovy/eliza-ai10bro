@@ -43,27 +43,26 @@ async function processUnprocessedDocuments(limit = 10) {
                 console.log(`\n📄 Processing: ${title}`);
                 
                 // Generate broadcast using Ollama
-                const prompt = `You are David Attenborough observing technological evolution. Create a compelling broadcast about this innovation that weaves together nature's wisdom with human progress. 
+                const prompt = `You are a technology analyst creating concise, informative broadcasts about innovations and breakthroughs.
 
 CRITICAL: Write ONLY in ENGLISH, regardless of the source language.
 
 Content to analyze:
 ${content.text?.substring(0, 2000)}
 
-Write a SINGLE PARAGRAPH broadcast IN ENGLISH ONLY (MAXIMUM 600 characters - this is CRITICAL) that:
-- Opens with an unexpected observation linking this to nature (but don't label it)
-- Reveals why this breakthrough matters for humanity's future
-- Ends with ONE specific action: a researcher to follow, company to track, platform to use, or investment opportunity
-- Use vivid, sensory language that brings the innovation to life
-- Vary your openings - sometimes start with the technology, sometimes with nature, sometimes with a question
+Write a SINGLE PARAGRAPH broadcast IN ENGLISH ONLY (MAXIMUM 280 characters for Twitter/Bluesky/Farcaster compatibility) that:
+- Clearly states what this innovation is and why it matters
+- Provides specific details (names, companies, dates, metrics)
+- Ends with ONE actionable insight: someone to follow, tool to try, or trend to watch
+- Uses clear, professional language accessible to a general audience
 
 AVOID:
-- Section headers like "Nature Parallel:" or "Why this matters:"
-- Generic statements - be specific about people, companies, timelines
-- Multiple actions - give just ONE clear next step
-- Formulaic structure - let each broadcast flow naturally
+- Flowery metaphors or poetic language
+- Vague generalizations
+- Multiple calls to action
+- Technical jargon without explanation
 
-Remember: You're telling a story about how this innovation mirrors nature's genius and what someone should DO about it right now.
+Remember: Be informative, specific, and actionable.
 
 [BROADCAST_REQUEST:${doc.id}]`;
 
@@ -105,25 +104,56 @@ Remember: You're telling a story about how this innovation mirrors nature's geni
                     generated = `${generated}\n\n🔗 Source: ${sourceUrl}`;
                 }
                 
-                // Create broadcast
-                const broadcastId = crypto.randomUUID();
-                db.prepare(`
-                    INSERT INTO broadcasts (
-                        id, documentId, client, content, 
-                        status, alignment_score, createdAt
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                `).run(
-                    broadcastId,
-                    doc.id,
-                    'telegram',
-                    generated,
-                    'pending',
-                    0.8,
-                    Date.now()
-                );
-                
-                console.log(`✅ Created broadcast: ${broadcastId}`);
-                console.log(`   Length: ${generated.length} chars`);
+                // Create broadcasts for all platforms
+                const platforms = ['telegram', 'farcaster', 'bluesky'];
+                const platformLimits = {
+                    telegram: 4096,
+                    farcaster: 320,
+                    bluesky: 300
+                };
+
+                for (const platform of platforms) {
+                    let platformContent = generated;
+                    const maxLength = platformLimits[platform];
+
+                    // Adjust content for platform limits
+                    if (platformContent.length > maxLength) {
+                        // Find last complete sentence within limit
+                        const sentences = platformContent.match(/[^.!?]+[.!?]+/g) || [];
+                        let truncated = '';
+                        for (const sentence of sentences) {
+                            if ((truncated + sentence).length <= maxLength - 20) {
+                                truncated += sentence;
+                            } else {
+                                break;
+                            }
+                        }
+                        platformContent = truncated || platformContent.substring(0, maxLength - 20) + '...';
+                    }
+
+                    // Wrap content in JSON for storage
+                    const jsonContent = JSON.stringify({ text: platformContent });
+
+                    // Create broadcast
+                    const broadcastId = crypto.randomUUID();
+                    db.prepare(`
+                        INSERT INTO broadcasts (
+                            id, documentId, client, content,
+                            status, alignment_score, createdAt
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    `).run(
+                        broadcastId,
+                        doc.id,
+                        platform,
+                        jsonContent,
+                        'pending',
+                        0.8,
+                        Date.now()
+                    );
+
+                    console.log(`✅ Created ${platform} broadcast: ${broadcastId} (${platformContent.length} chars)`);
+                }
+
                 processed++;
                 
             } catch (error) {

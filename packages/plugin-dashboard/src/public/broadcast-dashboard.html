@@ -861,13 +861,16 @@
                 let platformDetails = [];
                 
                 // Define which platforms are currently enabled
-                const enabledPlatforms = ['telegram']; // Only Telegram is enabled now
+                const enabledPlatforms = ['telegram', 'farcaster', 'bluesky']; // All platforms enabled
                 
                 for (const [platform, stats] of Object.entries(data.platformStats)) {
                     totalPlatformSent += stats.sent || 0;
                     totalPlatformPending += stats.pending || 0;
                     
-                    const icon = platform === 'telegram' ? '📱' : platform === 'twitter' ? '🐦' : '📡';
+                    const icon = platform === 'telegram' ? '📱' :
+                                 platform === 'twitter' ? '🐦' :
+                                 platform === 'farcaster' ? '🟣' :
+                                 platform === 'bluesky' ? '🦋' : '📡';
                     const isEnabled = enabledPlatforms.includes(platform);
                     const statusIcon = isEnabled ? '✅' : '⏸️';
                     

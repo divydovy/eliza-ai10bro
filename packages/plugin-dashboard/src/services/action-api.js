@@ -6,6 +6,8 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { writeFileSync, unlinkSync, readFileSync } from 'fs';
+import { randomUUID } from 'crypto';
 import { getNextBroadcastsRoundRobin } from './process-queue-round-robin.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -26,79 +28,68 @@ const actionHandlers = {
         };
 
         try {
-            // Check for documents without broadcasts
-            const unprocessed = db.prepare(`
-                SELECT COUNT(*) as count FROM memories m
-                WHERE m.type = 'documents'
-                AND NOT EXISTS (
-                    SELECT 1 FROM broadcasts b WHERE b.documentId = m.id
-                ) AND json_extract(m.content, '$.text') IS NOT NULL
-                AND length(json_extract(m.content, '$.text')) > 100
-            `).get();
+            // Simply call the existing process-unprocessed-docs script
+            console.log('Triggering broadcast creation via process-unprocessed-docs.js');
 
             result.steps.push({
-                step: 'Check unprocessed',
-                message: `Found ${unprocessed.count} documents without broadcasts`,
-                count: unprocessed.count
+                step: 'Starting',
+                message: 'Calling process-unprocessed-docs.js to create broadcasts'
             });
 
-            if (unprocessed.count === 0) {
-                result.steps.push({
-                    step: 'Complete',
-                    message: 'All documents already have broadcasts',
-                    status: 'info'
-                });
-                result.success = true;
-                result.completed = new Date().toISOString();
-                return result;
-            }
+            const { stdout, stderr } = await execPromise('node process-unprocessed-docs.js 10');
 
-            // Process documents and create broadcasts for all platforms
-            const docsToProcess = db.prepare(`
-                SELECT id, content FROM memories m
-                WHERE m.type = 'documents'
-                AND NOT EXISTS (
-                    SELECT 1 FROM broadcasts b WHERE b.documentId = m.id
-                ) AND json_extract(m.content, '$.text') IS NOT NULL
-                AND length(json_extract(m.content, '$.text')) > 100
-                LIMIT 10
-            `).all();
+            // Parse the output to extract results
+            const lines = stdout.split('\n');
+            let processed = 0;
+            let failed = 0;
+            let foundDocs = 0;
 
-            const platforms = ['telegram', 'farcaster', 'bluesky'];
-            let createdCount = 0;
-
-            for (const doc of docsToProcess) {
-                const content = JSON.parse(doc.content);
-                const text = content.text;
-
-                // Generate broadcast message (simplified version)
-                const broadcastMessage = text.length > 280
-                    ? text.substring(0, 277) + '...'
-                    : text;
-
-                // Create broadcast for each platform
-                for (const platform of platforms) {
-                    const broadcastId = `${doc.id}-${platform}-${Date.now()}`;
-
-                    db.prepare(`
-                        INSERT INTO broadcasts (id, documentId, client, content, status, createdAt)
-                        VALUES (?, ?, ?, ?, 'pending', datetime('now'))
-                    `).run(
-                        broadcastId,
-                        doc.id,
-                        platform,
-                        JSON.stringify({ text: broadcastMessage })
-                    );
-
-                    createdCount++;
+            for (const line of lines) {
+                if (line.includes('Found') && line.includes('unprocessed documents')) {
+                    const match = line.match(/Found (\d+) unprocessed/);
+                    if (match) foundDocs = parseInt(match[1]);
+                    result.steps.push({
+                        step: 'Found documents',
+                        message: line.trim(),
+                        count: foundDocs
+                    });
+                }
+                if (line.includes('Processing:')) {
+                    result.steps.push({
+                        step: 'Processing',
+                        message: line.trim()
+                    });
+                }
+                if (line.includes('Created') && line.includes('broadcast:')) {
+                    result.steps.push({
+                        step: 'Created broadcast',
+                        message: line.trim()
+                    });
+                }
+                if (line.includes('Processed:')) {
+                    const match = line.match(/Processed:\s*(\d+)/);
+                    if (match) processed = parseInt(match[1]);
+                }
+                if (line.includes('Failed:')) {
+                    const match = line.match(/Failed:\s*(\d+)/);
+                    if (match) failed = parseInt(match[1]);
                 }
             }
 
+            if (stderr) {
+                console.error('Broadcast creation stderr:', stderr);
+                result.steps.push({
+                    step: 'Warning',
+                    message: 'There were some warnings during processing',
+                    status: 'warning'
+                });
+            }
+
             result.steps.push({
-                step: 'Created broadcasts',
-                message: `Created ${createdCount} broadcasts (${docsToProcess.length} docs × ${platforms.length} platforms)`,
-                count: createdCount,
-                platforms: platforms
+                step: 'Summary',
+                message: `Created ${processed * 3} broadcasts (${processed} documents × 3 platforms)`,
+                processed: processed,
+                failed: failed
             });
 
             result.success = true;
@@ -108,7 +99,7 @@ const actionHandlers = {
             result.success = false;
             result.error = error.message;
             result.steps.push({
-                step: 'Error',
+                step: 'Critical error',
                 message: error.message,
                 status: 'error'
             });
@@ -356,9 +347,8 @@ const actionHandlers = {
         
         try {
             // Check if GitHub sync is configured
-            const characterPath = path.join(path.dirname(__dirname), '../../../../characters/ai10bro.character.json');
-            const characterFile = await import(characterPath, { assert: { type: 'json' } });
-            const character = characterFile.default;
+            const characterPath = path.join(process.cwd(), 'characters/ai10bro.character.json');
+            const character = JSON.parse(readFileSync(characterPath, 'utf-8'));
             const githubToken = character.settings?.secrets?.GITHUB_TOKEN;
             
             if (!githubToken) {
@@ -729,6 +719,66 @@ const actionHandlers = {
 
             result.success = successful > 0;
 
+            result.completed = new Date().toISOString();
+
+        } catch (error) {
+            result.success = false;
+            result.error = error.message;
+            result.steps.push({
+                step: 'Error',
+                message: error.message,
+                status: 'error'
+            });
+        }
+
+        return result;
+    },
+
+    async IMPORT_OBSIDIAN() {
+        const result = {
+            action: 'IMPORT_OBSIDIAN',
+            started: new Date().toISOString(),
+            steps: []
+        };
+
+        try {
+            // Check current document count
+            const before = db.prepare("SELECT COUNT(*) as count FROM memories WHERE type = 'documents'").get();
+            result.steps.push({
+                step: 'Check current documents',
+                message: `Current document count: ${before.count}`,
+                count: before.count
+            });
+
+            // Import from Obsidian vault
+            result.steps.push({
+                step: 'Import Obsidian',
+                message: 'Running Obsidian import script...',
+                status: 'running'
+            });
+
+            const { stdout, stderr } = await execPromise('node import-obsidian.js');
+
+            if (stderr) {
+                result.steps.push({
+                    step: 'Import warnings',
+                    message: stderr.trim(),
+                    status: 'warning'
+                });
+            }
+
+            // Check final document count
+            const after = db.prepare("SELECT COUNT(*) as count FROM memories WHERE type = 'documents'").get();
+            const imported = after.count - before.count;
+
+            result.steps.push({
+                step: 'Import complete',
+                message: `Imported ${imported} documents from Obsidian vault`,
+                imported: imported,
+                total: after.count
+            });
+
+            result.success = true;
             result.completed = new Date().toISOString();
 
         } catch (error) {
