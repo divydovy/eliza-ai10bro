@@ -39,9 +39,25 @@ async function processUnprocessedDocuments(limit = 10) {
             try {
                 const content = JSON.parse(doc.content);
                 const title = content.metadata?.title || content.text?.substring(0, 50) || 'Unknown';
-                
+
                 console.log(`\n📄 Processing: ${title}`);
-                
+
+                // Skip test/draft/cache documents for quality control
+                if (/test|draft|cache|example|demo/i.test(title) ||
+                    /test|draft|cache|example|demo/i.test(content.text?.substring(0, 200) || '')) {
+                    console.log('   ⏭️  Skipped (test/draft content)');
+                    failed++;
+                    continue;
+                }
+
+                // Skip documents with insufficient content
+                const textLength = content.text?.length || 0;
+                if (textLength < 200) {
+                    console.log(`   ⏭️  Skipped (insufficient content: ${textLength} chars)`);
+                    failed++;
+                    continue;
+                }
+
                 // Generate broadcast using Ollama
                 const prompt = `You are a technology analyst creating concise, informative broadcasts about innovations and breakthroughs.
 
@@ -95,12 +111,22 @@ Remember: Be informative, specific, and actionable.
                     generated = truncated || generated.substring(0, 700) + '...';
                 }
                 
-                // Add source URL if available (check multiple locations)
-                const sourceUrl = content.metadata?.frontmatter?.source || 
-                                  content.metadata?.url || 
-                                  content.url ||
-                                  (content.source !== 'obsidian' ? content.source : null);
-                if (sourceUrl) {
+                // Extract source URL if available (check multiple locations)
+                let sourceUrl = content.metadata?.frontmatter?.source ||
+                              content.metadata?.url ||
+                              content.url ||
+                              content.source ||
+                              null;
+
+                // Don't add GitHub/Obsidian internal references as sources
+                if (sourceUrl && (sourceUrl === 'github' || sourceUrl === 'obsidian' || sourceUrl.includes('github.com/divydovy'))) {
+                    // Try to find an actual external URL in the document content
+                    const urlMatch = content.text?.match(/https?:\/\/(?!github\.com\/divydovy)[^\s\)]+/);
+                    sourceUrl = urlMatch ? urlMatch[0] : null;
+                }
+
+                // Only add source if it's a real external URL
+                if (sourceUrl && sourceUrl.startsWith('http') && !sourceUrl.includes('github.com/divydovy')) {
                     generated = `${generated}\n\n🔗 Source: ${sourceUrl}`;
                 }
                 

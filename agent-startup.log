@@ -182,3 +182,96 @@ Initializing AwsS3Service
 
 [32m ["✓ REST API bound to 0.0.0.0:3000. If running locally, access it at http://localhost:3000."] [0m
 
+Debug info: {
+  agentKeys: [
+    'agentId',
+    'serverUrl',
+    'databaseAdapter',
+    'token',
+    'actions',
+    'evaluators',
+    'providers',
+    'plugins',
+    'modelProvider',
+    'imageModelProvider',
+    'imageVisionModelProvider',
+    'fetch',
+    'character',
+    'messageManager',
+    'descriptionManager',
+    'loreManager',
+    'documentsManager',
+    'knowledgeManager',
+    'services',
+    'memoryManagers',
+    'cacheManager',
+    'clients'
+  ],
+  hasRuntime: false,
+  runtimeKeys: [],
+  servicesType: 'object',
+  servicesConstructor: 'Map',
+  runtimeServicesType: 'undefined'
+}
+Debug info: {
+  agentKeys: [
+    'agentId',
+    'serverUrl',
+    'databaseAdapter',
+    'token',
+    'actions',
+    'evaluators',
+    'providers',
+    'plugins',
+    'modelProvider',
+    'imageModelProvider',
+    'imageVisionModelProvider',
+    'fetch',
+    'character',
+    'messageManager',
+    'descriptionManager',
+    'loreManager',
+    'documentsManager',
+    'knowledgeManager',
+    'services',
+    'memoryManagers',
+    'cacheManager',
+    'clients'
+  ],
+  hasRuntime: false,
+  runtimeKeys: [],
+  servicesType: 'object',
+  servicesConstructor: 'Map',
+  runtimeServicesType: 'undefined'
+}
+Debug info: {
+  agentKeys: [
+    'agentId',
+    'serverUrl',
+    'databaseAdapter',
+    'token',
+    'actions',
+    'evaluators',
+    'providers',
+    'plugins',
+    'modelProvider',
+    'imageModelProvider',
+    'imageVisionModelProvider',
+    'fetch',
+    'character',
+    'messageManager',
+    'descriptionManager',
+    'loreManager',
+    'documentsManager',
+    'knowledgeManager',
+    'services',
+    'memoryManagers',
+    'cacheManager',
+    'clients'
+  ],
+  hasRuntime: false,
+  runtimeKeys: [],
+  servicesType: 'object',
+  servicesConstructor: 'Map',
+  runtimeServicesType: 'undefined'
+}

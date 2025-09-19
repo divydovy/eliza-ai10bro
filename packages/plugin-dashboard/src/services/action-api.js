@@ -28,15 +28,15 @@ const actionHandlers = {
         };
 
         try {
-            // Simply call the existing process-unprocessed-docs script
-            console.log('Triggering broadcast creation via process-unprocessed-docs.js');
+            // Use unified broadcast creation script
+            console.log('Triggering unified broadcast creation system');
 
             result.steps.push({
                 step: 'Starting',
-                message: 'Calling process-unprocessed-docs.js to create broadcasts'
+                message: 'Calling unified create-broadcasts.js script'
             });
 
-            const { stdout, stderr } = await execPromise('node process-unprocessed-docs.js 10');
+            const { stdout, stderr } = await execPromise('node ../../../../create-broadcasts.js 10');
 
             // Parse the output to extract results
             const lines = stdout.split('\n');

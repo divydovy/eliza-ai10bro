@@ -34,66 +34,64 @@ export class AutoBroadcastService extends Service {
         // Initialize goal embeddings for alignment checking
         await this.initializeGoalEmbeddings();
         
-        console.log("🚀 AutoBroadcastService initialized with alignment checking");
-        
+        console.log("🚀 AutoBroadcastService initialized - using unified broadcast creation system");
+        console.log("📌 All broadcasts now created via: create-broadcasts.js");
+
         // Note: Dashboard auto-start disabled due to ES module compatibility
         console.log("📊 To start the broadcast dashboard manually, run: ./start-broadcast-system.sh");
         console.log("📊 Dashboard will be available at: http://localhost:3002/broadcast-dashboard.html");
         
         AutoBroadcastService.isInitialized = true;
         
-        // Check for new documents every 30 minutes
-        this.checkInterval = setInterval(() => {
-            this.checkForNewDocuments();
-        }, 30 * 60 * 1000);
-        
-        // Also check immediately on startup
-        setTimeout(() => this.checkForNewDocuments(), 5000);
+        // DISABLED: Using cron job instead to avoid duplication
+        // The cron job runs create-broadcasts.js on a schedule
+        // No need for AutoBroadcastService to also run the same script
+
+        // this.checkInterval = setInterval(() => {
+        //     this.checkForNewDocuments();
+        // }, 30 * 60 * 1000);
+
+        // setTimeout(() => this.checkForNewDocuments(), 5000);
+
+        console.log("📌 AutoBroadcastService disabled - using cron job for broadcast creation");
     }
 
     async checkForNewDocuments(): Promise<void> {
         try {
-            console.log("🔍 Checking for new documents to broadcast...");
-            
-            // Try getting knowledge documents directly
-            const knowledgeMemories = await this.runtime.knowledgeManager.getMemories({
-                roomId: this.runtime.agentId as UUID,
-                count: 100, // Check more documents
+            console.log("🔍 AutoBroadcastService: Triggering unified broadcast creation...");
+
+            // Use the unified broadcast creation system
+            const { exec } = require('child_process');
+            const { promisify } = require('util');
+            const execPromise = promisify(exec);
+
+            // Call the unified create-broadcasts script with a limit of 10
+            const { stdout, stderr } = await execPromise('node create-broadcasts.js 10', {
+                cwd: '/Users/davidlockie/Documents/Projects/Eliza'
             });
-            
-            console.log(`Total knowledge memories: ${knowledgeMemories.length}`);
-            
-            // Also try documentsManager
-            const recentDocs = await this.runtime.documentsManager.getMemories({
-                roomId: this.runtime.agentId as UUID,
-                count: 100,
-            });
-            
-            console.log(`Total documents retrieved: ${recentDocs.length}`);
-            
-            // Combine both sources
-            const allDocs = [...knowledgeMemories, ...recentDocs];
-            console.log(`Combined total: ${allDocs.length} documents`);
-            
-            if (allDocs.length > 0) {
-                console.log(`Sample document:`, {
-                    type: allDocs[0].content?.type,
-                    source: allDocs[0].content?.source,
-                    text: allDocs[0].content?.text?.substring(0, 100),
-                    createdAt: allDocs[0].createdAt
-                });
+
+            if (stdout) {
+                console.log("📢 Unified broadcast creation output:", stdout);
             }
-            
+            if (stderr) {
+                console.error("⚠️ Unified broadcast creation warnings:", stderr);
+            }
+
+            return; // Exit early - we're using the unified system now
+
+            // THIS CODE IS NOW OBSOLETE - Using unified create-broadcasts.js instead
+            // The code below is kept for reference but will not execute
+
             // Filter for documents that are actually from knowledge sources
             const knowledgeDocs = allDocs.filter(doc => {
                 const content = doc.content;
-                
+
                 // More lenient check - if it has substantial text content, consider it
                 const hasContent = content.text && content.text.length > 100;
-                
+
                 // Check various indicators of knowledge content
                 const isKnowledge = hasContent && (
-                    content.source === 'github' || 
+                    content.source === 'github' ||
                     content.source === 'obsidian' ||
                     content.type === 'knowledge' ||
                     content.text.includes('title:') || // Common in knowledge docs
