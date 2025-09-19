@@ -144,17 +144,55 @@ Remember: Be informative, specific, and actionable.
 
                     // Adjust content for platform limits
                     if (platformContent.length > maxLength) {
-                        // Find last complete sentence within limit
-                        const sentences = platformContent.match(/[^.!?]+[.!?]+/g) || [];
-                        let truncated = '';
-                        for (const sentence of sentences) {
-                            if ((truncated + sentence).length <= maxLength - 20) {
-                                truncated += sentence;
+                        // Check if content has source URL
+                        const sourceMatch = platformContent.match(/🔗 Source: (https?:\/\/[^\s]+)/);
+
+                        if (sourceMatch) {
+                            // Split content and source
+                            const sourceUrl = sourceMatch[0];
+                            const mainContent = platformContent.replace(/\n\n🔗 Source: https?:\/\/[^\s]+$/, '');
+
+                            // Calculate available space for main content
+                            const availableLength = maxLength - sourceUrl.length - 3; // 3 for "\n\n"
+
+                            if (availableLength > 100) { // Ensure enough space for meaningful content
+                                // Truncate main content but preserve source
+                                const sentences = mainContent.match(/[^.!?]+[.!?]+/g) || [];
+                                let truncated = '';
+                                for (const sentence of sentences) {
+                                    if ((truncated + sentence).length <= availableLength) {
+                                        truncated += sentence;
+                                    } else {
+                                        break;
+                                    }
+                                }
+                                platformContent = (truncated || mainContent.substring(0, availableLength - 3) + '...') + '\n\n' + sourceUrl;
                             } else {
-                                break;
+                                // Not enough space for source, use original truncation
+                                const sentences = platformContent.match(/[^.!?]+[.!?]+/g) || [];
+                                let truncated = '';
+                                for (const sentence of sentences) {
+                                    if ((truncated + sentence).length <= maxLength - 20) {
+                                        truncated += sentence;
+                                    } else {
+                                        break;
+                                    }
+                                }
+                                platformContent = truncated || platformContent.substring(0, maxLength - 20) + '...';
                             }
+                        } else {
+                            // No source URL, use original truncation
+                            const sentences = platformContent.match(/[^.!?]+[.!?]+/g) || [];
+                            let truncated = '';
+                            for (const sentence of sentences) {
+                                if ((truncated + sentence).length <= maxLength - 20) {
+                                    truncated += sentence;
+                                } else {
+                                    break;
+                                }
+                            }
+                            platformContent = truncated || platformContent.substring(0, maxLength - 20) + '...';
                         }
-                        platformContent = truncated || platformContent.substring(0, maxLength - 20) + '...';
                     }
 
                     // Wrap content in JSON for storage
