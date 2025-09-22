@@ -430,3 +430,34 @@ Debug info: {
   servicesConstructor: 'Map',
   runtimeServicesType: 'undefined'
 }
+Debug info: {
+  agentKeys: [
+    'agentId',
+    'serverUrl',
+    'databaseAdapter',
+    'token',
+    'actions',
+    'evaluators',
+    'providers',
+    'plugins',
+    'modelProvider',
+    'imageModelProvider',
+    'imageVisionModelProvider',
+    'fetch',
+    'character',
+    'messageManager',
+    'descriptionManager',
+    'loreManager',
+    'documentsManager',
+    'knowledgeManager',
+    'services',
+    'memoryManagers',
+    'cacheManager',
+    'clients'
+  ],
+  hasRuntime: false,
+  runtimeKeys: [],
+  servicesType: 'object',
+  servicesConstructor: 'Map',
+  runtimeServicesType: 'undefined'
+}
