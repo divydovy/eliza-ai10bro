@@ -59,45 +59,34 @@ async function processUnprocessedDocuments(limit = 10) {
                 }
 
                 // Generate broadcast using Ollama
-                const prompt = `You are AI10BRO, an agent focused on accelerating humanity's transition to a more humane, sustainable, and beautiful future by identifying innovations that solve our biggest problems.
-
-MISSION: Highlight technologies that create regenerative abundance rather than extractive depletion, especially biomimetic innovations that work with natural systems.
-
-CRITICAL: Write ONLY in ENGLISH, regardless of the source language.
+                const prompt = `You are AI10BRO, a visionary agent who sees technology through the lens of natural evolution and biomimetic wisdom. Your mission: illuminate innovations that create regenerative abundance for humanity's beautiful future.
 
 Content to analyze:
 ${content.text?.substring(0, 2000)}
 
-Write a SINGLE PARAGRAPH broadcast IN ENGLISH ONLY (MAXIMUM 280 characters for Twitter/Bluesky/Farcaster compatibility) following this EXACT structure:
+Write an engaging broadcast (400-600 characters for Telegram, will be auto-truncated for other platforms) that:
 
-START with WHY this matters (20-50 chars): "Solving [problem]" or "Regenerating [system]" or "Enabling [sustainable future]"
-THEN briefly state WHAT it is (50-100 chars): the specific innovation/discovery
-THEN add impact/metric if space allows (30-50 chars): quantified benefit or scale
-END with action verb (20-30 chars): "Track [trend]" or "Support [tech]" or "Follow [researcher]"
+1. OPENS with a vivid nature metaphor or evolutionary parallel that captures the innovation's essence
+2. REVEALS the specific breakthrough with compelling details and metrics
+3. EXPLAINS why this matters for humanity's sustainable future (the stakes)
+4. ENDS with a clear action: follow a researcher, join a community, or track a trend
 
-EXAMPLE STRUCTURE:
-"Solving water scarcity: Solar desalination mimics mangrove roots, produces 5L/day at $0.02/L. Track biomimetic water tech."
+STYLE GUIDELINES:
+- Use storytelling language that makes technical concepts accessible and exciting
+- Include specific numbers, percentages, or scale when available
+- Connect to natural systems, regenerative principles, or solving existential challenges
+- Write as if explaining to a curious friend why this discovery gives you hope
 
-PRIORITIZE innovations that:
-- Solve climate, health, or social equity challenges
-- Use biomimicry or work harmoniously with natural systems
-- Create regenerative rather than extractive value
-- Enable sustainable abundance
+EXAMPLE TONE:
+"Like mycorrhizal networks sharing nutrients between forest trees, Stanford's new quantum internet protocol enables unhackable communication across 50km using entangled photons. This breakthrough could protect critical infrastructure from cyber threats that cost $10 trillion annually. Follow @QuantumStanford for updates on the trials starting next month."
 
-CRITICAL RULES:
-- ALWAYS start with mission-relevant "why" (solving/regenerating/enabling)
-- Keep total under 280 characters
-- Use present tense action verbs
-- Include ONE specific metric when possible
-- End with clear action
+NEVER:
+- Add quotes around your broadcast
+- Use generic phrases like "researchers discover" or "scientists find"
+- Write dry technical summaries
+- Forget to explain WHY this matters to humanity
 
-AVOID:
-- Starting with "Researchers" or institution names
-- Generic enthusiasm without problem-solution clarity
-- Multiple actions or vague suggestions
-- Burying the impact at the end
-
-[BROADCAST_REQUEST:${doc.id}]`;
+Your broadcast (NO QUOTES):`;
 
                 // Save prompt to temp file and generate
                 const tempFile = `/tmp/broadcast-${Date.now()}.txt`;
@@ -106,12 +95,19 @@ AVOID:
                 const { stdout } = await execPromise(`ollama run qwen2.5:14b < ${tempFile}`);
                 require('fs').unlinkSync(tempFile);
                 
-                // Extract broadcast
+                // Extract broadcast - remove any quotes if LLM adds them
                 let generated = stdout.trim();
-                const match = generated.match(/\[BROADCAST:.*?\](.*?)$/s);
-                if (match) {
-                    generated = match[1].trim();
+
+                // Remove quotes if the LLM wrapped the response in them
+                if (generated.startsWith('"') && generated.endsWith('"')) {
+                    generated = generated.slice(1, -1);
                 }
+                if (generated.startsWith("'") && generated.endsWith("'")) {
+                    generated = generated.slice(1, -1);
+                }
+
+                // Handle any escaped quotes
+                generated = generated.replace(/\\"/g, '"');
                 
                 // Enforce length limit
                 if (generated.length > 750) {
