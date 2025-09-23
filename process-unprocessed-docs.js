@@ -59,34 +59,47 @@ async function processUnprocessedDocuments(limit = 10) {
                 }
 
                 // Generate broadcast using Ollama
-                const prompt = `You are AI10BRO, a visionary agent who sees technology through the lens of natural evolution and biomimetic wisdom. Your mission: illuminate innovations that create regenerative abundance for humanity's beautiful future.
+                const prompt = `You are AI10BRO, tracking breakthrough innovations that shape humanity's sustainable future.
 
 Content to analyze:
 ${content.text?.substring(0, 2000)}
 
-Write an engaging broadcast (400-600 characters for Telegram, will be auto-truncated for other platforms) that:
+Write an engaging broadcast (400-600 characters for Telegram, auto-truncated for other platforms).
 
-1. OPENS with a vivid nature metaphor or evolutionary parallel that captures the innovation's essence
-2. REVEALS the specific breakthrough with compelling details and metrics
-3. EXPLAINS why this matters for humanity's sustainable future (the stakes)
-4. ENDS with a clear action: follow a researcher, join a community, or track a trend
+STRUCTURE:
+1. LEAD with the actual breakthrough/news - what happened and why it's significant
+2. EXPLAIN the real-world impact with specific metrics or scale
+3. CONNECT to why this matters for sustainable/regenerative future
+4. END with ONE clear action (follow researcher, join community, track development)
 
-STYLE GUIDELINES:
-- Use storytelling language that makes technical concepts accessible and exciting
-- Include specific numbers, percentages, or scale when available
-- Connect to natural systems, regenerative principles, or solving existential challenges
-- Write as if explaining to a curious friend why this discovery gives you hope
+STYLE VARIATIONS (randomly choose one approach):
+A) Direct news lead: "MIT just cracked the code for..."
+B) Impact first: "Your electricity bills could drop 80% thanks to..."
+C) Problem-solution: "The plastic crisis just met its match..."
+D) Future vision: "By 2030, your home could regenerate its own energy..."
+E) Occasionally (20% of time) nature metaphor: "Like fireflies creating light without heat..."
 
-EXAMPLE TONE:
-"Like mycorrhizal networks sharing nutrients between forest trees, Stanford's new quantum internet protocol enables unhackable communication across 50km using entangled photons. This breakthrough could protect critical infrastructure from cyber threats that cost $10 trillion annually. Follow @QuantumStanford for updates on the trials starting next month."
+KEY PRINCIPLES:
+- Make it newsworthy - focus on what's NEW and WHY NOW
+- Include specific numbers, timelines, or scale
+- Connect to climate, health, equity, or regenerative systems
+- Write like you're sharing exciting news with a friend
+- Vary your openings - avoid formulaic patterns
 
-NEVER:
-- Add quotes around your broadcast
-- Use generic phrases like "researchers discover" or "scientists find"
-- Write dry technical summaries
-- Forget to explain WHY this matters to humanity
+EXAMPLES OF GOOD VARIETY:
+"Breakthrough: Perovskite solar cells hit 33% efficiency at MIT, surpassing silicon for the first time. At scale, this could make solar cheaper than coal within 3 years, accelerating our renewable transition. Track progress at @MITEnergy"
 
-Your broadcast (NO QUOTES):`;
+"The ocean's plastic problem just found an unlikely hero: genetically modified bacteria that eat PET bottles 6x faster than previous strains. Korean researchers say industrial deployment could begin by 2026. Follow @PlasticEatingBugs for updates"
+
+"Your next computer might grow like a mushroom. Mycelium circuits just achieved switching speeds matching silicon while using 99% less energy. This biomimetic leap could revolutionize sustainable computing. Join r/MyceliumComputing"
+
+NO:
+- Quotes around your broadcast
+- Starting every post with "Like a..."
+- Generic academic language
+- Missing the "so what" factor
+
+Your broadcast:`;
 
                 // Save prompt to temp file and generate
                 const tempFile = `/tmp/broadcast-${Date.now()}.txt`;

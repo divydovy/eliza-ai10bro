@@ -1,26 +1,35 @@
 #!/bin/bash
 
 # Hourly Broadcast Sender
-# Sends 1 pending broadcast every hour
+# Sends 1 pending broadcast every hour using action API
 
 cd /Users/davidlockie/Documents/Projects/Eliza
 
-echo "[$(date)] Checking for pending broadcasts..."
+LOG_FILE="logs/broadcast-$(date +%Y%m%d).log"
+mkdir -p logs
 
-# Send 1 Telegram broadcast if any pending
-PENDING_TELEGRAM=$(sqlite3 ./agent/data/db.sqlite "SELECT COUNT(*) FROM broadcasts WHERE status = 'pending' AND client = 'telegram';")
+echo "[$(date)] Checking for pending broadcasts..." | tee -a "$LOG_FILE"
 
-if [ "$PENDING_TELEGRAM" -gt 0 ]; then
-    echo "[$(date)] Sending 1 Telegram broadcast (${PENDING_TELEGRAM} pending)..."
-    LIMIT=1 node send-pending-broadcasts.js
+# Get pending count
+PENDING=$(sqlite3 ./agent/data/db.sqlite "SELECT COUNT(*) FROM broadcasts WHERE status = 'pending';")
+
+if [ "$PENDING" -gt 0 ]; then
+    echo "[$(date)] Sending 1 broadcast (${PENDING} pending)..." | tee -a "$LOG_FILE"
+
+    # Use action API to send one broadcast
+    RESPONSE=$(curl -s -X POST http://localhost:3003/trigger \
+        -H "Content-Type: application/json" \
+        -d '{"action":"PROCESS_QUEUE"}')
+
+    echo "[$(date)] Response: $RESPONSE" | tee -a "$LOG_FILE"
+
+    # Log the broadcast that was sent
+    SENT_ID=$(sqlite3 ./agent/data/db.sqlite "SELECT id FROM broadcasts WHERE status = 'sent' ORDER BY sent_at DESC LIMIT 1;")
+    if [ -n "$SENT_ID" ]; then
+        echo "[$(date)] Successfully sent broadcast: $SENT_ID" | tee -a "$LOG_FILE"
+    fi
+else
+    echo "[$(date)] No pending broadcasts" | tee -a "$LOG_FILE"
 fi
 
-# Send 1 X broadcast if any pending (currently will fail due to auth)
-PENDING_X=$(sqlite3 ./agent/data/db.sqlite "SELECT COUNT(*) FROM broadcasts WHERE status = 'pending' AND client = 'twitter';")
-
-if [ "$PENDING_X" -gt 0 ]; then
-    echo "[$(date)] Sending 1 X broadcast (${PENDING_X} pending)..."
-    LIMIT=1 node send-x-broadcasts.js
-fi
-
-echo "[$(date)] Hourly broadcast check complete"
+echo "[$(date)] Hourly broadcast check complete" | tee -a "$LOG_FILE"
