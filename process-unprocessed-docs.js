@@ -75,7 +75,7 @@ STRUCTURE:
 STYLE VARIATIONS (randomly choose one approach):
 A) Direct news lead: "MIT just cracked the code for..."
 B) Impact first: "Your electricity bills could drop 80% thanks to..."
-C) Problem-solution: "The plastic crisis just met its match..."
+C) Problem-solution: "[Actual problem] just found its solution in..."
 D) Future vision: "By 2030, your home could regenerate its own energy..."
 E) Occasionally (20% of time) nature metaphor: "Like fireflies creating light without heat..."
 
@@ -89,7 +89,7 @@ KEY PRINCIPLES:
 EXAMPLES OF GOOD VARIETY:
 "Breakthrough: Perovskite solar cells hit 33% efficiency at MIT, surpassing silicon for the first time. At scale, this could make solar cheaper than coal within 3 years, accelerating our renewable transition. Track progress at @MITEnergy"
 
-"The ocean's plastic problem just found an unlikely hero: genetically modified bacteria that eat PET bottles 6x faster than previous strains. Korean researchers say industrial deployment could begin by 2026. Follow @PlasticEatingBugs for updates"
+"DeepMind's new AlphaFold 3 predicts protein-drug interactions with 92% accuracy, potentially cutting drug discovery time from 10 years to 2. This could accelerate treatments for climate-related diseases. Follow developments at @DeepMind"
 
 "Your next computer might grow like a mushroom. Mycelium circuits just achieved switching speeds matching silicon while using 99% less energy. This biomimetic leap could revolutionize sustainable computing. Join r/MyceliumComputing"
 
@@ -98,6 +98,10 @@ NO:
 - Starting every post with "Like a..."
 - Generic academic language
 - Missing the "so what" factor
+- Internal notes, comments, or meta-text (like "Note:" or "Problem-solution:")
+- Any text in parentheses that's commentary about the broadcast itself
+
+IMPORTANT: Output ONLY the broadcast text itself. No notes, no commentary, no meta-text.
 
 Your broadcast:`;
 

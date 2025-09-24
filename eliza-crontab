@@ -1,0 +1,3 @@
+# Eliza AI10BRO Broadcast Schedule
+# Send broadcast every 30 minutes
+*/30 * * * * cd /Users/davidlockie/Documents/Projects/Eliza && curl -X POST http://localhost:3003/trigger -H 'Content-Type: application/json' -d '{"action":"SEND_TELEGRAM"}' >> logs/cron-broadcast.log 2>&1

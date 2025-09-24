@@ -1,0 +1,25 @@
+# Eliza AI10BRO Complete Automation Schedule
+#
+# WORKFLOW:
+# 1. Sync content from GitHub and Obsidian (daily)
+# 2. Create broadcasts from new content (every 6 hours)
+# 3. Send broadcasts to platforms (staggered throughout the day)
+
+# Sync GitHub repositories for new content (daily at 2am)
+0 2 * * * cd /Users/davidlockie/Documents/Projects/Eliza && curl -X POST http://localhost:3003/trigger -H 'Content-Type: application/json' -d '{"action":"SYNC_GITHUB"}' >> logs/cron-github-sync.log 2>&1
+
+# Import Obsidian vault content (daily at 2:30am)
+30 2 * * * cd /Users/davidlockie/Documents/Projects/Eliza && curl -X POST http://localhost:3003/trigger -H 'Content-Type: application/json' -d '{"action":"IMPORT_OBSIDIAN"}' >> logs/cron-obsidian-import.log 2>&1
+
+# Create new broadcasts from documents (every 6 hours: 3am, 9am, 3pm, 9pm)
+0 3,9,15,21 * * * cd /Users/davidlockie/Documents/Projects/Eliza && curl -X POST http://localhost:3003/trigger -H 'Content-Type: application/json' -d '{"action":"CREATE_BROADCASTS"}' >> logs/cron-broadcast-create.log 2>&1
+
+# Send broadcasts to Telegram (every 30 minutes)
+*/30 * * * * cd /Users/davidlockie/Documents/Projects/Eliza && curl -X POST http://localhost:3003/trigger -H 'Content-Type: application/json' -d '{"action":"SEND_TELEGRAM"}' >> logs/cron-telegram-send.log 2>&1
+
+# Send broadcasts to Farcaster (every hour at :15)
+15 * * * * cd /Users/davidlockie/Documents/Projects/Eliza && curl -X POST http://localhost:3003/trigger -H 'Content-Type: application/json' -d '{"action":"SEND_FARCASTER"}' >> logs/cron-farcaster-send.log 2>&1
+
+# Send broadcasts to Bluesky (every hour at :45)
+# Note: Using direct script since SEND_BLUESKY action not yet implemented
+45 * * * * cd /Users/davidlockie/Documents/Projects/Eliza && LIMIT=1 node send-pending-to-bluesky.js >> logs/cron-bluesky-send.log 2>&1
