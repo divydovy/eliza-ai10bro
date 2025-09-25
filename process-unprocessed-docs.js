@@ -78,7 +78,7 @@ INSTRUCTIONS:
    - Lead with the actual breakthrough/news
    - Include specific metrics, numbers, or timelines
    - Connect to sustainability, climate, health, or equity
-   - End with ONE action (follow @handle, join community, track development)
+   - End with ONE action: link to the source, suggest following the PROJECT/RESEARCHER (not @AI10BRO), or join relevant community
 
 3. Length: 400-600 characters total
 
@@ -88,13 +88,14 @@ WRONG OUTPUT (never write like this):
 "Impact first: Your bills..."
 "**Breaking News**"
 "(Note: This is about...)"
+"Follow @AI10BRO for updates" (don't tell people to follow the sender)
 Any text starting with a style label
 
 CORRECT OUTPUT (write exactly like this):
-"MIT just cracked the code for ultra-efficient solar cells..."
-"Your electricity bills could drop 80% thanks to new..."
-"The ocean's plastic problem just found an unlikely hero..."
-"By 2030, your home could regenerate its own energy..."
+"MIT just cracked the code for ultra-efficient solar cells... Track the research at @MITEnergy"
+"Your electricity bills could drop 80% thanks to new... Learn more from the Stanford team"
+"The ocean's plastic problem just found an unlikely hero... Join r/OceanCleanup for updates"
+"By 2030, your home could regenerate... Follow the project at example.com"
 
 OUTPUT YOUR BROADCAST NOW (no labels, no prefixes, just the text):`;
 
