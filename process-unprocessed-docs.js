@@ -50,24 +50,66 @@ async function processUnprocessedDocuments(limit = 10) {
                     continue;
                 }
 
-                // Check mission alignment - AI10BRO focuses on innovation, sustainability, and technology
-                const missionKeywords = [
-                    'ai', 'artificial intelligence', 'machine learning', 'neural', 'algorithm',
-                    'sustainability', 'renewable', 'climate', 'carbon', 'energy', 'solar', 'wind',
-                    'innovation', 'breakthrough', 'research', 'technology', 'science',
-                    'biotech', 'nanotech', 'quantum', 'computing', 'robotics', 'automation',
-                    'health', 'medical', 'drug discovery', 'protein', 'genetic', 'therapy'
-                ];
+                // Calculate alignment score based on content relevance
+                const missionKeywords = {
+                    // Core mission keywords (high weight)
+                    core: ['artificial intelligence', 'machine learning', 'neural network', 'deep learning',
+                           'renewable energy', 'solar power', 'wind power', 'carbon capture',
+                           'climate tech', 'sustainability', 'regenerative', 'biomimicry'],
+                    // Supporting keywords (medium weight)
+                    tech: ['algorithm', 'research', 'breakthrough', 'innovation', 'discovery',
+                           'quantum computing', 'robotics', 'biotech', 'nanotech', 'fusion'],
+                    // Context keywords (low weight)
+                    context: ['technology', 'science', 'energy', 'efficiency', 'reduce', 'improve']
+                };
 
-                const contentLower = (title + ' ' + content.text?.substring(0, 1000)).toLowerCase();
-                const hasRelevantContent = missionKeywords.some(keyword => contentLower.includes(keyword));
+                const contentLower = (title + ' ' + content.text?.substring(0, 2000)).toLowerCase();
+
+                // Calculate alignment score
+                let alignmentScore = 0;
+                let coreMatches = 0;
+                let techMatches = 0;
+
+                // Check core keywords (0.3 points each, max 0.6)
+                for (const keyword of missionKeywords.core) {
+                    if (contentLower.includes(keyword)) {
+                        coreMatches++;
+                        alignmentScore += 0.3;
+                        if (alignmentScore >= 0.6) break;
+                    }
+                }
+
+                // Check tech keywords (0.1 points each, max 0.3)
+                for (const keyword of missionKeywords.tech) {
+                    if (contentLower.includes(keyword)) {
+                        techMatches++;
+                        alignmentScore += 0.1;
+                        if (alignmentScore >= 0.9) break;
+                    }
+                }
+
+                // Add context bonus (max 0.1)
+                const contextMatches = missionKeywords.context.filter(k => contentLower.includes(k)).length;
+                alignmentScore += Math.min(contextMatches * 0.02, 0.1);
+
+                // Cap at 1.0
+                alignmentScore = Math.min(alignmentScore, 1.0);
+
+                // Skip if alignment too low
+                if (alignmentScore < 0.3) {
+                    console.log(`   ⏭️  Skipped (alignment score: ${(alignmentScore * 100).toFixed(0)}%)`);
+                    failed++;
+                    continue;
+                }
 
                 // Skip non-aligned content (politics, strikes, non-tech news)
-                const excludeKeywords = ['strike', 'protest', 'election', 'politician', 'guerra', 'συλλαλητήρια'];
+                const excludeKeywords = ['strike', 'protest', 'election', 'politician', 'guerra',
+                                        'συλλαλητήρια', 'murder', 'war', 'battle', 'gaza', 'ukraine conflict',
+                                        'museum', 'archaeological', 'george washington', 'tempi'];
                 const hasExcludedContent = excludeKeywords.some(keyword => contentLower.includes(keyword));
 
-                if (!hasRelevantContent || hasExcludedContent) {
-                    console.log('   ⏭️  Skipped (not aligned with mission)');
+                if (hasExcludedContent) {
+                    console.log('   ⏭️  Skipped (contains excluded topics)');
                     failed++;
                     continue;
                 }
@@ -256,13 +298,14 @@ OUTPUT YOUR BROADCAST NOW (no labels, no prefixes, just the text):`;
                         platform,
                         jsonContent,
                         'pending',
-                        0.8, // TODO: Calculate real alignment score based on content
+                        alignmentScore,
                         Date.now()
                     );
 
-                    console.log(`✅ Created ${platform} broadcast: ${broadcastId} (${platformContent.length} chars)`);
+                    console.log(`✅ Created ${platform} broadcast: ${broadcastId} (${platformContent.length} chars, alignment: ${(alignmentScore * 100).toFixed(0)}%)`);
                 }
 
+                console.log(`   📊 Overall alignment score: ${(alignmentScore * 100).toFixed(0)}%`);
                 processed++;
                 
             } catch (error) {
