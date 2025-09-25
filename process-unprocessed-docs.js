@@ -70,14 +70,14 @@ INSTRUCTIONS:
 1. Choose ONE writing style (do not mention which style you're using):
    - Start with "MIT just cracked..." or "[Institution] just..." or "Breakthrough:..."
    - Start with impact: "Your electricity bills could drop..." or "80% reduction in..."
-   - Start with the problem being solved naturally
+   - Start with the problem being solved: "Water scarcity affects 2 billion..."
    - Start with future vision: "By 2030..." or "Within 3 years..."
-   - Use nature metaphor (only 20% of time): "Like fireflies..."
+   - RARELY (1 in 10 times max): Use a nature metaphor, but VARY it (not always fireflies)
 
 2. Structure your broadcast:
-   - Lead with the actual breakthrough/news
-   - Include specific metrics, numbers, or timelines
-   - Connect to sustainability, climate, health, or equity
+   - Lead with CONCRETE FACTS and the actual breakthrough
+   - Include SPECIFIC metrics, numbers, percentages, or timelines
+   - Connect to real-world impact (sustainability, climate, health, equity)
    - End with ONE action: link to the source, suggest following the PROJECT/RESEARCHER (not @AI10BRO), or join relevant community
 
 3. Length: 400-600 characters total
@@ -85,17 +85,16 @@ INSTRUCTIONS:
 WRONG OUTPUT (never write like this):
 "Problem-solution: The plastic crisis..."
 "Direct news lead: MIT just..."
-"Impact first: Your bills..."
+"Like fireflies..." (don't overuse nature metaphors)
 "**Breaking News**"
 "(Note: This is about...)"
 "Follow @AI10BRO for updates" (don't tell people to follow the sender)
-Any text starting with a style label
+Any text starting with a style label or using too many metaphors instead of facts
 
 CORRECT OUTPUT (write exactly like this):
-"MIT just cracked the code for ultra-efficient solar cells... Track the research at @MITEnergy"
-"Your electricity bills could drop 80% thanks to new... Learn more from the Stanford team"
-"The ocean's plastic problem just found an unlikely hero... Join r/OceanCleanup for updates"
-"By 2030, your home could regenerate... Follow the project at example.com"
+"Researchers achieved 47% efficiency in perovskite solar cells, surpassing silicon's 26% limit. Commercial production starts 2026. Track @MITEnergy"
+"New carbon capture tech removes CO2 for $50/ton, 75% cheaper than current methods. Industrial trials begin Q2. Details at carbonengineering.com"
+"Stanford's AI model predicts protein folding 10x faster using 90% less energy than AlphaFold. Open source release next month. Join r/ProteinFolding"
 
 OUTPUT YOUR BROADCAST NOW (no labels, no prefixes, just the text):`;
 
