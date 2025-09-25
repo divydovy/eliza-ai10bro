@@ -92,9 +92,9 @@ async function sendPendingBroadcasts() {
                 // Mark as sent in database
                 db.prepare(`
                     UPDATE broadcasts
-                    SET status = 'sent', sent_at = datetime('now')
+                    SET status = 'sent', sent_at = ?
                     WHERE id = ?
-                `).run(broadcast.id);
+                `).run(Date.now(), broadcast.id);
 
                 console.log(`✅ Broadcast ${broadcast.id} sent successfully to Bluesky`);
                 console.log(`🔗 Post URI: ${post.uri}`);

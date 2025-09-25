@@ -42,9 +42,9 @@ async function processUnprocessedDocuments(limit = 10) {
 
                 console.log(`\n📄 Processing: ${title}`);
 
-                // Skip test/draft/cache documents for quality control
-                if (/test|draft|cache|example|demo/i.test(title) ||
-                    /test|draft|cache|example|demo/i.test(content.text?.substring(0, 200) || '')) {
+                // Skip only actual test/draft/cache documents
+                if (/\b(test|draft|cache|example|demo)\b/i.test(title) &&
+                    !title.includes('arxiv') && !content.text?.includes('arxiv')) {
                     console.log('   ⏭️  Skipped (test/draft content)');
                     failed++;
                     continue;

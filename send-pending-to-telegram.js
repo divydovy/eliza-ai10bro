@@ -77,10 +77,10 @@ async function sendPendingBroadcasts() {
             // Update broadcast status
             if (success) {
                 db.prepare(`
-                    UPDATE broadcasts 
-                    SET status = 'sent', sent_at = datetime('now') 
+                    UPDATE broadcasts
+                    SET status = 'sent', sent_at = ?
                     WHERE id = ?
-                `).run(broadcast.id);
+                `).run(Date.now(), broadcast.id);
                 console.log(`   ✅ Marked as sent in database`);
             }
             
