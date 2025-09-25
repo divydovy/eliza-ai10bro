@@ -50,6 +50,28 @@ async function processUnprocessedDocuments(limit = 10) {
                     continue;
                 }
 
+                // Check mission alignment - AI10BRO focuses on innovation, sustainability, and technology
+                const missionKeywords = [
+                    'ai', 'artificial intelligence', 'machine learning', 'neural', 'algorithm',
+                    'sustainability', 'renewable', 'climate', 'carbon', 'energy', 'solar', 'wind',
+                    'innovation', 'breakthrough', 'research', 'technology', 'science',
+                    'biotech', 'nanotech', 'quantum', 'computing', 'robotics', 'automation',
+                    'health', 'medical', 'drug discovery', 'protein', 'genetic', 'therapy'
+                ];
+
+                const contentLower = (title + ' ' + content.text?.substring(0, 1000)).toLowerCase();
+                const hasRelevantContent = missionKeywords.some(keyword => contentLower.includes(keyword));
+
+                // Skip non-aligned content (politics, strikes, non-tech news)
+                const excludeKeywords = ['strike', 'protest', 'election', 'politician', 'guerra', 'συλλαλητήρια'];
+                const hasExcludedContent = excludeKeywords.some(keyword => contentLower.includes(keyword));
+
+                if (!hasRelevantContent || hasExcludedContent) {
+                    console.log('   ⏭️  Skipped (not aligned with mission)');
+                    failed++;
+                    continue;
+                }
+
                 // Skip documents with insufficient content
                 const textLength = content.text?.length || 0;
                 if (textLength < 200) {
@@ -234,7 +256,7 @@ OUTPUT YOUR BROADCAST NOW (no labels, no prefixes, just the text):`;
                         platform,
                         jsonContent,
                         'pending',
-                        0.8,
+                        0.8, // TODO: Calculate real alignment score based on content
                         Date.now()
                     );
 
