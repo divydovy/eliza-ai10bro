@@ -122,13 +122,22 @@ async function processUnprocessedDocuments(limit = 10) {
                     continue;
                 }
 
+                // Clean content before generating broadcast
+                let cleanContent = content.text || '';
+                // Remove metadata lines that shouldn't be in broadcasts
+                cleanContent = cleanContent
+                    .replace(/_Generated on [^\n]+_\n?/g, '')
+                    .replace(/\*\*Topic:\*\* [^\n]+\n?/g, '')
+                    .replace(/## Notes\n- \n?/g, '')
+                    .substring(0, 2000);
+
                 // Generate broadcast using Ollama
                 const prompt = `You are AI10BRO, tracking breakthrough innovations that shape humanity's sustainable future.
 
 TASK: Generate ONLY the broadcast text. Do not include any labels, prefixes, or meta-text.
 
 CONTENT TO ANALYZE:
-${content.text?.substring(0, 2000)}
+${cleanContent}
 
 INSTRUCTIONS:
 1. Choose ONE writing style (do not mention which style you're using):
