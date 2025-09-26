@@ -68,14 +68,20 @@ app.get('/api/broadcast-stats', (req, res) => {
         });
 
         // Get recent broadcast activity from broadcasts table
+        // Order by sent_at for sent broadcasts, createdAt for pending ones
         const recentActivityQuery = `
-            SELECT 
+            SELECT
                 content as text,
                 status,
                 client as platform,
-                createdAt
+                createdAt,
+                sent_at
             FROM broadcasts
-            ORDER BY createdAt DESC
+            ORDER BY
+                CASE
+                    WHEN status = 'sent' AND sent_at IS NOT NULL THEN sent_at
+                    ELSE createdAt
+                END DESC
             LIMIT 20
         `;
         const recentActivity = db.prepare(recentActivityQuery).all();
@@ -84,17 +90,23 @@ app.get('/api/broadcast-stats', (req, res) => {
         const formattedActivity = recentActivity.map(item => {
             const now = Date.now();
 
-            // Handle both millisecond timestamps and ISO date strings
-            let created;
-            if (typeof item.createdAt === 'string' && item.createdAt.includes('-')) {
-                // ISO date string like "2025-09-18 14:39:21"
-                created = new Date(item.createdAt).getTime();
+            // Use sent_at for sent broadcasts, createdAt for pending ones
+            let timestamp;
+            if (item.status === 'sent' && item.sent_at) {
+                if (typeof item.sent_at === 'string' && item.sent_at.includes('-')) {
+                    timestamp = new Date(item.sent_at).getTime();
+                } else {
+                    timestamp = parseInt(item.sent_at);
+                }
             } else {
-                // Millisecond timestamp
-                created = parseInt(item.createdAt);
+                if (typeof item.createdAt === 'string' && item.createdAt.includes('-')) {
+                    timestamp = new Date(item.createdAt).getTime();
+                } else {
+                    timestamp = parseInt(item.createdAt);
+                }
             }
 
-            const minutesAgo = Math.floor((now - created) / 60000);
+            const minutesAgo = Math.floor((now - timestamp) / 60000);
             
             let timeStr;
             if (minutesAgo < 1) timeStr = 'Just now';
