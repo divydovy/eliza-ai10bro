@@ -83,7 +83,17 @@ app.get('/api/broadcast-stats', (req, res) => {
         // Format recent activity for display
         const formattedActivity = recentActivity.map(item => {
             const now = Date.now();
-            const created = parseInt(item.createdAt);
+
+            // Handle both millisecond timestamps and ISO date strings
+            let created;
+            if (typeof item.createdAt === 'string' && item.createdAt.includes('-')) {
+                // ISO date string like "2025-09-18 14:39:21"
+                created = new Date(item.createdAt).getTime();
+            } else {
+                // Millisecond timestamp
+                created = parseInt(item.createdAt);
+            }
+
             const minutesAgo = Math.floor((now - created) / 60000);
             
             let timeStr;
@@ -304,7 +314,9 @@ app.get('/api/broadcasts', (req, res) => {
                 text: broadcastText.substring(0, 200),
                 platform: b.platform || 'telegram',
                 status: b.status,
-                time: new Date(parseInt(b.sent_at || b.createdAt)).toISOString()
+                time: new Date(typeof (b.sent_at || b.createdAt) === 'string' && (b.sent_at || b.createdAt).includes('-') ?
+                    new Date(b.sent_at || b.createdAt).getTime() :
+                    parseInt(b.sent_at || b.createdAt)).toISOString()
             };
         }));
     } catch (error) {
@@ -431,8 +443,22 @@ app.get('/api/recent-broadcasts', (req, res) => {
 
         const formatted = recentBroadcasts.map(broadcast => {
             const now = Date.now();
-            const created = parseInt(broadcast.createdAt);
-            const sent = broadcast.sent_at ? parseInt(broadcast.sent_at) : null;
+            // Handle both millisecond timestamps and ISO date strings
+            let created;
+            if (typeof broadcast.createdAt === 'string' && broadcast.createdAt.includes('-')) {
+                created = new Date(broadcast.createdAt).getTime();
+            } else {
+                created = parseInt(broadcast.createdAt);
+            }
+
+            let sent = null;
+            if (broadcast.sent_at) {
+                if (typeof broadcast.sent_at === 'string' && broadcast.sent_at.includes('-')) {
+                    sent = new Date(broadcast.sent_at).getTime();
+                } else {
+                    sent = parseInt(broadcast.sent_at);
+                }
+            }
             
             const createdMinutesAgo = Math.floor((now - created) / 60000);
             let createdTimeStr;
