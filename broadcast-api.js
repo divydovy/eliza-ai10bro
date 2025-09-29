@@ -123,17 +123,53 @@ app.get('/api/broadcast-stats', (req, res) => {
             else if (minutesAgo < 1440) timeStr = `${Math.floor(minutesAgo / 60)} hours ago`;
             else timeStr = `${Math.floor(minutesAgo / 1440)} days ago`;
 
-            // Extract first line of text for display
-            const textPreview = item.text ? 
-                item.text.split('\n')[0].substring(0, 100) + 
-                (item.text.length > 100 ? '...' : '') : 
+            // Parse JSON content if needed and extract first line for display
+            let textContent = item.text;
+            try {
+                if (textContent && textContent.startsWith('{')) {
+                    const parsed = JSON.parse(textContent);
+                    textContent = parsed.text || textContent;
+                }
+            } catch (e) {
+                // If parsing fails, use as-is
+            }
+
+            const textPreview = textContent ?
+                textContent.split('\n')[0].substring(0, 100) +
+                (textContent.length > 100 ? '...' : '') :
                 'No content';
+
+            // Calculate times for both created and sent
+            let createdTime = null;
+            let sentTime = null;
+
+            if (item.createdAt) {
+                const createdTimestamp = typeof item.createdAt === 'string' && item.createdAt.includes('-') ?
+                    new Date(item.createdAt).getTime() : parseInt(item.createdAt);
+                const createdMinutesAgo = Math.floor((now - createdTimestamp) / 60000);
+                if (createdMinutesAgo < 1) createdTime = 'Just now';
+                else if (createdMinutesAgo < 60) createdTime = `${createdMinutesAgo} mins ago`;
+                else if (createdMinutesAgo < 1440) createdTime = `${Math.floor(createdMinutesAgo / 60)} hours ago`;
+                else createdTime = `${Math.floor(createdMinutesAgo / 1440)} days ago`;
+            }
+
+            if (item.sent_at && item.status === 'sent') {
+                const sentTimestamp = typeof item.sent_at === 'string' && item.sent_at.includes('-') ?
+                    new Date(item.sent_at).getTime() : parseInt(item.sent_at);
+                const sentMinutesAgo = Math.floor((now - sentTimestamp) / 60000);
+                if (sentMinutesAgo < 1) sentTime = 'Just now';
+                else if (sentMinutesAgo < 60) sentTime = `${sentMinutesAgo} mins ago`;
+                else if (sentMinutesAgo < 1440) sentTime = `${Math.floor(sentMinutesAgo / 60)} hours ago`;
+                else sentTime = `${Math.floor(sentMinutesAgo / 1440)} days ago`;
+            }
 
             return {
                 text: textPreview,
                 status: item.status || 'pending',
                 platform: item.platform || 'telegram',
-                time: timeStr
+                time: timeStr,
+                createdTime: createdTime,
+                sentTime: sentTime
             };
         });
 
@@ -450,7 +486,7 @@ app.get('/api/recent-documents', (req, res) => {
 app.get('/api/recent-broadcasts', (req, res) => {
     try {
         const recentBroadcasts = db.prepare(`
-            SELECT 
+            SELECT
                 id,
                 content,
                 client as platform,
@@ -458,7 +494,19 @@ app.get('/api/recent-broadcasts', (req, res) => {
                 sent_at,
                 createdAt
             FROM broadcasts
-            ORDER BY createdAt DESC
+            ORDER BY
+                CASE
+                    WHEN status = 'sent' AND sent_at IS NOT NULL THEN
+                        CASE
+                            WHEN typeof(sent_at) = 'text' THEN strftime('%s', sent_at) * 1000
+                            ELSE sent_at
+                        END
+                    ELSE
+                        CASE
+                            WHEN typeof(createdAt) = 'text' THEN strftime('%s', createdAt) * 1000
+                            ELSE createdAt
+                        END
+                END DESC
             LIMIT 20
         `).all();
 
@@ -497,14 +545,25 @@ app.get('/api/recent-broadcasts', (req, res) => {
                 else sentTimeStr = `${Math.floor(sentMinutesAgo / 1440)} days ago`;
             }
 
+            // Parse JSON content if needed
+            let textContent = broadcast.content;
+            try {
+                if (textContent && textContent.startsWith('{')) {
+                    const parsed = JSON.parse(textContent);
+                    textContent = parsed.text || textContent;
+                }
+            } catch (e) {
+                // If parsing fails, use as-is
+            }
+
             // Extract first line for preview
-            const lines = broadcast.content ? broadcast.content.split('\n') : ['No content'];
+            const lines = textContent ? textContent.split('\n') : ['No content'];
             const preview = lines[0].substring(0, 80) + (lines[0].length > 80 ? '...' : '');
             
             return {
                 id: broadcast.id,
                 preview: preview,
-                fullContent: broadcast.content || 'No content',
+                fullContent: textContent || 'No content',
                 platform: broadcast.platform || 'unknown',
                 status: broadcast.status,
                 createdTime: createdTimeStr,
