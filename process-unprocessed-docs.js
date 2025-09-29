@@ -6,36 +6,55 @@ const util = require('util');
 const execPromise = util.promisify(exec);
 const crypto = require('crypto');
 
-async function processUnprocessedDocuments(limit = 10) {
-    console.log(`🚀 Processing up to ${limit} unprocessed documents...`);
-    
+async function processUnprocessedDocuments(targetBroadcasts = 10) {
+    console.log(`🚀 Processing documents until we create ${targetBroadcasts} valid broadcasts...`);
+
     const db = new Database('./agent/data/db.sqlite');
-    
+
     try {
-        // Find documents without broadcasts
-        const unprocessedDocs = db.prepare(`
-            SELECT m.* FROM memories m
-            WHERE m.type = 'documents'
-            AND NOT EXISTS (
-                SELECT 1 FROM broadcasts b WHERE b.documentId = m.id
-            )
-            AND json_extract(m.content, '$.text') IS NOT NULL
-            AND length(json_extract(m.content, '$.text')) > 100
-            ORDER BY m.createdAt DESC
-            LIMIT ?
-        `).all(limit);
-        
-        console.log(`Found ${unprocessedDocs.length} unprocessed documents`);
-        
-        if (unprocessedDocs.length === 0) {
-            console.log('No unprocessed documents found');
-            return { processed: 0, failed: 0 };
-        }
-        
         let processed = 0;
         let failed = 0;
-        
-        for (const doc of unprocessedDocs) {
+        let documentsReviewed = 0;
+        const maxDocumentsToReview = 100; // Safety limit to prevent infinite loops
+
+        while (processed < targetBroadcasts && documentsReviewed < maxDocumentsToReview) {
+            // Find next batch of unprocessed documents, prioritizing tech/AI content
+            const unprocessedDocs = db.prepare(`
+                SELECT m.* FROM memories m
+                WHERE m.type = 'documents'
+                AND NOT EXISTS (
+                    SELECT 1 FROM broadcasts b WHERE b.documentId = m.id
+                )
+                AND json_extract(m.content, '$.text') IS NOT NULL
+                AND length(json_extract(m.content, '$.text')) > 100
+                ORDER BY
+                    -- Prioritize documents with tech/AI keywords
+                    CASE
+                        WHEN json_extract(m.content, '$.text') LIKE '%artificial intelligence%'
+                          OR json_extract(m.content, '$.text') LIKE '%machine learning%'
+                          OR json_extract(m.content, '$.text') LIKE '%renewable energy%'
+                          OR json_extract(m.content, '$.text') LIKE '%sustainable%'
+                          OR json_extract(m.content, '$.text') LIKE '%climate tech%'
+                          OR json_extract(m.content, '$.text') LIKE '%innovation%'
+                          OR json_extract(m.content, '$.text') LIKE '%quantum computing%'
+                          OR json_extract(m.content, '$.text') LIKE '%carbon capture%'
+                        THEN 0
+                        ELSE 1
+                    END,
+                    m.createdAt DESC
+                LIMIT 20
+            `).all();
+
+            if (unprocessedDocs.length === 0) {
+                console.log('No more unprocessed documents available');
+                break;
+            }
+
+            console.log(`\n📚 Reviewing batch of ${unprocessedDocs.length} documents (${processed}/${targetBroadcasts} broadcasts created so far)`);
+
+            for (const doc of unprocessedDocs) {
+                if (processed >= targetBroadcasts) break;
+                documentsReviewed++;
             try {
                 const content = JSON.parse(doc.content);
                 const title = content.metadata?.title || content.text?.substring(0, 50) || 'Unknown';
@@ -96,7 +115,7 @@ async function processUnprocessedDocuments(limit = 10) {
                 alignmentScore = Math.min(alignmentScore, 1.0);
 
                 // Skip if alignment too low
-                if (alignmentScore < 0.3) {
+                if (alignmentScore < 0.3) {  // 30% minimum alignment for quality control
                     console.log(`   ⏭️  Skipped (alignment score: ${(alignmentScore * 100).toFixed(0)}%)`);
                     failed++;
                     continue;
@@ -316,16 +335,18 @@ OUTPUT YOUR BROADCAST NOW (no labels, no prefixes, just the text):`;
 
                 console.log(`   📊 Overall alignment score: ${(alignmentScore * 100).toFixed(0)}%`);
                 processed++;
-                
+
             } catch (error) {
                 console.error(`❌ Failed to process document: ${error.message}`);
                 failed++;
             }
-        }
-        
+            }  // End of for loop
+        }  // End of while loop
+
         console.log(`\n📊 Summary:`);
-        console.log(`   Processed: ${processed}`);
-        console.log(`   Failed: ${failed}`);
+        console.log(`   Documents reviewed: ${documentsReviewed}`);
+        console.log(`   Broadcasts created: ${processed}`);
+        console.log(`   Documents skipped: ${failed}`);
         
         // Now trigger the queue processing to send them
         if (processed > 0) {
@@ -347,8 +368,8 @@ OUTPUT YOUR BROADCAST NOW (no labels, no prefixes, just the text):`;
 
 // Run if called directly
 if (require.main === module) {
-    const limit = process.argv[2] ? parseInt(process.argv[2]) : 10;
-    processUnprocessedDocuments(limit).catch(console.error);
+    const targetBroadcasts = process.argv[2] ? parseInt(process.argv[2]) : 10;
+    processUnprocessedDocuments(targetBroadcasts).catch(console.error);
 }
 
 module.exports = { processUnprocessedDocuments };
