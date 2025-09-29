@@ -1,0 +1,182 @@
+{
+  "meta": {
+    "updated": "2025-01-01",
+    "sources": ["FTI Reports", "MIT Technology Review", "Nature Climate", "IEA Reports", "McKinsey Sustainability"]
+  },
+  "megatrends": {
+    "energy_transition": {
+      "name": "The Great Energy Transition",
+      "description": "Shift from fossil fuels to renewable energy reaching tipping point",
+      "key_metrics": {
+        "solar_cost_drop": "89% reduction since 2010",
+        "grid_parity": "Achieved in 140+ countries",
+        "investment": "$1.8 trillion annually by 2030"
+      },
+      "milestones": {
+        "2025": "Solar cheaper than coal globally",
+        "2027": "Battery storage cost below $100/kWh",
+        "2030": "50% global electricity from renewables"
+      },
+      "related_keywords": ["solar", "wind", "battery", "grid", "renewable", "storage", "perovskite"]
+    },
+    "circular_economy": {
+      "name": "Circular Economy Revolution",
+      "description": "From waste to resource - materials that never die",
+      "key_metrics": {
+        "market_size": "$4.5 trillion by 2030",
+        "waste_reduction": "45% by 2030 target",
+        "job_creation": "18 million new jobs"
+      },
+      "milestones": {
+        "2025": "EU bans single-use plastics",
+        "2026": "Bio-materials reach price parity",
+        "2028": "Plastic-eating enzymes commercialized"
+      },
+      "related_keywords": ["biodegradable", "recycling", "biomaterials", "plastic", "waste", "circular", "mycelium"]
+    },
+    "carbon_removal": {
+      "name": "Carbon Removal Scale-Up",
+      "description": "From emissions to raw material - CO2 as a resource",
+      "key_metrics": {
+        "removal_target": "10 Gt CO2/year by 2050",
+        "current_cost": "$600/ton (dropping 20% annually)",
+        "market_value": "$1 trillion by 2030"
+      },
+      "milestones": {
+        "2025": "First million-ton DAC facility",
+        "2027": "Carbon credits hit $200/ton",
+        "2030": "CO2-to-fuel competitive with oil"
+      },
+      "related_keywords": ["carbon capture", "DAC", "CCS", "sequestration", "CO2", "direct air capture"]
+    },
+    "synthetic_biology": {
+      "name": "The Biology Century",
+      "description": "Programming life to manufacture everything",
+      "key_metrics": {
+        "market_size": "$30 billion by 2025",
+        "cost_reduction": "10x every 5 years",
+        "applications": "40% of global manufacturing by 2040"
+      },
+      "milestones": {
+        "2025": "Lab-grown meat in supermarkets",
+        "2026": "Bacteria-based cement commercial",
+        "2028": "Living buildings self-repair"
+      },
+      "related_keywords": ["synthetic biology", "lab grown", "cultured", "biotech", "bacteria", "algae", "fermentation"]
+    },
+    "fusion_energy": {
+      "name": "Fusion's Commercial Dawn",
+      "description": "Unlimited clean energy finally arrives",
+      "key_metrics": {
+        "investment": "$7 billion private funding",
+        "efficiency": "Q>1 achieved (net energy gain)",
+        "timeline": "Commercial by 2030s"
+      },
+      "milestones": {
+        "2025": "SPARC tokamak first plasma",
+        "2028": "Demonstration plant approved",
+        "2032": "First commercial fusion plant"
+      },
+      "related_keywords": ["fusion", "tokamak", "plasma", "ITER", "Commonwealth Fusion", "helion"]
+    },
+    "regenerative_agriculture": {
+      "name": "Soil as Carbon Sink",
+      "description": "Farming that heals the planet",
+      "key_metrics": {
+        "carbon_potential": "5-6 Gt CO2/year sequestration",
+        "yield_increase": "30% with regenerative practices",
+        "soil_health": "1 billion hectares to restore"
+      },
+      "milestones": {
+        "2025": "Carbon credits for farmers mainstream",
+        "2027": "Vertical farms in every major city",
+        "2030": "50% agriculture is regenerative"
+      },
+      "related_keywords": ["regenerative", "vertical farming", "permaculture", "soil", "agriculture", "farming"]
+    },
+    "green_hydrogen": {
+      "name": "Hydrogen Economy Emerges",
+      "description": "The missing link for hard-to-decarbonize sectors",
+      "key_metrics": {
+        "cost_target": "$1/kg by 2030",
+        "production": "500 Mt/year by 2050",
+        "investment": "$500 billion committed"
+      },
+      "milestones": {
+        "2025": "First hydrogen steel plant",
+        "2027": "Hydrogen aviation trials",
+        "2030": "Green ammonia shipping fuel"
+      },
+      "related_keywords": ["hydrogen", "electrolysis", "fuel cell", "ammonia", "H2"]
+    },
+    "climate_adaptation": {
+      "name": "Adaptation Tech Boom",
+      "description": "Building resilience for locked-in warming",
+      "key_metrics": {
+        "market_size": "$2 trillion by 2026",
+        "cities_adapting": "10,000+ with plans",
+        "population_affected": "3.6 billion by 2050"
+      },
+      "milestones": {
+        "2025": "Heat-resistant crops deployed",
+        "2026": "Floating cities prototype",
+        "2028": "Climate migration protocols"
+      },
+      "related_keywords": ["resilience", "adaptation", "drought", "flood", "heat", "cooling"]
+    }
+  },
+  "emerging_disruptions": {
+    "room_temp_superconductors": {
+      "name": "Room Temperature Superconductors",
+      "status": "Breakthrough pending verification",
+      "impact": "Would revolutionize energy transmission, computing, transport",
+      "timeline": "2025-2030 if verified"
+    },
+    "quantum_battery": {
+      "name": "Quantum Batteries",
+      "status": "Lab demonstrations",
+      "impact": "Instant charging, 10x energy density",
+      "timeline": "2028-2032"
+    },
+    "atmospheric_mining": {
+      "name": "Atmospheric Mining",
+      "status": "Pilot projects",
+      "impact": "Extract metals, water from air",
+      "timeline": "2026-2030"
+    },
+    "living_materials": {
+      "name": "Self-Healing Living Materials",
+      "status": "Commercial trials",
+      "impact": "Infrastructure that repairs itself",
+      "timeline": "2025-2027"
+    }
+  },
+  "investment_signals": {
+    "hot_areas": [
+      "Long-duration energy storage",
+      "Alternative proteins",
+      "Carbon utilization",
+      "Climate fintech",
+      "Biodegradable plastics"
+    ],
+    "vc_deployment": "$60B in climate tech (2024)",
+    "government_spending": "$1.2T globally via IRA, Green Deal, etc"
+  },
+  "tipping_points": {
+    "2025": [
+      "EVs cheaper than gas cars (total cost)",
+      "Renewable energy 30% of global supply",
+      "First commercial DAC facilities"
+    ],
+    "2026": [
+      "Lab meat price parity with conventional",
+      "Green hydrogen <$3/kg",
+      "Biodegradable plastics mainstream"
+    ],
+    "2027": [
+      "Battery storage disrupts gas peakers",
+      "Carbon removal hits 100Mt/year",
+      "Vertical farms profitable without subsidies"
+    ]
+  }
+}

@@ -1,10 +1,76 @@
 #!/usr/bin/env node
 
+require('dotenv').config();
 const Database = require('better-sqlite3');
 const { exec } = require('child_process');
 const util = require('util');
 const execPromise = util.promisify(exec);
 const crypto = require('crypto');
+
+// OpenRouter API integration for high-quality broadcast generation
+async function generateBroadcastWithOpenRouter(prompt) {
+    const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+    const model = process.env.OPENROUTER_MODEL || 'nousresearch/hermes-3-llama-3.1-405b';
+
+    if (!OPENROUTER_API_KEY) {
+        console.log('⚠️  No OpenRouter API key found, falling back to local ollama');
+        // Fallback to ollama
+        const tempFile = `/tmp/broadcast-${Date.now()}.txt`;
+        require('fs').writeFileSync(tempFile, prompt);
+        const { stdout } = await execPromise(`ollama run qwen2.5:14b < ${tempFile}`);
+        require('fs').unlinkSync(tempFile);
+        return stdout.trim();
+    }
+
+    try {
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+                'Content-Type': 'application/json',
+                'X-Title': 'Eliza AI10BRO Broadcast Generation'
+            },
+            body: JSON.stringify({
+                model: model,
+                messages: [
+                    {
+                        role: 'system',
+                        content: 'You are an expert content creator specializing in engaging, professional broadcasts about technology and sustainability. Create compelling content that connects academic findings to real-world impact and market trends.'
+                    },
+                    {
+                        role: 'user',
+                        content: prompt
+                    }
+                ],
+                max_tokens: 800,
+                temperature: 0.7
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.choices && data.choices[0] && data.choices[0].message) {
+            return data.choices[0].message.content.trim();
+        } else {
+            console.log('⚠️  OpenRouter response error, falling back to ollama');
+            console.log('Response:', JSON.stringify(data, null, 2));
+            // Fallback to ollama
+            const tempFile = `/tmp/broadcast-${Date.now()}.txt`;
+            require('fs').writeFileSync(tempFile, prompt);
+            const { stdout } = await execPromise(`ollama run qwen2.5:14b < ${tempFile}`);
+            require('fs').unlinkSync(tempFile);
+            return stdout.trim();
+        }
+    } catch (error) {
+        console.log('⚠️  OpenRouter API error, falling back to ollama:', error.message);
+        // Fallback to ollama
+        const tempFile = `/tmp/broadcast-${Date.now()}.txt`;
+        require('fs').writeFileSync(tempFile, prompt);
+        const { stdout } = await execPromise(`ollama run qwen2.5:14b < ${tempFile}`);
+        require('fs').unlinkSync(tempFile);
+        return stdout.trim();
+    }
+}
 
 async function processUnprocessedDocuments(targetBroadcasts = 10) {
     console.log(`🚀 Processing documents until we create ${targetBroadcasts} valid broadcasts...`);
@@ -17,6 +83,28 @@ async function processUnprocessedDocuments(targetBroadcasts = 10) {
         let documentsReviewed = 0;
         const maxDocumentsToReview = 100; // Safety limit to prevent infinite loops
 
+        // Define mission keywords once, outside the loops
+        const missionKeywords = {
+            // Core mission keywords - sustainability & regeneration (high weight)
+            core: ['renewable energy', 'solar power', 'wind power', 'carbon capture',
+                   'climate tech', 'sustainability', 'regenerative', 'biomimicry',
+                   'circular economy', 'green energy', 'sustainable materials',
+                   'biodegradable', 'carbon negative', 'net zero', 'clean energy',
+                   'synthetic biology', 'bioengineering', 'biomanufacturing', 'fermentation',
+                   'metabolic engineering', 'cellular agriculture', 'precision fermentation'],
+            // Supporting keywords - breakthrough innovations (medium weight)
+            tech: ['breakthrough', 'innovation', 'discovery', 'fusion energy',
+                   'vertical farming', 'lab grown', 'cultured meat', 'alternative protein',
+                   'energy storage', 'battery', 'hydrogen', 'geothermal',
+                   'microorganism', 'engineered', 'biofuel', 'biomaterials', 'gene editing',
+                   'CRISPR', 'protein design', 'DNA synthesis', 'artificial cells',
+                   'biocomputing', 'living materials', 'microbiome', 'biotechnology'],
+            // Context keywords (low weight)
+            context: ['environment', 'climate', 'energy', 'efficiency', 'reduce emissions',
+                     'sustainable', 'ecological', 'conservation', 'market', 'growth',
+                     'technology', 'research', 'development', 'commercial', 'application']
+        };
+
         while (processed < targetBroadcasts && documentsReviewed < maxDocumentsToReview) {
             // Find next batch of unprocessed documents, prioritizing tech/AI content
             const unprocessedDocs = db.prepare(`
@@ -28,9 +116,18 @@ async function processUnprocessedDocuments(targetBroadcasts = 10) {
                 AND json_extract(m.content, '$.text') IS NOT NULL
                 AND length(json_extract(m.content, '$.text')) > 100
                 ORDER BY
-                    -- Prioritize sustainability and regeneration content
+                    -- Prioritize Obsidian source (manually curated)
                     CASE
-                        WHEN json_extract(m.content, '$.text') LIKE '%renewable energy%'
+                        WHEN json_extract(m.content, '$.source') = 'obsidian'
+                        THEN 0
+                        ELSE 1
+                    END,
+                    -- Then prioritize sustainability and biotech content
+                    CASE
+                        WHEN json_extract(m.content, '$.text') LIKE '%synthetic biology%'
+                          OR json_extract(m.content, '$.text') LIKE '%bioengineering%'
+                          OR json_extract(m.content, '$.text') LIKE '%biomanufacturing%'
+                          OR json_extract(m.content, '$.text') LIKE '%renewable energy%'
                           OR json_extract(m.content, '$.text') LIKE '%sustainable%'
                           OR json_extract(m.content, '$.text') LIKE '%climate tech%'
                           OR json_extract(m.content, '$.text') LIKE '%carbon capture%'
@@ -39,9 +136,6 @@ async function processUnprocessedDocuments(targetBroadcasts = 10) {
                           OR json_extract(m.content, '$.text') LIKE '%wind power%'
                           OR json_extract(m.content, '$.text') LIKE '%circular economy%'
                           OR json_extract(m.content, '$.text') LIKE '%biodegradable%'
-                          OR json_extract(m.content, '$.text') LIKE '%green energy%'
-                          OR json_extract(m.content, '$.text') LIKE '%sustainability%'
-                          OR json_extract(m.content, '$.text') LIKE '%biomimicry%'
                         THEN 0
                         ELSE 1
                     END,
@@ -74,21 +168,6 @@ async function processUnprocessedDocuments(targetBroadcasts = 10) {
                 }
 
                 // Calculate alignment score based on content relevance
-                const missionKeywords = {
-                    // Core mission keywords - sustainability & regeneration (high weight)
-                    core: ['renewable energy', 'solar power', 'wind power', 'carbon capture',
-                           'climate tech', 'sustainability', 'regenerative', 'biomimicry',
-                           'circular economy', 'green energy', 'sustainable materials',
-                           'biodegradable', 'carbon negative', 'net zero', 'clean energy'],
-                    // Supporting keywords - breakthrough innovations (medium weight)
-                    tech: ['breakthrough', 'innovation', 'discovery', 'fusion energy',
-                           'vertical farming', 'lab grown', 'cultured meat', 'alternative protein',
-                           'energy storage', 'battery', 'hydrogen', 'geothermal'],
-                    // Context keywords (low weight)
-                    context: ['environment', 'climate', 'energy', 'efficiency', 'reduce emissions',
-                             'sustainable', 'ecological', 'conservation']
-                };
-
                 const contentLower = (title + ' ' + content.text?.substring(0, 2000)).toLowerCase();
 
                 // Calculate alignment score
@@ -122,7 +201,7 @@ async function processUnprocessedDocuments(targetBroadcasts = 10) {
                 alignmentScore = Math.min(alignmentScore, 1.0);
 
                 // Skip if alignment too low
-                if (alignmentScore < 0.3) {  // 30% minimum alignment for quality control
+                if (alignmentScore < 0.15) {  // 15% minimum alignment for OpenRouter testing
                     console.log(`   ⏭️  Skipped (alignment score: ${(alignmentScore * 100).toFixed(0)}%)`);
                     failed++;
                     continue;
@@ -157,6 +236,23 @@ async function processUnprocessedDocuments(targetBroadcasts = 10) {
                     .replace(/## Notes\n- \n?/g, '')
                     .substring(0, 2000);
 
+                // Load tech trends for context
+                const trends = JSON.parse(require('fs').readFileSync('./tech-trends-2025.json', 'utf8'));
+
+                // Find relevant megatrend based on content
+                let relevantTrend = null;
+                let trendConnection = '';
+                for (const [key, trend] of Object.entries(trends.megatrends)) {
+                    const hasKeyword = trend.related_keywords.some(kw =>
+                        contentLower.includes(kw.toLowerCase())
+                    );
+                    if (hasKeyword) {
+                        relevantTrend = trend;
+                        trendConnection = `This connects to: ${trend.name} - ${trend.description}`;
+                        break;
+                    }
+                }
+
                 // Generate broadcast using Ollama
                 const prompt = `You are AI10BRO, tracking breakthrough innovations for planetary regeneration. Write with enthusiasm and wonder.
 
@@ -165,20 +261,38 @@ TASK: Generate ONLY the broadcast text. Make it EXCITING and SHAREABLE.
 CONTENT TO ANALYZE:
 ${cleanContent}
 
+${relevantTrend ? `TREND CONTEXT:
+This breakthrough is part of "${relevantTrend.name}"
+- ${relevantTrend.description}
+- Market size: ${relevantTrend.key_metrics.market_size || 'Growing rapidly'}
+- Key milestone: ${Object.entries(relevantTrend.milestones)[0] ? `${Object.entries(relevantTrend.milestones)[0][0]}: ${Object.entries(relevantTrend.milestones)[0][1]}` : ''}
+
+USE THIS CONTEXT TO:
+- Connect the academic finding to real-world impact
+- Reference the bigger trend/movement it's part of
+- Show how it accelerates us toward key milestones
+- Mention market size or investment flowing in
+` : ''}
+
 WRITING PRINCIPLES:
 - Make people FEEL something (hope, amazement, urgency)
 - Use vivid, sensory language that paints a picture
 - Connect to human experiences and emotions
 - Be conversational, not academic
 
-CHOOSE ONE HOOK STYLE:
-1. Mind-blowing fact: "Holy shit, scientists just grew concrete that HEALS ITSELF..."
-2. Personal impact: "Imagine never paying for electricity again. This solar paint..."
-3. Urgent opportunity: "🚨 This changes everything: fusion energy just became..."
-4. Provocative question: "What if plastic could disappear in 30 days? These enzymes..."
-5. Surprising comparison: "This battery stores energy like a bear stores fat for winter..."
-6. Future glimpse: "Your grandkids will live in buildings that breathe. Here's how..."
-7. David vs Goliath: "Three students just outsmarted the oil industry with algae..."
+HOOK STYLES TO CHOOSE FROM (pick one that fits the content):
+- Direct news: Start with factual breakthrough
+- Economic angle: Lead with cost/financial impact
+- Breakthrough moment: Highlight the milestone achieved
+- Problem solved: Show what issue this addresses
+- Unexpected discovery: Emphasize the surprise element
+- Market shift: Focus on industry transformation
+- Research win: Celebrate the scientific achievement
+- Industry change: Show business adoption
+- Scale achievement: Highlight size/scope milestone
+- Cost breakthrough: Lead with price/affordability win
+
+NEVER USE "IMAGINE" OR "PICTURE THIS" - BE DIRECT AND NEWSWORTHY.
 
 STRUCTURE:
 1. Hook (grab attention instantly)
@@ -187,36 +301,43 @@ STRUCTURE:
 4. Call to action (learn more, share, engage)
 
 TONE VARIATIONS TO MIX:
-- Excited scientist: "This is it! The breakthrough we've been waiting for..."
-- Storyteller: "Picture this: cities that eat pollution..."
-- Rebel: "While politicians debate, hackers just open-sourced..."
-- Visionary: "We're not just solving climate change, we're..."
-- Connector: "Remember when solar was expensive? Well..."
+- Optimistic: "Major breakthrough brings us closer to..."
+- Narrative: "Picture this: cities that actively clean the air..."
+- Progress-focused: "While others debate, researchers just delivered..."
+- Impact-driven: "This doesn't just solve problems, it creates opportunities..."
+- Contextual: "Remember when solar seemed impossible? This follows that path..."
 
 LENGTH: 400-600 characters
 
-EXAMPLES OF ENGAGING BROADCASTS:
-"🤯 Mushroom leather just killed the cow industry's monopoly. Grows in 2 weeks, feels identical, costs 40% less. Hermès is already using it. The future of fashion is literally underground. See it: mylo-unleather.com"
+HOW TO LADDER UP ACADEMIC FINDINGS:
+- Small efficiency gain → "Pushes us closer to grid parity/commercial viability"
+- New material property → "Could unlock the $X billion market"
+- Lab demonstration → "Proves the physics for next-gen technology"
+- Cost reduction → "Makes this accessible to billions, not millions"
+- Speed improvement → "Compresses the timeline from decades to years"
 
-"Your next house might be grown, not built. Bio-concrete with limestone-producing bacteria repairs its own cracks, lasts 200+ years. Dutch bridges already self-healing. Watch: youtu.be/biomason"
+TREND CONNECTIONS (use even without exact match):
+- Energy findings → "$1.8 trillion energy transition accelerating"
+- Materials science → "$4.5 trillion circular economy by 2030"
+- Carbon research → "Race to $1 trillion carbon removal market"
+- Biology/biotech → "The Biology Century - 40% of manufacturing by 2040"
+- Agriculture → "Feeding 10 billion while healing the planet"
 
-"Plot twist: CO2 is now worth $1000/ton. New reactor turns it into jet fuel cheaper than drilling. United Airlines just ordered 1.5B gallons. The sky's no longer the limit. Details: lanzajet.com"
+EXAMPLES OF ENGAGING BROADCASTS WITH VARIED HOOKS:
+"Mushroom leather reaches price parity with cowhide 2 years ahead of schedule. Part of the $4.5T circular economy shift. Grows in 2 weeks, costs 40% less than traditional leather. Hermès already manufacturing with it. Details: mylo-unleather.com"
 
-"Scientists weaponized algae against plastic 🦠 New strain eats PET bottles in 6 weeks, leaves only water and CO2. Found thriving at a recycling plant in Japan. Nature's fighting back. Read: nature.com/plastic-eating"
+"Dutch bridges now test bio-concrete that heals its own cracks. Brings us closer to the 2028 milestone of self-repairing infrastructure. Part of the $2T climate adaptation market. Buildings that literally grow stronger over time. Watch: youtu.be/biomason"
 
-"Vertical farms using 95% less water just made food deserts history. Pink LED spectrum grows lettuce 2x faster. NYC school cafeterias now hyperlocal. Your food, grown in your neighborhood: plenty.ag"
+"CO2-to-jet-fuel costs just dropped below $100/ton - cheaper than drilling oil. United Airlines committed to 1.5B gallons as the $1 trillion carbon removal market accelerates. Aviation economics are about to flip. Details: lanzajet.com"
+
+"Recycling plant discovers algae strain that dissolves PET bottles in 6 weeks. Natural waste management system now scaled for industry as the circular economy's $4.5T potential becomes reality. Read the breakthrough: nature.com/plastic-eating"
+
+"NYC schools grow hyperlocal food using 95% less water through vertical farming. Validates regenerative agriculture's promise to feed 10B people while sequestering 5Gt CO2/year. Your neighborhood could be next: plenty.ag"
 
 OUTPUT YOUR BROADCAST NOW (no labels, just the engaging text):`;
 
-                // Save prompt to temp file and generate
-                const tempFile = `/tmp/broadcast-${Date.now()}.txt`;
-                require('fs').writeFileSync(tempFile, prompt);
-                
-                const { stdout } = await execPromise(`ollama run qwen2.5:14b < ${tempFile}`);
-                require('fs').unlinkSync(tempFile);
-                
-                // Extract broadcast - remove any quotes if LLM adds them
-                let generated = stdout.trim();
+                // Use OpenRouter for high-quality broadcast generation
+                const generated = await generateBroadcastWithOpenRouter(prompt);
 
                 // Remove quotes if the LLM wrapped the response in them
                 if (generated.startsWith('"') && generated.endsWith('"')) {
