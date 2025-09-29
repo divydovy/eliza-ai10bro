@@ -28,16 +28,20 @@ async function processUnprocessedDocuments(targetBroadcasts = 10) {
                 AND json_extract(m.content, '$.text') IS NOT NULL
                 AND length(json_extract(m.content, '$.text')) > 100
                 ORDER BY
-                    -- Prioritize documents with tech/AI keywords
+                    -- Prioritize sustainability and regeneration content
                     CASE
-                        WHEN json_extract(m.content, '$.text') LIKE '%artificial intelligence%'
-                          OR json_extract(m.content, '$.text') LIKE '%machine learning%'
-                          OR json_extract(m.content, '$.text') LIKE '%renewable energy%'
+                        WHEN json_extract(m.content, '$.text') LIKE '%renewable energy%'
                           OR json_extract(m.content, '$.text') LIKE '%sustainable%'
                           OR json_extract(m.content, '$.text') LIKE '%climate tech%'
-                          OR json_extract(m.content, '$.text') LIKE '%innovation%'
-                          OR json_extract(m.content, '$.text') LIKE '%quantum computing%'
                           OR json_extract(m.content, '$.text') LIKE '%carbon capture%'
+                          OR json_extract(m.content, '$.text') LIKE '%regenerative%'
+                          OR json_extract(m.content, '$.text') LIKE '%solar%'
+                          OR json_extract(m.content, '$.text') LIKE '%wind power%'
+                          OR json_extract(m.content, '$.text') LIKE '%circular economy%'
+                          OR json_extract(m.content, '$.text') LIKE '%biodegradable%'
+                          OR json_extract(m.content, '$.text') LIKE '%green energy%'
+                          OR json_extract(m.content, '$.text') LIKE '%sustainability%'
+                          OR json_extract(m.content, '$.text') LIKE '%biomimicry%'
                         THEN 0
                         ELSE 1
                     END,
@@ -71,15 +75,18 @@ async function processUnprocessedDocuments(targetBroadcasts = 10) {
 
                 // Calculate alignment score based on content relevance
                 const missionKeywords = {
-                    // Core mission keywords (high weight)
-                    core: ['artificial intelligence', 'machine learning', 'neural network', 'deep learning',
-                           'renewable energy', 'solar power', 'wind power', 'carbon capture',
-                           'climate tech', 'sustainability', 'regenerative', 'biomimicry'],
-                    // Supporting keywords (medium weight)
-                    tech: ['algorithm', 'research', 'breakthrough', 'innovation', 'discovery',
-                           'quantum computing', 'robotics', 'biotech', 'nanotech', 'fusion'],
+                    // Core mission keywords - sustainability & regeneration (high weight)
+                    core: ['renewable energy', 'solar power', 'wind power', 'carbon capture',
+                           'climate tech', 'sustainability', 'regenerative', 'biomimicry',
+                           'circular economy', 'green energy', 'sustainable materials',
+                           'biodegradable', 'carbon negative', 'net zero', 'clean energy'],
+                    // Supporting keywords - breakthrough innovations (medium weight)
+                    tech: ['breakthrough', 'innovation', 'discovery', 'fusion energy',
+                           'vertical farming', 'lab grown', 'cultured meat', 'alternative protein',
+                           'energy storage', 'battery', 'hydrogen', 'geothermal'],
                     // Context keywords (low weight)
-                    context: ['technology', 'science', 'energy', 'efficiency', 'reduce', 'improve']
+                    context: ['environment', 'climate', 'energy', 'efficiency', 'reduce emissions',
+                             'sustainable', 'ecological', 'conservation']
                 };
 
                 const contentLower = (title + ' ' + content.text?.substring(0, 2000)).toLowerCase();
