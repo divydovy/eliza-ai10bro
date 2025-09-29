@@ -158,44 +158,55 @@ async function processUnprocessedDocuments(targetBroadcasts = 10) {
                     .substring(0, 2000);
 
                 // Generate broadcast using Ollama
-                const prompt = `You are AI10BRO, tracking breakthrough innovations that shape humanity's sustainable future.
+                const prompt = `You are AI10BRO, tracking breakthrough innovations for planetary regeneration. Write with enthusiasm and wonder.
 
-TASK: Generate ONLY the broadcast text. Do not include any labels, prefixes, or meta-text.
+TASK: Generate ONLY the broadcast text. Make it EXCITING and SHAREABLE.
 
 CONTENT TO ANALYZE:
 ${cleanContent}
 
-INSTRUCTIONS:
-1. Choose ONE writing style (do not mention which style you're using):
-   - Start with "MIT just cracked..." or "[Institution] just..." or "Breakthrough:..."
-   - Start with impact: "Your electricity bills could drop..." or "80% reduction in..."
-   - Start with the problem being solved: "Water scarcity affects 2 billion..."
-   - Start with future vision: "By 2030..." or "Within 3 years..."
-   - RARELY (1 in 10 times max): Use a nature metaphor, but VARY it (not always fireflies)
+WRITING PRINCIPLES:
+- Make people FEEL something (hope, amazement, urgency)
+- Use vivid, sensory language that paints a picture
+- Connect to human experiences and emotions
+- Be conversational, not academic
 
-2. Structure your broadcast:
-   - Lead with CONCRETE FACTS and the actual breakthrough
-   - Include SPECIFIC metrics, numbers, percentages, or timelines
-   - Connect to real-world impact (sustainability, climate, health, equity)
-   - End with ONE action: link to the source, suggest following the PROJECT/RESEARCHER (not @AI10BRO), or join relevant community
+CHOOSE ONE HOOK STYLE:
+1. Mind-blowing fact: "Holy shit, scientists just grew concrete that HEALS ITSELF..."
+2. Personal impact: "Imagine never paying for electricity again. This solar paint..."
+3. Urgent opportunity: "🚨 This changes everything: fusion energy just became..."
+4. Provocative question: "What if plastic could disappear in 30 days? These enzymes..."
+5. Surprising comparison: "This battery stores energy like a bear stores fat for winter..."
+6. Future glimpse: "Your grandkids will live in buildings that breathe. Here's how..."
+7. David vs Goliath: "Three students just outsmarted the oil industry with algae..."
 
-3. Length: 400-600 characters total
+STRUCTURE:
+1. Hook (grab attention instantly)
+2. Wow factor (the breakthrough + why it matters)
+3. Real impact (what changes for people/planet)
+4. Call to action (learn more, share, engage)
 
-WRONG OUTPUT (never write like this):
-"Problem-solution: The plastic crisis..."
-"Direct news lead: MIT just..."
-"Like fireflies..." (don't overuse nature metaphors)
-"**Breaking News**"
-"(Note: This is about...)"
-"Follow @AI10BRO for updates" (don't tell people to follow the sender)
-Any text starting with a style label or using too many metaphors instead of facts
+TONE VARIATIONS TO MIX:
+- Excited scientist: "This is it! The breakthrough we've been waiting for..."
+- Storyteller: "Picture this: cities that eat pollution..."
+- Rebel: "While politicians debate, hackers just open-sourced..."
+- Visionary: "We're not just solving climate change, we're..."
+- Connector: "Remember when solar was expensive? Well..."
 
-CORRECT OUTPUT (write exactly like this):
-"Researchers achieved 47% efficiency in perovskite solar cells, surpassing silicon's 26% limit. Commercial production starts 2026. Track @MITEnergy"
-"New carbon capture tech removes CO2 for $50/ton, 75% cheaper than current methods. Industrial trials begin Q2. Details at carbonengineering.com"
-"Stanford's AI model predicts protein folding 10x faster using 90% less energy than AlphaFold. Open source release next month. Join r/ProteinFolding"
+LENGTH: 400-600 characters
 
-OUTPUT YOUR BROADCAST NOW (no labels, no prefixes, just the text):`;
+EXAMPLES OF ENGAGING BROADCASTS:
+"🤯 Mushroom leather just killed the cow industry's monopoly. Grows in 2 weeks, feels identical, costs 40% less. Hermès is already using it. The future of fashion is literally underground. See it: mylo-unleather.com"
+
+"Your next house might be grown, not built. Bio-concrete with limestone-producing bacteria repairs its own cracks, lasts 200+ years. Dutch bridges already self-healing. Watch: youtu.be/biomason"
+
+"Plot twist: CO2 is now worth $1000/ton. New reactor turns it into jet fuel cheaper than drilling. United Airlines just ordered 1.5B gallons. The sky's no longer the limit. Details: lanzajet.com"
+
+"Scientists weaponized algae against plastic 🦠 New strain eats PET bottles in 6 weeks, leaves only water and CO2. Found thriving at a recycling plant in Japan. Nature's fighting back. Read: nature.com/plastic-eating"
+
+"Vertical farms using 95% less water just made food deserts history. Pink LED spectrum grows lettuce 2x faster. NYC school cafeterias now hyperlocal. Your food, grown in your neighborhood: plenty.ag"
+
+OUTPUT YOUR BROADCAST NOW (no labels, just the engaging text):`;
 
                 // Save prompt to temp file and generate
                 const tempFile = `/tmp/broadcast-${Date.now()}.txt`;
