@@ -36,13 +36,14 @@ async function sendPendingBroadcasts() {
                 AND client = 'telegram'
             `).all(process.env.BROADCAST_ID);
         } else {
-            // Send up to 5 pending broadcasts
+            // Send only 1 pending broadcast per run for proper pacing
             pendingBroadcasts = db.prepare(`
-                SELECT id, content as message, client as platform 
-                FROM broadcasts 
-                WHERE status = 'pending' 
+                SELECT id, content as message, client as platform
+                FROM broadcasts
+                WHERE status = 'pending'
                 AND client = 'telegram'
-                LIMIT 5
+                ORDER BY createdAt ASC
+                LIMIT 1
             `).all();
         }
         

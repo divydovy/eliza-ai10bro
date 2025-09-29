@@ -189,7 +189,7 @@ const server = http.createServer((req, res) => {
                                 ]
                             }));
                         } else {
-                            exec('LIMIT=1 node send-pending-broadcasts.js', (error, stdout, stderr) => {
+                            exec('node send-pending-to-telegram.js', (error, stdout, stderr) => {
                                 res.writeHead(200, { 'Content-Type': 'application/json' });
                                 res.end(JSON.stringify({ 
                                     success: !error, 
@@ -245,7 +245,7 @@ const server = http.createServer((req, res) => {
                                 ]
                             }));
                         } else {
-                            exec('LIMIT=1 node send-farcaster-broadcasts.js', (error, stdout, stderr) => {
+                            exec('node send-pending-to-farcaster.js', (error, stdout, stderr) => {
                                 res.writeHead(200, { 'Content-Type': 'application/json' });
                                 res.end(JSON.stringify({ 
                                     success: !error, 
@@ -258,7 +258,35 @@ const server = http.createServer((req, res) => {
                             });
                         }
                         break;
-                        
+
+                    case 'SEND_BLUESKY':
+                        // Check pending Bluesky broadcasts
+                        const blueskyPending = db.prepare('SELECT COUNT(*) as count FROM broadcasts WHERE status = ? AND client = ?').get('pending', 'bluesky');
+
+                        if (!blueskyPending || blueskyPending.count === 0) {
+                            res.writeHead(200, { 'Content-Type': 'application/json' });
+                            res.end(JSON.stringify({
+                                success: true,
+                                action: action,
+                                steps: [
+                                    { step: 'Check queue', message: 'No pending Bluesky broadcasts', count: 0 }
+                                ]
+                            }));
+                        } else {
+                            exec('node send-pending-to-bluesky.js', (error, stdout, stderr) => {
+                                res.writeHead(200, { 'Content-Type': 'application/json' });
+                                res.end(JSON.stringify({
+                                    success: !error,
+                                    action: action,
+                                    steps: [
+                                        { step: 'Check queue', message: `Found ${blueskyPending.count} pending Bluesky broadcasts`, count: blueskyPending.count },
+                                        { step: 'Send broadcast', message: error ? error.message : 'Sent 1 broadcast to Bluesky', count: 1 }
+                                    ]
+                                }));
+                            });
+                        }
+                        break;
+
                     default:
                         res.writeHead(400, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: `Unknown action: ${action}` }));

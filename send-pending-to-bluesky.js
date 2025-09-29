@@ -48,13 +48,14 @@ async function sendPendingBroadcasts() {
                 AND client = 'bluesky'
             `).all(process.env.BROADCAST_ID);
         } else {
-            // Send up to 5 pending broadcasts
+            // Send only 1 pending broadcast per run for proper pacing
             pendingBroadcasts = db.prepare(`
                 SELECT id, content as message, client as platform
                 FROM broadcasts
                 WHERE status = 'pending'
                 AND client = 'bluesky'
-                LIMIT 5
+                ORDER BY createdAt ASC
+                LIMIT 1
             `).all();
         }
 
