@@ -786,10 +786,24 @@
                 const statsUrl = window.location.port === String(appConfig.statsPort)
                     ? appConfig.endpoints.stats
                     : `http://${window.location.hostname}:${appConfig.statsPort}${appConfig.endpoints.stats}`;
-                
+
+                // Fetch platform configuration
+                const platformConfigUrl = `http://${window.location.hostname}:${appConfig.statsPort}/api/platform-config`;
+                let enabledPlatforms = ['telegram']; // Default
+                try {
+                    const platformResponse = await fetch(platformConfigUrl);
+                    if (platformResponse.ok) {
+                        const platformData = await platformResponse.json();
+                        enabledPlatforms = platformData.enabledPlatforms || ['telegram'];
+                        window.enabledPlatforms = enabledPlatforms; // Store globally
+                    }
+                } catch (error) {
+                    console.warn('Could not fetch platform config:', error);
+                }
+
                 // Try to fetch from API first
                 const response = await fetch(statsUrl);
-                
+
                 if (response.ok) {
                     const data = await response.json();
                     
@@ -856,24 +870,27 @@
                 let totalPlatformSent = 0;
                 let totalPlatformPending = 0;
                 let platformDetails = [];
-                
-                // Define which platforms are currently enabled
-                const enabledPlatforms = ['telegram']; // Only Telegram is enabled now
-                
+
+                // Use dynamically fetched platform configuration or fallback
+                const enabledPlatforms = window.enabledPlatforms || ['telegram'];
+
                 for (const [platform, stats] of Object.entries(data.platformStats)) {
                     totalPlatformSent += stats.sent || 0;
                     totalPlatformPending += stats.pending || 0;
-                    
-                    const icon = platform === 'telegram' ? '📱' : platform === 'twitter' ? '🐦' : '📡';
+
+                    const icon = platform === 'telegram' ? '📱' :
+                                platform === 'twitter' ? '🐦' :
+                                platform === 'farcaster' ? '🟣' :
+                                platform === 'bluesky' ? '🦋' : '📡';
                     const isEnabled = enabledPlatforms.includes(platform);
                     const statusIcon = isEnabled ? '✅' : '⏸️';
-                    
+
                     let detail = `${icon} ${platform}: ${stats.sent || 0} sent`;
                     if (stats.pending > 0) {
                         detail += `, ${stats.pending} pending`;
                     }
                     detail += ` ${statusIcon}`;
-                    
+
                     platformDetails.push(detail);
                 }
                 

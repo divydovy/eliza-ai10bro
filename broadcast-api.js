@@ -578,10 +578,41 @@ app.get('/api/recent-broadcasts', (req, res) => {
     }
 });
 
+app.get('/api/platform-config', (req, res) => {
+    try {
+        // Read character configuration to check which platforms are enabled
+        const fs = require('fs');
+        const characterPath = './characters/ai10bro.character.json';
+
+        let enabledPlatforms = ['telegram']; // Default
+
+        if (fs.existsSync(characterPath)) {
+            const characterConfig = JSON.parse(fs.readFileSync(characterPath, 'utf8'));
+            const clients = characterConfig.clients || [];
+
+            // Map client names to platform names
+            const platformMap = {
+                'telegram': 'telegram',
+                'farcaster': 'farcaster',
+                'bluesky': 'bluesky',
+                'twitter': 'twitter',
+                'discord': 'discord'
+            };
+
+            enabledPlatforms = clients.filter(client => platformMap[client]).map(client => platformMap[client]);
+        }
+
+        res.json({ enabledPlatforms });
+    } catch (error) {
+        console.error('Error reading platform config:', error);
+        res.json({ enabledPlatforms: ['telegram'] }); // Fallback
+    }
+});
+
 app.get('/api/broadcast-trends', (req, res) => {
     try {
         const trendsQuery = `
-            SELECT 
+            SELECT
                 strftime('%Y-%m-%d %H:00', createdAt/1000, 'unixepoch') as hour,
                 COUNT(*) as count
             FROM broadcasts
