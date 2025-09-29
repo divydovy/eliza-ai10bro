@@ -69,6 +69,7 @@ app.get('/api/broadcast-stats', (req, res) => {
 
         // Get recent broadcast activity from broadcasts table
         // Order by sent_at for sent broadcasts, createdAt for pending ones
+        // Handle mixed timestamp formats (integer milliseconds vs ISO strings)
         const recentActivityQuery = `
             SELECT
                 content as text,
@@ -79,8 +80,16 @@ app.get('/api/broadcast-stats', (req, res) => {
             FROM broadcasts
             ORDER BY
                 CASE
-                    WHEN status = 'sent' AND sent_at IS NOT NULL THEN sent_at
-                    ELSE createdAt
+                    WHEN status = 'sent' AND sent_at IS NOT NULL THEN
+                        CASE
+                            WHEN typeof(sent_at) = 'text' THEN strftime('%s', sent_at) * 1000
+                            ELSE sent_at
+                        END
+                    ELSE
+                        CASE
+                            WHEN typeof(createdAt) = 'text' THEN strftime('%s', createdAt) * 1000
+                            ELSE createdAt
+                        END
                 END DESC
             LIMIT 20
         `;
