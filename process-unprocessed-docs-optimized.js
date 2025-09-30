@@ -142,9 +142,9 @@ async function processUnprocessedDocuments(targetBroadcasts = 10) {
 
                     // Skip excluded topics
                     const contentLower = content.text?.toLowerCase() || '';
-                    const excludeKeywords = ['strike', 'protest', 'election', 'politician', 'guerra',
-                                            'συλλαλητήρια', 'murder', 'war', 'battle', 'gaza', 'ukraine conflict',
-                                            'museum', 'archaeological', 'george washington', 'tempi'];
+                    const excludeKeywords = ['strike action', 'protest march', 'election campaign', 'politician scandal',
+                                            'συλλαλητήρια', 'murder case', ' war in ', 'battle of', 'gaza conflict', 'ukraine war',
+                                            'museum exhibit', 'archaeological dig', 'george washington', 'tempi crash'];
                     const hasExcludedContent = excludeKeywords.some(keyword => contentLower.includes(keyword));
 
                     if (hasExcludedContent) {
