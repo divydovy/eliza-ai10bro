@@ -52,12 +52,17 @@ async function sendPendingBroadcasts() {
         for (const broadcast of pendingBroadcasts) {
             console.log(`\n📱 Sending broadcast ${broadcast.id}...`);
 
-            // Parse JSON content to extract text
+            // Handle both JSON and plain text content
             let messageText;
-            try {
-                const parsed = JSON.parse(broadcast.message);
-                messageText = parsed.text || broadcast.message;
-            } catch (e) {
+            if (broadcast.message.startsWith('{') && broadcast.message.includes('"text"')) {
+                try {
+                    const parsed = JSON.parse(broadcast.message);
+                    messageText = parsed.text || broadcast.message;
+                } catch (e) {
+                    messageText = broadcast.message;
+                }
+            } else {
+                // Plain text content from new broadcast system
                 messageText = broadcast.message;
             }
 
