@@ -83,26 +83,19 @@ async function processUnprocessedDocuments(targetBroadcasts = 10) {
         let documentsReviewed = 0;
         const maxDocumentsToReview = 100; // Safety limit to prevent infinite loops
 
-        // Define mission keywords once, outside the loops
+        // Load refined alignment keywords based on Obsidian document analysis
+        const alignmentConfig = require('./alignment-keywords-refined.json');
+
+        // Define mission keywords based on analyzed themes
         const missionKeywords = {
-            // Core mission keywords - sustainability & regeneration (high weight)
-            core: ['renewable energy', 'solar power', 'wind power', 'carbon capture',
-                   'climate tech', 'sustainability', 'regenerative', 'biomimicry',
-                   'circular economy', 'green energy', 'sustainable materials',
-                   'biodegradable', 'carbon negative', 'net zero', 'clean energy',
-                   'synthetic biology', 'bioengineering', 'biomanufacturing', 'fermentation',
-                   'metabolic engineering', 'cellular agriculture', 'precision fermentation'],
-            // Supporting keywords - breakthrough innovations (medium weight)
-            tech: ['breakthrough', 'innovation', 'discovery', 'fusion energy',
-                   'vertical farming', 'lab grown', 'cultured meat', 'alternative protein',
-                   'energy storage', 'battery', 'hydrogen', 'geothermal',
-                   'microorganism', 'engineered', 'biofuel', 'biomaterials', 'gene editing',
-                   'CRISPR', 'protein design', 'DNA synthesis', 'artificial cells',
-                   'biocomputing', 'living materials', 'microbiome', 'biotechnology'],
-            // Context keywords (low weight)
-            context: ['environment', 'climate', 'energy', 'efficiency', 'reduce emissions',
-                     'sustainable', 'ecological', 'conservation', 'market', 'growth',
-                     'technology', 'research', 'development', 'commercial', 'application']
+            // Core themes from Obsidian analysis (weighted by frequency)
+            aiComputing: alignmentConfig.themes.ai_computing.keywords,
+            innovationMarkets: alignmentConfig.themes.innovation_markets.keywords,
+            syntheticBiology: alignmentConfig.themes.synthetic_biology.keywords,
+            healthMedicine: alignmentConfig.themes.health_medicine.keywords,
+            cleanEnergy: alignmentConfig.themes.clean_energy.keywords,
+            materials: alignmentConfig.themes.advanced_materials.keywords,
+            agriculture: alignmentConfig.themes.agriculture_food.keywords
         };
 
         while (processed < targetBroadcasts && documentsReviewed < maxDocumentsToReview) {
@@ -116,13 +109,12 @@ async function processUnprocessedDocuments(targetBroadcasts = 10) {
                 AND json_extract(m.content, '$.text') IS NOT NULL
                 AND length(json_extract(m.content, '$.text')) > 100
                 ORDER BY
-                    -- Prioritize Obsidian source (manually curated)
+                    -- Prioritize Obsidian documents (manually curated)
                     CASE
-                        WHEN json_extract(m.content, '$.source') = 'obsidian'
-                        THEN 0
+                        WHEN json_extract(m.content, '$.source') = 'obsidian' THEN 0
                         ELSE 1
                     END,
-                    -- Then prioritize sustainability and biotech content
+                    -- Then prioritize content with high-value keywords
                     CASE
                         WHEN json_extract(m.content, '$.text') LIKE '%synthetic biology%'
                           OR json_extract(m.content, '$.text') LIKE '%bioengineering%'
@@ -170,38 +162,68 @@ async function processUnprocessedDocuments(targetBroadcasts = 10) {
                 // Calculate alignment score based on content relevance
                 const contentLower = (title + ' ' + content.text?.substring(0, 2000)).toLowerCase();
 
-                // Calculate alignment score
+                // Calculate alignment score based on theme matches
                 let alignmentScore = 0;
-                let coreMatches = 0;
-                let techMatches = 0;
+                let themeScores = {};
 
-                // Check core keywords (0.3 points each, max 0.6)
-                for (const keyword of missionKeywords.core) {
-                    if (contentLower.includes(keyword)) {
-                        coreMatches++;
-                        alignmentScore += 0.3;
-                        if (alignmentScore >= 0.6) break;
+                // Check each theme and apply weighted scoring
+                Object.entries(alignmentConfig.themes).forEach(([theme, config]) => {
+                    let themeMatches = 0;
+                    const keywords = missionKeywords[theme.replace(/_([a-z])/g, (m, p1) => p1.toUpperCase())];
+
+                    if (keywords) {
+                        keywords.forEach(keyword => {
+                            if (contentLower.includes(keyword.toLowerCase())) {
+                                themeMatches++;
+                            }
+                        });
+
+                        // Calculate theme score (normalized by keyword count)
+                        const themeScore = Math.min(themeMatches / keywords.length, 1.0) * config.weight;
+                        themeScores[theme] = themeScore;
+                        alignmentScore += themeScore;
+                    }
+                });
+
+                // Check source quality for bonus
+                let sourceBonus = 1.0;
+
+                // Obsidian documents get highest priority (manually curated)
+                if (content.source === 'obsidian') {
+                    sourceBonus = alignmentConfig.scoring_recommendations.source_quality_multiplier.obsidian || 4.0;
+                } else {
+                    const sourceMatch = content.source?.match(/https?:\/\/([^\/]+)/);
+                    if (sourceMatch) {
+                        const domain = sourceMatch[1].replace('www.', '');
+                        if (alignmentConfig.source_quality_indicators.premium_sources.includes(domain)) {
+                            sourceBonus = 1.3;
+                        } else if (alignmentConfig.source_quality_indicators.trusted_sources.includes(domain)) {
+                            sourceBonus = 1.15;
+                        } else if (alignmentConfig.source_quality_indicators.industry_sources.includes(domain)) {
+                            sourceBonus = 1.1;
+                        }
                     }
                 }
 
-                // Check tech keywords (0.1 points each, max 0.3)
-                for (const keyword of missionKeywords.tech) {
-                    if (contentLower.includes(keyword)) {
-                        techMatches++;
-                        alignmentScore += 0.1;
-                        if (alignmentScore >= 0.9) break;
-                    }
+                // Apply source quality multiplier
+                alignmentScore *= sourceBonus;
+
+                // Ensure Obsidian documents always pass (manually curated)
+                if (content.source === 'obsidian') {
+                    alignmentScore = Math.max(alignmentScore, 0.35); // Minimum 35% for Obsidian (HIGH threshold is 30%)
                 }
 
-                // Add context bonus (max 0.1)
-                const contextMatches = missionKeywords.context.filter(k => contentLower.includes(k)).length;
-                alignmentScore += Math.min(contextMatches * 0.02, 0.1);
+                // Boost for multiple strong themes
+                const strongThemes = Object.values(themeScores).filter(score => score > 0.1).length;
+                if (strongThemes >= 3) {
+                    alignmentScore *= 1.15; // 15% boost for interdisciplinary content
+                }
 
                 // Cap at 1.0
                 alignmentScore = Math.min(alignmentScore, 1.0);
 
-                // Skip if alignment too low
-                if (alignmentScore < 0.15) {  // 15% minimum alignment for OpenRouter testing
+                // Skip if alignment too low (using refined threshold)
+                if (alignmentScore < alignmentConfig.scoring_recommendations.core_alignment_minimum) {
                     console.log(`   ⏭️  Skipped (alignment score: ${(alignmentScore * 100).toFixed(0)}%)`);
                     failed++;
                     continue;
@@ -337,7 +359,7 @@ EXAMPLES OF ENGAGING BROADCASTS WITH VARIED HOOKS:
 OUTPUT YOUR BROADCAST NOW (no labels, just the engaging text):`;
 
                 // Use OpenRouter for high-quality broadcast generation
-                const generated = await generateBroadcastWithOpenRouter(prompt);
+                let generated = await generateBroadcastWithOpenRouter(prompt);
 
                 // Remove quotes if the LLM wrapped the response in them
                 if (generated.startsWith('"') && generated.endsWith('"')) {
