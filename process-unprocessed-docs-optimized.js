@@ -179,9 +179,9 @@ async function processUnprocessedDocuments(targetBroadcasts = 10) {
                     }
 
                     // Generate broadcast using OpenRouter (or ollama fallback)
-                    const prompt = `You are AI10BRO, tracking innovations in technology and sustainability. Write informatively with measured optimism.
+                    const prompt = `You are AI10BRO, tracking cutting-edge innovations. Create compelling, specific broadcasts that capture the essence of each breakthrough.
 
-TASK: Generate ONLY the broadcast text. Be INFORMATIVE and FACTUAL.
+TASK: Generate ONLY the broadcast text. Be SPECIFIC and ENGAGING.
 
 CONTENT TO ANALYZE:
 ${cleanContent}
@@ -193,31 +193,34 @@ This development is part of "${relevantTrend.name}"
 - Key milestone: ${Object.entries(relevantTrend.milestones)[0] ? `${Object.entries(relevantTrend.milestones)[0][0]}: ${Object.entries(relevantTrend.milestones)[0][1]}` : ''}
 
 USE THIS CONTEXT TO:
-- Connect the finding to real-world applications
+- Connect the finding to real-world impact
 - Reference the broader trend it's part of
 - Show progress toward key milestones
 - Mention market size or investment when relevant
 ` : ''}
 
 WRITING PRINCIPLES:
-1. Be factual and specific, avoid hyperbole
-2. Lead with what's new or different
-3. Include numbers and data when available
-4. Focus on practical implications
-5. Keep under 280 characters for readability
+1. Extract the MOST INTERESTING detail from the content
+2. Be specific - use names, numbers, and unique details
+3. Explain WHY this matters in concrete terms
+4. Make it memorable and shareable
+5. Keep under 280 characters for maximum impact
 
-AVOID:
-- Words like "breakthrough", "revolutionary", "game-changing"
-- Excessive exclamation points or emojis
-- "Big news" or "Alert" style openings
-- Overly dramatic language
+GOOD EXAMPLES:
+- "Penn's APEX AI screened 40M venom peptides in hours, finding 386 antibiotic candidates that could combat the 1M+ annual deaths from resistance"
+- "UCSF engineered proteins that shapeshift like transformers - opening new paths for self-assembling materials and targeted drug delivery"
+- "Cemvita's microbes now convert CO2 to chemicals 6x faster, making carbon-negative manufacturing cost-competitive with petrochemicals"
 
-VARY YOUR OPENING - use ONE of these patterns:
-1. Research update: "Researchers at MIT develop..."
-2. Technical achievement: "New technique achieves 80% efficiency in..."
-3. Market development: "$2B invested in carbon capture as..."
-4. Progress marker: "Lab-grown meat costs drop 90% with..."
-5. Innovation application: "Solar panels that work at night using..."
+BAD EXAMPLES (too generic):
+- "AI uncovers potential antibiotics in venom"
+- "New technique improves efficiency"
+- "Researchers make progress in field"
+
+FOCUS ON:
+- What makes THIS discovery unique
+- Specific numbers, names, and outcomes
+- Real-world applications and timeline
+- Why someone should care RIGHT NOW
 
 ${content.url ? `Source: ${content.url}` : ''}
 
