@@ -99,7 +99,7 @@ async function processUnprocessedDocuments(targetBroadcasts = 10) {
         };
 
         while (processed < targetBroadcasts && documentsReviewed < maxDocumentsToReview) {
-            // Find next batch of unprocessed documents, prioritizing tech/AI content
+            // Find next batch of unprocessed documents WITH HIGH ALIGNMENT SCORES
             const unprocessedDocs = db.prepare(`
                 SELECT m.* FROM memories m
                 WHERE m.type = 'documents'
@@ -107,33 +107,19 @@ async function processUnprocessedDocuments(targetBroadcasts = 10) {
                     SELECT 1 FROM broadcasts b WHERE b.documentId = m.id
                 )
                 AND json_extract(m.content, '$.text') IS NOT NULL
-                AND length(json_extract(m.content, '$.text')) > 100
+                AND length(json_extract(m.content, '$.text')) > 200
+                AND m.alignment_score >= ?
                 ORDER BY
-                    -- Prioritize Obsidian documents (manually curated)
+                    -- Prioritize Obsidian documents first
                     CASE
                         WHEN json_extract(m.content, '$.source') = 'obsidian' THEN 0
                         ELSE 1
                     END,
-                    -- Then prioritize content with high-value keywords
-                    CASE
-                        WHEN json_extract(m.content, '$.text') LIKE '%synthetic biology%'
-                          OR json_extract(m.content, '$.text') LIKE '%bioengineering%'
-                          OR json_extract(m.content, '$.text') LIKE '%biomanufacturing%'
-                          OR json_extract(m.content, '$.text') LIKE '%renewable energy%'
-                          OR json_extract(m.content, '$.text') LIKE '%sustainable%'
-                          OR json_extract(m.content, '$.text') LIKE '%climate tech%'
-                          OR json_extract(m.content, '$.text') LIKE '%carbon capture%'
-                          OR json_extract(m.content, '$.text') LIKE '%regenerative%'
-                          OR json_extract(m.content, '$.text') LIKE '%solar%'
-                          OR json_extract(m.content, '$.text') LIKE '%wind power%'
-                          OR json_extract(m.content, '$.text') LIKE '%circular economy%'
-                          OR json_extract(m.content, '$.text') LIKE '%biodegradable%'
-                        THEN 0
-                        ELSE 1
-                    END,
+                    -- Then by alignment score
+                    m.alignment_score DESC,
                     m.createdAt DESC
                 LIMIT 20
-            `).all();
+            `).all(alignmentConfig.scoring_recommendations?.core_alignment_minimum || 0.08);
 
             if (unprocessedDocs.length === 0) {
                 console.log('No more unprocessed documents available');
