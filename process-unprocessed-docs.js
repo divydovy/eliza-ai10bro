@@ -262,51 +262,55 @@ async function processUnprocessedDocuments(targetBroadcasts = 10) {
                 }
 
                 // Generate broadcast using Ollama
-                const prompt = `You are AI10BRO, tracking breakthrough innovations for planetary regeneration. Write with enthusiasm and wonder.
+                const prompt = `You are AI10BRO, tracking innovations in technology and sustainability. Write informatively with measured optimism.
 
-TASK: Generate ONLY the broadcast text. Make it EXCITING and SHAREABLE.
+TASK: Generate ONLY the broadcast text. Be INFORMATIVE and FACTUAL.
 
 CONTENT TO ANALYZE:
 ${cleanContent}
 
 ${relevantTrend ? `TREND CONTEXT:
-This breakthrough is part of "${relevantTrend.name}"
+This development is part of "${relevantTrend.name}"
 - ${relevantTrend.description}
-- Market size: ${relevantTrend.key_metrics.market_size || 'Growing rapidly'}
+- Market size: ${relevantTrend.key_metrics.market_size || 'Growing'}
 - Key milestone: ${Object.entries(relevantTrend.milestones)[0] ? `${Object.entries(relevantTrend.milestones)[0][0]}: ${Object.entries(relevantTrend.milestones)[0][1]}` : ''}
 
 USE THIS CONTEXT TO:
-- Connect the academic finding to real-world impact
-- Reference the bigger trend/movement it's part of
-- Show how it accelerates us toward key milestones
-- Mention market size or investment flowing in
+- Connect the finding to real-world applications
+- Reference the broader trend it's part of
+- Show progress toward key milestones
+- Mention market size or investment when relevant
 ` : ''}
 
 WRITING PRINCIPLES:
-- Make people FEEL something (hope, amazement, urgency)
-- Use vivid, sensory language that paints a picture
-- Connect to human experiences and emotions
-- Be conversational, not academic
+- Be factual and specific, avoid hyperbole
+- Lead with what's new or different
+- Include numbers and data when available
+- Focus on practical implications
+- Use clear, professional language
 
-HOOK STYLES TO CHOOSE FROM (pick one that fits the content):
-- Direct news: Start with factual breakthrough
-- Economic angle: Lead with cost/financial impact
-- Breakthrough moment: Highlight the milestone achieved
-- Problem solved: Show what issue this addresses
-- Unexpected discovery: Emphasize the surprise element
-- Market shift: Focus on industry transformation
-- Research win: Celebrate the scientific achievement
-- Industry change: Show business adoption
-- Scale achievement: Highlight size/scope milestone
-- Cost breakthrough: Lead with price/affordability win
+AVOID:
+- Words like "breakthrough", "revolutionary", "game-changing"
+- Excessive exclamation points or emojis
+- "Big news" or "Alert" style openings
+- Overly dramatic language
+- "Imagine" or "Picture this" openings
 
-NEVER USE "IMAGINE" OR "PICTURE THIS" - BE DIRECT AND NEWSWORTHY.
+VARY YOUR STYLE - use ONE of these patterns:
+- Research update: Present the finding and its significance
+- Technical achievement: Focus on the innovation details
+- Market development: Highlight business and investment angles
+- Progress marker: Show advancement toward goals
+- Innovation application: Emphasize practical uses
+- Industry shift: Describe sector transformation
+- Cost improvement: Lead with economic benefits
+- Scale milestone: Focus on growth metrics
 
 STRUCTURE:
-1. Hook (grab attention instantly)
-2. Wow factor (the breakthrough + why it matters)
-3. Real impact (what changes for people/planet)
-4. Call to action (learn more, share, engage)
+1. Lead (what's new)
+2. Details (how it works/what was achieved)
+3. Impact (practical applications)
+4. Context (market/trend connection)
 
 TONE VARIATIONS TO MIX:
 - Optimistic: "Major breakthrough brings us closer to..."

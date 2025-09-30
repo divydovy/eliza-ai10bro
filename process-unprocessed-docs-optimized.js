@@ -179,39 +179,45 @@ async function processUnprocessedDocuments(targetBroadcasts = 10) {
                     }
 
                     // Generate broadcast using OpenRouter (or ollama fallback)
-                    const prompt = `You are AI10BRO, tracking breakthrough innovations for planetary regeneration. Write with enthusiasm and wonder.
+                    const prompt = `You are AI10BRO, tracking innovations in technology and sustainability. Write informatively with measured optimism.
 
-TASK: Generate ONLY the broadcast text. Make it EXCITING and SHAREABLE.
+TASK: Generate ONLY the broadcast text. Be INFORMATIVE and FACTUAL.
 
 CONTENT TO ANALYZE:
 ${cleanContent}
 
 ${relevantTrend ? `TREND CONTEXT:
-This breakthrough is part of "${relevantTrend.name}"
+This development is part of "${relevantTrend.name}"
 - ${relevantTrend.description}
-- Market size: ${relevantTrend.key_metrics.market_size || 'Growing rapidly'}
+- Market size: ${relevantTrend.key_metrics.market_size || 'Growing'}
 - Key milestone: ${Object.entries(relevantTrend.milestones)[0] ? `${Object.entries(relevantTrend.milestones)[0][0]}: ${Object.entries(relevantTrend.milestones)[0][1]}` : ''}
 
 USE THIS CONTEXT TO:
-- Connect the academic finding to real-world impact
-- Reference the bigger trend/movement it's part of
-- Show how it accelerates us toward key milestones
-- Mention market size or investment flowing in
+- Connect the finding to real-world applications
+- Reference the broader trend it's part of
+- Show progress toward key milestones
+- Mention market size or investment when relevant
 ` : ''}
 
 WRITING PRINCIPLES:
-1. Start with impact, not process
-2. Write like you're sharing amazing news with friends
-3. Include specific numbers when available
-4. Connect to real-world applications
-5. Keep under 280 characters for maximum impact
+1. Be factual and specific, avoid hyperbole
+2. Lead with what's new or different
+3. Include numbers and data when available
+4. Focus on practical implications
+5. Keep under 280 characters for readability
+
+AVOID:
+- Words like "breakthrough", "revolutionary", "game-changing"
+- Excessive exclamation points or emojis
+- "Big news" or "Alert" style openings
+- Overly dramatic language
 
 VARY YOUR OPENING - use ONE of these patterns:
-1. Direct news lead: "MIT just cracked the code for..."
-2. Impact first: "Your electricity bills could drop 80% thanks to..."
-3. Problem-solution: "The plastic crisis just met its match..."
-4. Future vision: "By 2030, your home could regenerate its own energy..."
-5. Nature metaphor (USE SPARINGLY - max 20% of broadcasts): "Like fireflies creating light without heat..."
+1. Research update: "Researchers at MIT develop..."
+2. Technical achievement: "New technique achieves 80% efficiency in..."
+3. Market development: "$2B invested in carbon capture as..."
+4. Progress marker: "Lab-grown meat costs drop 90% with..."
+5. Innovation application: "Solar panels that work at night using..."
 
 ${content.url ? `Source: ${content.url}` : ''}
 
