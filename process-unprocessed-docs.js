@@ -82,6 +82,7 @@ async function processUnprocessedDocuments(targetBroadcasts = 10) {
         let failed = 0;
         let documentsReviewed = 0;
         const maxDocumentsToReview = 100; // Safety limit to prevent infinite loops
+        const processedDocumentIds = new Set(); // Track documents we've already tried
 
         // Load refined alignment keywords based on Obsidian document analysis
         const alignmentConfig = require('./alignment-keywords-refined.json');
@@ -119,7 +120,8 @@ async function processUnprocessedDocuments(targetBroadcasts = 10) {
                     m.alignment_score DESC,
                     m.createdAt DESC
                 LIMIT 20
-            `).all(alignmentConfig.scoring_recommendations?.core_alignment_minimum || 0.08);
+            `).all(alignmentConfig.scoring_recommendations?.core_alignment_minimum || 0.08)
+            .filter(doc => !processedDocumentIds.has(doc.id)); // Skip documents we've already tried
 
             if (unprocessedDocs.length === 0) {
                 console.log('No more unprocessed documents available');
@@ -131,6 +133,7 @@ async function processUnprocessedDocuments(targetBroadcasts = 10) {
             for (const doc of unprocessedDocs) {
                 if (processed >= targetBroadcasts) break;
                 documentsReviewed++;
+                processedDocumentIds.add(doc.id); // Mark as tried
             try {
                 const content = JSON.parse(doc.content);
                 const title = content.metadata?.title || content.text?.substring(0, 50) || 'Unknown';
@@ -210,19 +213,24 @@ async function processUnprocessedDocuments(targetBroadcasts = 10) {
 
                 // Skip if alignment too low (using refined threshold)
                 if (alignmentScore < alignmentConfig.scoring_recommendations.core_alignment_minimum) {
-                    console.log(`   ⏭️  Skipped (alignment score: ${(alignmentScore * 100).toFixed(0)}%)`);
+                    console.log(`   ⏭️  Skipped (alignment score: ${(alignmentScore * 100).toFixed(0)}% < ${(alignmentConfig.scoring_recommendations.core_alignment_minimum * 100).toFixed(0)}%)`);
                     failed++;
                     continue;
                 }
 
                 // Skip non-aligned content (politics, strikes, non-tech news)
-                const excludeKeywords = ['strike', 'protest', 'election', 'politician', 'guerra',
-                                        'συλλαλητήρια', 'murder', 'war', 'battle', 'gaza', 'ukraine conflict',
-                                        'museum', 'archaeological', 'george washington', 'tempi'];
-                const hasExcludedContent = excludeKeywords.some(keyword => contentLower.includes(keyword));
+                // Use word boundaries to avoid false matches (e.g., "software" matching "war")
+                const excludePatterns = [
+                    /\bstrike action\b/i, /\bprotest\b/i, /\belection\b/i, /\bpolitician\b/i,
+                    /\bguerra\b/i, /συλλαλητήρια/i, /\bmurder\b/i, /\bwar\b/i, /\bbattle\b/i,
+                    /\bgaza\b/i, /\bukraine conflict\b/i, /\bmuseum\b/i, /\barchaeological\b/i,
+                    /\bgeorge washington\b/i, /\btempi\b/i
+                ];
+                const matchedKeywords = excludePatterns.filter(pattern => pattern.test(contentLower)).map(p => p.source);
+                const hasExcludedContent = matchedKeywords.length > 0;
 
                 if (hasExcludedContent) {
-                    console.log('   ⏭️  Skipped (contains excluded topics)');
+                    console.log(`   ⏭️  Skipped (contains excluded topics: ${matchedKeywords.join(', ')})`);
                     failed++;
                     continue;
                 }
