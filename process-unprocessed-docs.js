@@ -399,6 +399,18 @@ OUTPUT YOUR BROADCAST NOW (no labels, just the engaging text):`;
                     sourceUrl = urlMatch ? urlMatch[0] : null;
                 }
 
+                // Clean URL: strip query parameters (utm_source, etc.)
+                if (sourceUrl && sourceUrl.startsWith('http')) {
+                    try {
+                        const urlObj = new URL(sourceUrl);
+                        sourceUrl = urlObj.origin + urlObj.pathname;
+                        // Remove trailing slash if present
+                        sourceUrl = sourceUrl.replace(/\/$/, '');
+                    } catch (e) {
+                        // If URL parsing fails, use original
+                    }
+                }
+
                 // Only add source if it's a real external URL
                 if (sourceUrl && sourceUrl.startsWith('http') && !sourceUrl.includes('github.com/divydovy')) {
                     generated = `${generated}\n\n🔗 Source: ${sourceUrl}`;
