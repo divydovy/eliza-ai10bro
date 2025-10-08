@@ -404,8 +404,6 @@ OUTPUT YOUR BROADCAST NOW (no labels, just the engaging text):`;
                     try {
                         const urlObj = new URL(sourceUrl);
                         sourceUrl = urlObj.origin + urlObj.pathname;
-                        // Remove trailing slash if present
-                        sourceUrl = sourceUrl.replace(/\/$/, '');
                     } catch (e) {
                         // If URL parsing fails, use original
                     }
