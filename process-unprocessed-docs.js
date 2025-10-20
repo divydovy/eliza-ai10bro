@@ -393,14 +393,16 @@ OUTPUT YOUR BROADCAST NOW (no labels, just the engaging text):`;
                 }
                 
                 // Extract source URL if available (check multiple locations)
-                let sourceUrl = content.metadata?.frontmatter?.source ||
-                              content.metadata?.url ||
-                              content.url ||
-                              content.source ||
+                // Filter out empty strings by checking truthiness AND length
+                let sourceUrl = (content.metadata?.frontmatter?.source && content.metadata.frontmatter.source.trim()) ||
+                              (content.metadata?.url && content.metadata.url.trim()) ||
+                              (content.url && content.url.trim()) ||
+                              (content.source && content.source.trim()) ||
                               null;
 
                 // Don't add GitHub/Obsidian internal references as sources
-                if (sourceUrl && (sourceUrl === 'github' || sourceUrl === 'obsidian' || sourceUrl.includes('github.com/divydovy'))) {
+                // Also extract from text if source is empty or invalid
+                if (!sourceUrl || sourceUrl === 'github' || sourceUrl === 'obsidian' || sourceUrl.includes('github.com/divydovy') || sourceUrl.startsWith('obsidian://')) {
                     // Try to find an actual external URL in the document content
                     // Look for common academic/news sources first
                     const allUrls = content.text?.match(/https?:\/\/[^\s\)]+/g) || [];
