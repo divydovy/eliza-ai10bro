@@ -344,15 +344,17 @@ TREND CONNECTIONS (use even without exact match):
 - Agriculture → "Feeding 10 billion while healing the planet"
 
 EXAMPLES OF ENGAGING BROADCASTS WITH VARIED HOOKS:
-"Mushroom leather reaches price parity with cowhide 2 years ahead of schedule. Part of the $4.5T circular economy shift. Grows in 2 weeks, costs 40% less than traditional leather. Hermès already manufacturing with it. Details: mylo-unleather.com"
+"Mushroom leather reaches price parity with cowhide 2 years ahead of schedule. Part of the $4.5T circular economy shift. Grows in 2 weeks, costs 40% less than traditional leather. Hermès already manufacturing with it."
 
-"Dutch bridges now test bio-concrete that heals its own cracks. Brings us closer to the 2028 milestone of self-repairing infrastructure. Part of the $2T climate adaptation market. Buildings that literally grow stronger over time. Watch: youtu.be/biomason"
+"Dutch bridges now test bio-concrete that heals its own cracks. Brings us closer to the 2028 milestone of self-repairing infrastructure. Part of the $2T climate adaptation market. Buildings that literally grow stronger over time."
 
-"CO2-to-jet-fuel costs just dropped below $100/ton - cheaper than drilling oil. United Airlines committed to 1.5B gallons as the $1 trillion carbon removal market accelerates. Aviation economics are about to flip. Details: lanzajet.com"
+"CO2-to-jet-fuel costs just dropped below $100/ton - cheaper than drilling oil. United Airlines committed to 1.5B gallons as the $1 trillion carbon removal market accelerates. Aviation economics are about to flip."
 
-"Recycling plant discovers algae strain that dissolves PET bottles in 6 weeks. Natural waste management system now scaled for industry as the circular economy's $4.5T potential becomes reality. Read the breakthrough: nature.com/plastic-eating"
+"Recycling plant discovers algae strain that dissolves PET bottles in 6 weeks. Natural waste management system now scaled for industry as the circular economy's $4.5T potential becomes reality."
 
-"NYC schools grow hyperlocal food using 95% less water through vertical farming. Validates regenerative agriculture's promise to feed 10B people while sequestering 5Gt CO2/year. Your neighborhood could be next: plenty.ag"
+"NYC schools grow hyperlocal food using 95% less water through vertical farming. Validates regenerative agriculture's promise to feed 10B people while sequestering 5Gt CO2/year."
+
+NOTE: Do NOT include source URLs, links, or "Details:" lines in your output. These will be added automatically.
 
 OUTPUT YOUR BROADCAST NOW (no labels, just the engaging text):`;
 
@@ -369,7 +371,12 @@ OUTPUT YOUR BROADCAST NOW (no labels, just the engaging text):`;
 
                 // Handle any escaped quotes
                 generated = generated.replace(/\\"/g, '"');
-                
+
+                // Strip any "Details:", "Watch:", "Read:", etc. lines the model may have added
+                // These will be replaced with proper source URLs
+                generated = generated.replace(/\s*(Details|Watch|Read|Learn more|More info|Full story|Source):\s*[^\n]+$/i, '');
+                generated = generated.replace(/\s*🔗\s*Source:\s*[^\n]+$/i, '');
+
                 // Enforce length limit
                 if (generated.length > 750) {
                     // Find last complete sentence within limit
@@ -395,8 +402,10 @@ OUTPUT YOUR BROADCAST NOW (no labels, just the engaging text):`;
                 // Don't add GitHub/Obsidian internal references as sources
                 if (sourceUrl && (sourceUrl === 'github' || sourceUrl === 'obsidian' || sourceUrl.includes('github.com/divydovy'))) {
                     // Try to find an actual external URL in the document content
-                    const urlMatch = content.text?.match(/https?:\/\/(?!github\.com\/divydovy)[^\s\)]+/);
-                    sourceUrl = urlMatch ? urlMatch[0] : null;
+                    // Look for common academic/news sources first
+                    const allUrls = content.text?.match(/https?:\/\/[^\s\)]+/g) || [];
+                    const externalUrl = allUrls.find(url => !url.includes('github.com/divydovy'));
+                    sourceUrl = externalUrl || null;
                 }
 
                 // Clean URL: strip query parameters (utm_source, etc.)

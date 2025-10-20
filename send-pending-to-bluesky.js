@@ -49,11 +49,13 @@ async function sendPendingBroadcasts() {
             `).all(process.env.BROADCAST_ID);
         } else {
             // Send only 1 pending broadcast per run for proper pacing
+            // Quality threshold: 0.15 (from alignment-keywords-refined.json)
             pendingBroadcasts = db.prepare(`
                 SELECT id, content as message, client as platform
                 FROM broadcasts
                 WHERE status = 'pending'
                 AND client = 'bluesky'
+                AND alignment_score >= 0.15
                 ORDER BY createdAt ASC
                 LIMIT 1
             `).all();
