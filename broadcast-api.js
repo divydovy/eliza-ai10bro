@@ -47,11 +47,13 @@ app.get('/api/broadcast-stats', (req, res) => {
         const totalBroadcasts = db.prepare(totalBroadcastsQuery).get().count;
 
         // Get broadcast status breakdown from broadcasts table
+        // For pending: only count broadcasts that meet quality threshold (alignment_score >= 0.15)
         const statusQuery = `
-            SELECT 
+            SELECT
                 status,
                 COUNT(*) as count
             FROM broadcasts
+            WHERE status != 'pending' OR alignment_score >= 0.15
             GROUP BY status
         `;
         const statusBreakdown = db.prepare(statusQuery).all();
@@ -184,16 +186,18 @@ app.get('/api/broadcast-stats', (req, res) => {
         const docsWithBroadcasts = db.prepare(docsWithBroadcastsQuery).get().count;
 
         // Get platform statistics
+        // For pending: only count broadcasts that meet quality threshold (alignment_score >= 0.15)
         const platformStatsQuery = `
-            SELECT 
+            SELECT
                 client as platform,
                 status,
                 COUNT(*) as count
             FROM broadcasts
+            WHERE status != 'pending' OR alignment_score >= 0.15
             GROUP BY client, status
         `;
         const platformStats = db.prepare(platformStatsQuery).all();
-        
+
         // Format platform statistics
         const platforms = {};
         platformStats.forEach(row => {
@@ -259,11 +263,12 @@ app.get('/api/stats', (req, res) => {
             WHERE documentId IS NOT NULL
         `).get().count;
 
-        // Get pending broadcasts
+        // Get pending broadcasts (only count those that will actually be sent)
         const pendingBroadcasts = db.prepare(`
             SELECT COUNT(*) as count
             FROM broadcasts
             WHERE status = 'pending'
+            AND alignment_score >= 0.15
         `).get().count;
 
         // Get sent broadcasts

@@ -67,11 +67,13 @@ const server = http.createServer((req, res) => {
             `).get().count;
 
             // Get broadcast status breakdown from broadcasts table
+            // For pending: only count broadcasts that meet quality threshold (alignment_score >= 0.15)
             const statusBreakdown = db.prepare(`
-                SELECT 
+                SELECT
                     status,
                     COUNT(*) as count
                 FROM broadcasts
+                WHERE status != 'pending' OR alignment_score >= 0.15
                 GROUP BY status
             `).all();
 
@@ -92,6 +94,7 @@ const server = http.createServer((req, res) => {
             }
 
             // Get platform-specific stats
+            // For pending: only count broadcasts that meet quality threshold (alignment_score >= 0.15)
             const platformStats = {};
             const platformBreakdown = db.prepare(`
                 SELECT
@@ -99,6 +102,7 @@ const server = http.createServer((req, res) => {
                     status,
                     COUNT(*) as count
                 FROM broadcasts
+                WHERE status != 'pending' OR alignment_score >= 0.15
                 GROUP BY client, status
             `).all();
 
