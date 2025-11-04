@@ -34,19 +34,32 @@ export class BlueskyClient implements Client {
 
             elizaLogger.info(`Logging into Bluesky as @${handle}...`);
 
-            await this.agent.login({
+            const loginResult = await this.agent.login({
                 identifier: handle.includes(".") ? handle : `${handle}.bsky.social`,
                 password: password
             });
 
             this.isConnected = true;
             elizaLogger.success(`✅ Bluesky client connected for @${handle}`);
+            elizaLogger.debug(`Session info - DID: ${loginResult.data.did}, Service: ${(this.agent as any).service?.toString() || 'unknown'}`);
 
-            // Start posting loop
-            this.startPostingLoop();
+            // Only start auto-posting if explicitly enabled
+            const enableAutoPost = this.runtime.getSetting("BLUESKY_AUTO_POST") === "true";
+            if (enableAutoPost) {
+                elizaLogger.info("Starting Bluesky auto-posting loop...");
+                this.startPostingLoop();
+            } else {
+                elizaLogger.info("Bluesky auto-posting disabled (set BLUESKY_AUTO_POST=true to enable)");
+            }
 
-            // Start monitoring mentions
-            this.startMentionMonitoring();
+            // Only start mention monitoring if explicitly enabled
+            const enableMentions = this.runtime.getSetting("BLUESKY_MONITOR_MENTIONS") !== "false"; // Enabled by default
+            if (enableMentions) {
+                elizaLogger.info("Starting Bluesky mention monitoring...");
+                this.startMentionMonitoring();
+            } else {
+                elizaLogger.info("Bluesky mention monitoring disabled");
+            }
 
         } catch (error) {
             elizaLogger.error("Failed to start Bluesky client:", error);
@@ -126,7 +139,15 @@ Post:`;
                 elizaLogger.debug(`Post URI: ${post.uri}`);
             }
         } catch (error) {
-            elizaLogger.error("Error creating Bluesky post:", error);
+            // Log error details but don't throw - prevents infinite loops
+            const errorDetails = error instanceof Error ? error.message : JSON.stringify(error);
+            elizaLogger.error("Error creating Bluesky post:", errorDetails);
+
+            // If unauthorized, try to refresh session
+            if (errorDetails.includes('401') || errorDetails.includes('Unauthorized')) {
+                elizaLogger.warn("Session expired, attempting to reconnect...");
+                this.isConnected = false;
+            }
         }
     }
 
@@ -152,7 +173,15 @@ Post:`;
                     }
                 }
             } catch (error) {
-                elizaLogger.error("Error checking Bluesky mentions:", error);
+                // Log error details but don't throw - prevents infinite loops
+                const errorDetails = error instanceof Error ? error.message : JSON.stringify(error);
+                elizaLogger.error("Error checking Bluesky mentions:", errorDetails);
+
+                // If unauthorized, try to refresh session
+                if (errorDetails.includes('401') || errorDetails.includes('Unauthorized')) {
+                    elizaLogger.warn("Session expired, attempting to reconnect...");
+                    this.isConnected = false;
+                }
             }
         };
 
@@ -218,7 +247,9 @@ Response:`;
                 elizaLogger.info(`Replied to @${notification.author.handle}: ${replyText.substring(0, 50)}...`);
             }
         } catch (error) {
-            elizaLogger.error("Error handling Bluesky mention:", error);
+            // Log error details but don't throw - prevents infinite loops
+            const errorDetails = error instanceof Error ? error.message : JSON.stringify(error);
+            elizaLogger.error("Error handling Bluesky mention:", errorDetails);
         }
     }
 }
