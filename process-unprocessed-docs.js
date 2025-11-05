@@ -7,6 +7,54 @@ const util = require('util');
 const execPromise = util.promisify(exec);
 const crypto = require('crypto');
 
+/**
+ * Calculate string similarity using Levenshtein distance
+ * Returns a value between 0 (completely different) and 1 (identical)
+ */
+function stringSimilarity(str1, str2) {
+    const longer = str1.length > str2.length ? str1 : str2;
+    const shorter = str1.length > str2.length ? str2 : str1;
+
+    if (longer.length === 0) {
+        return 1.0;
+    }
+
+    // Calculate edit distance
+    const editDistance = levenshteinDistance(longer, shorter);
+    return (longer.length - editDistance) / longer.length;
+}
+
+/**
+ * Calculate Levenshtein distance between two strings
+ */
+function levenshteinDistance(str1, str2) {
+    const matrix = [];
+
+    for (let i = 0; i <= str2.length; i++) {
+        matrix[i] = [i];
+    }
+
+    for (let j = 0; j <= str1.length; j++) {
+        matrix[0][j] = j;
+    }
+
+    for (let i = 1; i <= str2.length; i++) {
+        for (let j = 1; j <= str1.length; j++) {
+            if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+                matrix[i][j] = matrix[i - 1][j - 1];
+            } else {
+                matrix[i][j] = Math.min(
+                    matrix[i - 1][j - 1] + 1,
+                    matrix[i][j - 1] + 1,
+                    matrix[i - 1][j] + 1
+                );
+            }
+        }
+    }
+
+    return matrix[str2.length][str1.length];
+}
+
 // OpenRouter API integration for high-quality broadcast generation
 async function generateBroadcastWithOpenRouter(prompt) {
     const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -492,6 +540,41 @@ OUTPUT YOUR BROADCAST NOW (no labels, just the engaging text):`;
 
                     // Wrap content in JSON for storage
                     const jsonContent = JSON.stringify({ text: platformContent });
+
+                    // Check for duplicate content on this platform
+                    // Extract first 100 chars for similarity check (ignore minor variations)
+                    const contentPreview = platformContent.substring(0, 100).trim();
+
+                    const existingBroadcasts = db.prepare(`
+                        SELECT id, content FROM broadcasts
+                        WHERE client = ?
+                        AND (status = 'pending' OR status = 'sent')
+                        ORDER BY createdAt DESC
+                        LIMIT 100
+                    `).all(platform);
+
+                    let isDuplicate = false;
+                    for (const existing of existingBroadcasts) {
+                        try {
+                            const existingContent = JSON.parse(existing.content).text;
+                            const existingPreview = existingContent.substring(0, 100).trim();
+
+                            // Check if first 100 chars are very similar (>80% match)
+                            const similarity = stringSimilarity(contentPreview, existingPreview);
+                            if (similarity > 0.8) {
+                                console.log(`⚠️  Skipping duplicate ${platform} broadcast (${(similarity * 100).toFixed(0)}% similar to ${existing.id})`);
+                                isDuplicate = true;
+                                break;
+                            }
+                        } catch (e) {
+                            // Skip if can't parse existing content
+                            continue;
+                        }
+                    }
+
+                    if (isDuplicate) {
+                        continue; // Skip to next platform
+                    }
 
                     // Create broadcast
                     const broadcastId = crypto.randomUUID();
