@@ -142,6 +142,11 @@ Post:`;
             const text = typeof response === 'string' ? response.trim() : (response as any).text?.trim() || "";
 
             if (text && text.length <= 300) {
+                // Debug logging
+                elizaLogger.debug(`About to post to Bluesky. Service URL: ${(this.agent as any).service?.toString()}`);
+                elizaLogger.debug(`Post text: ${text}`);
+                elizaLogger.debug(`Text length: ${text.length}`);
+
                 const post = await this.agent.post({
                     text: text,
                     createdAt: new Date().toISOString()
@@ -152,7 +157,9 @@ Post:`;
             }
         } catch (error) {
             const errorDetails = error instanceof Error ? error.message : JSON.stringify(error);
+            const errorStack = error instanceof Error ? error.stack : '';
             elizaLogger.error("Error creating Bluesky post:", errorDetails);
+            elizaLogger.error("Error stack:", errorStack);
 
             // If unauthorized, try to refresh session
             if (errorDetails.includes('401') || errorDetails.includes('Unauthorized')) {
