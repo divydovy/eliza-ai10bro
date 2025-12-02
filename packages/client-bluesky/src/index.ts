@@ -5,28 +5,19 @@ import {
     ModelClass,
     generateText
 } from "@elizaos/core";
-import { AtpAgent } from "@atproto/api";
+import { BskyAgent } from "@atproto/api";
 
 export class BlueskyClient implements Client {
-    private agent: AtpAgent;
+    private agent: BskyAgent;
     private runtime: IAgentRuntime;
     private postInterval: NodeJS.Timeout | null = null;
     private isConnected: boolean = false;
 
     constructor(runtime: IAgentRuntime) {
         this.runtime = runtime;
-        const serviceUrl = "https://bsky.social";
-        elizaLogger.info(`🔍 Creating AtpAgent with service: "${serviceUrl}"`);
-        elizaLogger.info(`🔍 serviceUrl type: ${typeof serviceUrl}, value: ${JSON.stringify(serviceUrl)}`);
-        this.agent = new AtpAgent({
-            service: serviceUrl
+        this.agent = new BskyAgent({
+            service: "https://bsky.social"
         });
-        elizaLogger.info("🔍 AtpAgent created");
-        const sessionManager = (this.agent as any).sessionManager;
-        elizaLogger.info(`🔍 sessionManager.serviceUrl: ${JSON.stringify(sessionManager?.serviceUrl)}`);
-        elizaLogger.info(`🔍 sessionManager.serviceUrl.href: ${sessionManager?.serviceUrl?.href}`);
-        const fetchHandler = (this.agent as any).fetchHandler;
-        elizaLogger.info(`🔍 fetchHandler exists: ${typeof fetchHandler === 'function'}`);
     }
 
     async start() {
@@ -50,22 +41,6 @@ export class BlueskyClient implements Client {
 
             this.isConnected = true;
             elizaLogger.success(`✅ Bluesky client connected for @${handle}`);
-
-            // FIX: Replace fetchHandler to construct full URLs from pathnames
-            // Based on @atproto/api v0.18+ breaking changes
-            const sessionManager = (this.agent as any).sessionManager;
-            elizaLogger.info("🔧 Applying fetchHandler fix for URL construction");
-
-            sessionManager.fetchHandler = async (pathname: string, init: RequestInit) => {
-                // Use serviceUrl for all requests (posting works with this)
-                const baseUrl = sessionManager.serviceUrl;
-                const fullUrl = new URL(pathname, baseUrl);
-
-                elizaLogger.debug(`Request to: ${fullUrl.href}`);
-
-                const fetchFn = sessionManager.fetch || globalThis.fetch;
-                return await fetchFn(fullUrl.toString(), init);
-            };
 
             elizaLogger.info(`🔍 Session info:`, {
                 did: loginResult.data.did,
@@ -138,12 +113,7 @@ export class BlueskyClient implements Client {
             return;
         }
 
-        elizaLogger.info("🔍 Creating Bluesky post...", {
-            hasSession: !!this.agent.session,
-            sessionDid: this.agent.session?.did
-        });
-
-        try {
+        try{
             // Generate post content using the runtime
             const bio = Array.isArray(this.runtime.character.bio)
                 ? this.runtime.character.bio.join('\n')
@@ -173,7 +143,6 @@ Post:`;
 
             if (text && text.length <= 300) {
                 const post = await this.agent.post({
-                    $type: 'app.bsky.feed.post',
                     text: text,
                     createdAt: new Date().toISOString()
                 });
@@ -182,15 +151,8 @@ Post:`;
                 elizaLogger.debug(`Post URI: ${post.uri}`);
             }
         } catch (error) {
-            // Log error details but don't throw - prevents infinite loops
             const errorDetails = error instanceof Error ? error.message : JSON.stringify(error);
-            const errorStack = error instanceof Error ? error.stack : '';
-            const sessionManager = (this.agent as any).sessionManager;
             elizaLogger.error("Error creating Bluesky post:", errorDetails);
-            elizaLogger.error("Stack trace:", errorStack);
-            elizaLogger.error("🔍 Error context - dispatchUrl:", sessionManager?.dispatchUrl);
-            elizaLogger.error("🔍 Error context - pdsUrl:", sessionManager?.pdsUrl);
-            elizaLogger.error("🔍 Full error object:", JSON.stringify(error, null, 2));
 
             // If unauthorized, try to refresh session
             if (errorDetails.includes('401') || errorDetails.includes('Unauthorized')) {
@@ -213,20 +175,9 @@ Post:`;
             }
 
             try {
-                elizaLogger.info("🔍 Checking Bluesky mentions...", {
-                    hasSession: !!this.agent.session,
-                    sessionDid: this.agent.session?.did
-                });
-
-                elizaLogger.info("🔍 About to call listNotifications");
-                const sessionManager = (this.agent as any).sessionManager;
-                elizaLogger.info("🔍 Current dispatchUrl before call:", JSON.stringify(sessionManager?.dispatchUrl));
-
                 const notifications = await this.agent.listNotifications({
                     limit: 10
                 });
-
-                elizaLogger.info("🔍 listNotifications succeeded!");
 
                 for (const notif of notifications.data.notifications) {
                     if (!notif.isRead && (notif.reason === "mention" || notif.reason === "reply")) {
@@ -239,11 +190,8 @@ Post:`;
                     }
                 }
             } catch (error) {
-                // Log error details but don't throw - prevents infinite loops
                 const errorDetails = error instanceof Error ? error.message : JSON.stringify(error);
-                const errorStack = error instanceof Error ? error.stack : '';
                 elizaLogger.error("Error checking Bluesky mentions:", errorDetails);
-                elizaLogger.error("Stack trace:", errorStack);
 
                 // If unauthorized, try to refresh session
                 if (errorDetails.includes('401') || errorDetails.includes('Unauthorized')) {
@@ -304,7 +252,6 @@ Response:`;
                 // Create reply
                 const rootPost = thread.data.thread.post as any;
                 await this.agent.post({
-                    $type: 'app.bsky.feed.post',
                     text: replyText,
                     reply: {
                         root: {
