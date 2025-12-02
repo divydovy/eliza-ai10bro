@@ -15,7 +15,8 @@ async function sendBroadcasts() {
 
     const platforms = [
         { name: 'Telegram', script: 'send-pending-to-telegram.js' },
-        { name: 'Farcaster', script: 'send-pending-to-farcaster.js' },
+        // Farcaster disabled - no active Neynar signer
+        // { name: 'Farcaster', script: 'send-pending-to-farcaster.js' },
         { name: 'Bluesky', script: 'send-pending-to-bluesky.js' }
     ];
 
