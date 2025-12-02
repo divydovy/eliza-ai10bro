@@ -20,7 +20,7 @@
     ],
     "dependencies": {
         "@elizaos/core": "workspace:*",
-        "@atproto/api": "^0.13.20"
+        "@atproto/api": "^0.18.3"
     },
     "devDependencies": {
         "tsup": "^8.3.5"
