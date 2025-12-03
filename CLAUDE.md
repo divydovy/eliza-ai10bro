@@ -6,6 +6,170 @@
 **Main Character**: AI10BRO
 **Location**: `/Users/davidlockie/Documents/Projects/Eliza/`
 
+## Session: 2025-12-03
+
+### Major Accomplishments
+
+#### 1. Fixed Ollama Constant Running Issue
+- **Problem**: Ollama consuming CPU continuously (should batch process then idle)
+- **Root Cause**: `BLUESKY_AUTO_POST=true` triggering infinite post generation loop
+- **Solution**: Set `BLUESKY_AUTO_POST=false` and `BLUESKY_MONITOR_MENTIONS=false` in `.env`
+- **Result**: Ollama now idles between cron-triggered broadcast batches
+- **Architecture Decision**: Use cron-based batch processing instead of continuous loops
+- **Commit**: 7b88fee69
+
+#### 2. Resolved Bluesky Posting Issue (20 hours debugging)
+- **Problem**: "Invalid URL" errors when posting from integrated client after auth success
+- **Timeline**:
+  - Initial attempts with @atproto/api v0.18.3 failed
+  - Downgraded to v0.13.20, still failing in auto-posting
+  - Standalone script testing worked perfectly
+- **Root Cause**: Long-running BskyAgent in auto-posting loop corrupts internal state
+- **Solution**:
+  - Disabled auto-posting in integrated client (`BLUESKY_AUTO_POST=false`)
+  - Use standalone script `send-pending-to-bluesky.js` for scheduled posts
+  - Keep integrated client active for mention-response capability only
+- **Verification**: Successfully posted test broadcast
+  - Post URI: `at://did:plc:y7cmacgqwwrfv33ut7672uhr/app.bsky.feed.post/3m6zrknz6qa2w`
+  - Test log: `/tmp/bluesky-manual-test.log`
+- **Key Learning**: Fresh agent instances for scheduled tasks, persistent agents for real-time interaction
+- **Commits**: 24cae5e60 (downgrade to v0.13.20), 7b88fee69 (disable auto-posting)
+
+#### 3. Platform Rationalization
+- **Removed Farcaster from broadcast loop**: No active Neynar signer
+  - Requires paid subscription: $20-50/month for active signer
+  - No free tier available for autoposting
+- **Working Platforms**:
+  - ✅ Telegram: Free, unlimited, working via both integrated client and standalone script
+  - ✅ Bluesky: Free, open API, working via standalone script
+- **Not Configured**:
+  - ❌ Twitter/X: Requires $100/month minimum for API access
+- **Decision**: Focus on free platforms (Telegram + Bluesky) for autoposting
+- **Commit**: 58dafe36f
+
+#### 4. Created Comprehensive System Documentation
+- **Created LEARNINGS.md**: 400+ line system analysis and lessons learned
+- **Content Includes**:
+  - **Core Principles**: Batch processing > continuous polling, prompt variation prevents formulaic content, quality scoring prevents bad content
+  - **5 Critical Failure Patterns**:
+    1. Infinite loop pattern (fixed 3 times)
+    2. Bluesky @atproto/api integration (20 hours debugging)
+    3. Platform cost reality (paid subscriptions required)
+    4. LLM output degradation (self-references, duplication)
+    5. Timestamp format inconsistency (fixed 6 times)
+  - **3 Success Patterns**: Unified architecture, round-robin distribution, multi-layer quality checks
+  - **System Health Indicators**: Green/yellow/red state definitions
+  - **Technical Debt**: 30+ background processes, 24 broadcast files (should be 7)
+  - **Quick Reference**: Working files, platform status, cron schedule, database queries
+
+### Current System Status
+
+#### Platform Status
+| Platform | Status | Method | Cost |
+|----------|--------|--------|------|
+| Telegram | ✅ Active | Integrated + Standalone | Free |
+| Bluesky | ✅ Active | Standalone script only | Free |
+| Farcaster | ❌ Disabled | N/A | $20-50/mo |
+| Twitter/X | ❌ Not configured | N/A | $100/mo |
+
+#### Cron Schedule (Working)
+```bash
+# Create broadcasts: Every 4 hours
+0 */4 * * * node process-unprocessed-docs.js 10
+
+# Send broadcasts: Every hour
+0 * * * * curl -X POST localhost:3003/trigger -d '{"action":"PROCESS_QUEUE"}'
+```
+
+#### Working Files (Core 7)
+1. `process-unprocessed-docs.js` - Main broadcast generator
+2. `send-pending-broadcasts.js` - Multi-platform wrapper
+3. `send-pending-to-telegram.js` - Telegram sender
+4. `send-pending-to-bluesky.js` - Bluesky sender (standalone)
+5. `broadcast-dashboard.html` - Web UI
+6. `broadcast-api-simple.js` - Dashboard API
+7. `action-api-enhanced.js` - Trigger endpoints
+
+#### Technical Debt to Clean
+- [ ] 30+ background processes accumulated (pnpm start instances)
+- [ ] 17 redundant broadcast files to delete (24 total, should be 7)
+- [ ] Verify Telegram mention-response working
+
+#### GitHub Repository
+- **Repo**: divydovy/eliza-ai10bro
+- **Latest commits**:
+  - 58dafe36f - Remove Farcaster from broadcast loop
+  - 24cae5e60 - Downgrade @atproto/api to v0.13.20
+  - 7b88fee69 - Disable auto-posting, use standalone scripts
+- **Branch**: main
+- **Status**: Clean, all changes pushed
+
+### Key Learnings
+
+#### What Worked
+✅ **Cron + standalone scripts** - Predictable execution, fresh agent instances
+✅ **Disabling auto-posting** - Prevents infinite loops and state corruption
+✅ **Free platforms only** - Sustainable for autoposting without monthly costs
+✅ **Documentation consolidation** - LEARNINGS.md captures patterns across 50+ commits
+
+#### What Didn't Work
+❌ **Continuous auto-posting loops** - Causes state corruption, infinite loops
+❌ **Long-running BskyAgent instances** - Internal state gets corrupted over time
+❌ **Paid platform integrations** - Not sustainable without revenue
+❌ **Multiple competing scripts** - Technical debt accumulates rapidly
+
+### Architecture Decision: Dual Client Strategy
+- **Scheduled Posts**: Use standalone scripts with fresh agent instances
+- **Real-time Interaction**: Use integrated clients for mention-response
+- **Rationale**: Separates concerns, prevents state corruption, maintains responsiveness
+
+### Next Session TODOs
+
+1. **Clean up 30+ background processes** - Kill old pnpm start instances
+2. **Delete 17 redundant broadcast files** - Keep only core 7 working files
+3. **Verify Telegram mention-response** - Test integrated client interaction
+4. **Increase document coverage** - Currently 24% (344/1460), target 50%
+5. **Monitor broadcast quality** - Ensure alignment scores remain >= 0.15
+
+### Quick Commands
+
+```bash
+# View current cron jobs
+crontab -l
+
+# Kill all background processes
+killall node
+
+# Test Bluesky standalone posting
+LIMIT=1 node send-pending-to-bluesky.js
+
+# Test Telegram standalone posting
+LIMIT=1 node send-pending-to-telegram.js
+
+# Check broadcast quality distribution
+sqlite3 agent/data/db.sqlite "
+SELECT
+  CASE
+    WHEN alignment_score >= 0.9 THEN 'Excellent'
+    WHEN alignment_score >= 0.8 THEN 'Good'
+    WHEN alignment_score >= 0.7 THEN 'Fair'
+    ELSE 'Poor'
+  END as quality,
+  COUNT(*) as count
+FROM broadcasts
+GROUP BY quality;"
+
+# Git operations with 1Password SSH
+GIT_SSH_COMMAND="ssh -o IdentityAgent=~/.1password-agent.sock" \
+  git push origin main
+```
+
+---
+
+**Last Updated**: 2025-12-03 (Session continued from previous conversation)
+**Session Duration**: ~4 hours
+**Key Achievement**: Resolved Ollama resource issue and Bluesky posting after 20 hours of debugging! System now stable with cron-based batch processing.
+
 ## Session: 2025-09-23
 
 ### Major Accomplishments
