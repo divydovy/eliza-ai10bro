@@ -111,7 +111,7 @@ Generate ONLY the image prompt, no explanation. Make it detailed and specific fo
             )
 
             response = client.chat.completions.create(
-                model="anthropic/claude-sonnet-4-20250514",
+                model="anthropic/claude-3.5-sonnet",  # OpenRouter model ID
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=500
             )
