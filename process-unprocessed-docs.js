@@ -483,7 +483,7 @@ OUTPUT YOUR BROADCAST NOW (no labels, just the engaging text):`;
                         const textForImage = generated.replace(/\n\n🔗 Source:.*$/, '').substring(0, 500);
 
                         const { stdout } = await execPromise(
-                            `python3 generate-broadcast-image.py "${doc.id}" "${textForImage.replace(/"/g, '\\"')}"`
+                            `python3 generate-broadcast-image-v2.py "${doc.id}" "${textForImage.replace(/"/g, '\\"')}"`
                         );
 
                         // Extract image path from output

@@ -1,7 +1,8 @@
 # Image Generation Integration Guide
 
-**Status**: 100% Complete ✅
+**Status**: 100% Complete ✅ (V2 with improved style + copyright)
 **Created**: 2025-12-03
+**Updated**: 2025-12-03 (V2 improvements)
 **Ready to Test**: Set GEMINI_API_KEY and ENABLE_IMAGE_GENERATION=true to start generating images
 
 ---
@@ -21,23 +22,36 @@ broadcast-images/
 ✅ Directory created and added to .gitignore
 
 ### 3. Image Generation Script
-**File**: `generate-broadcast-image.py`
+**File**: `generate-broadcast-image-v2.py`
 
 Features:
+- ✅ **© ai10bro watermark** on all images
+- ✅ **Improved visual style**: Gradients, depth, vibrant colors, isometric perspective
+- ✅ **LLM-powered prompts**: Uses Claude to analyze full documents and create optimal Gemini prompts
+- ✅ **Graceful fallback**: Works without ANTHROPIC_API_KEY (uses improved baseline prompt)
 - Uses Gemini Nano Banana Pro (gemini-3-pro-image-preview)
-- Standardized prompt style: minimalist, infographic-style, 2-3 colors
+- Reads full document content from database (not just broadcast summary)
 - 16:9 aspect ratio at 2K resolution
-- Images saved as `{broadcast_id}.png`
+- Images saved as `{document_id}.png`
 
 Usage:
 ```bash
-python generate-broadcast-image.py <broadcast_id> "<broadcast_text>"
+python generate-broadcast-image-v2.py <document_id> "<broadcast_text>"
 ```
 
 Example:
 ```bash
-python generate-broadcast-image.py abc-123 "MIT develops new battery technology"
+python generate-broadcast-image-v2.py doc-abc-123 "MIT develops new battery technology"
 ```
+
+**Visual Style (V2):**
+- Modern, tech-forward aesthetic with depth and dimension
+- Bold, vibrant color palette (3-4 colors) - no more pastels!
+- Uses gradients, subtle shadows, and layering for visual interest
+- Isometric or 3D perspective where appropriate
+- Clear text labels and annotations
+- Professional but eye-catching - think tech conference slides
+- © ai10bro watermark in bottom right corner
 
 ---
 

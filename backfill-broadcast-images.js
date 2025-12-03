@@ -95,7 +95,7 @@ async function backfillImages() {
                 // Generate image using Python script
                 console.log(`   🖼️  Generating image...`);
                 const { stdout, stderr } = await execPromise(
-                    `python3 generate-broadcast-image.py "${doc.documentId}" "${textForImage}"`
+                    `python3 generate-broadcast-image-v2.py "${doc.documentId}" "${textForImage}"`
                 );
 
                 // Extract image path from output
