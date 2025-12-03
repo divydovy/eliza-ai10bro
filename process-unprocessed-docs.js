@@ -472,7 +472,32 @@ OUTPUT YOUR BROADCAST NOW (no labels, just the engaging text):`;
                 if (sourceUrl && sourceUrl.startsWith('http') && !sourceUrl.includes('github.com/divydovy')) {
                     generated = `${generated}\n\n🔗 Source: ${sourceUrl}`;
                 }
-                
+
+                // Generate image for broadcast (once, reused for all platforms)
+                let imageUrl = null;
+                if (process.env.GEMINI_API_KEY && process.env.ENABLE_IMAGE_GENERATION === 'true') {
+                    try {
+                        console.log(`🎨 Generating image for document ${doc.id}...`);
+
+                        // Extract broadcast text without source URL for image prompt
+                        const textForImage = generated.replace(/\n\n🔗 Source:.*$/, '').substring(0, 500);
+
+                        const { stdout } = await execPromise(
+                            `python3 generate-broadcast-image.py "${doc.id}" "${textForImage.replace(/"/g, '\\"')}"`
+                        );
+
+                        // Extract image path from output
+                        const imageMatch = stdout.match(/Image saved to: (.+\.png)/);
+                        if (imageMatch) {
+                            imageUrl = imageMatch[1];
+                            console.log(`   ✅ Image generated: ${imageUrl}`);
+                        }
+                    } catch (error) {
+                        console.log(`   ⚠️  Image generation failed (continuing without image): ${error.message}`);
+                        // Continue without image - don't fail the broadcast
+                    }
+                }
+
                 // Create broadcasts for all platforms
                 const platforms = ['telegram', 'farcaster', 'bluesky'];
                 const platformLimits = {
@@ -581,8 +606,8 @@ OUTPUT YOUR BROADCAST NOW (no labels, just the engaging text):`;
                     db.prepare(`
                         INSERT INTO broadcasts (
                             id, documentId, client, content,
-                            status, alignment_score, createdAt
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                            status, alignment_score, image_url, createdAt
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     `).run(
                         broadcastId,
                         doc.id,
@@ -590,6 +615,7 @@ OUTPUT YOUR BROADCAST NOW (no labels, just the engaging text):`;
                         jsonContent,
                         'pending',
                         alignmentScore,
+                        imageUrl,
                         Date.now()
                     );
 
