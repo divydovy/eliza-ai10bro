@@ -238,10 +238,31 @@ IMAGE_SIZE=2K            # Options: 1K, 2K, 4K (Pro only)
 - Text-to-Image: ~$0.01 per image
 - Image editing: ~$0.015 per edit
 
-**Monthly cost estimate**:
-- 60 broadcasts/day with images = 1,800/month
-- Cost: ~$18-27/month
-- Much cheaper than Farcaster ($20-50/mo) or Twitter API ($100/mo)
+**Monthly cost estimate** (Optimized Architecture):
+
+**Image Generation Strategy**:
+- Generate image ONCE per document on first passing broadcast
+- Reuse same image for all platform-specific broadcasts (Telegram, Bluesky)
+- Only generate images for broadcasts passing alignment threshold (score >= 0.15)
+
+**Calculation**:
+- Documents processed: ~30/day
+- Broadcasts passing alignment (0.15 threshold): 50-70%
+- Images actually generated: 15-21/day
+- Monthly: 450-630 images
+- **Cost: $4.50-6.30/month**
+
+**Cost Comparison**:
+- Image generation: $4.50-6.30/mo (this feature)
+- Farcaster: $20-50/mo (disabled)
+- Twitter API: $100/mo (not configured)
+- Telegram: Free
+- Bluesky: Free
+
+**Efficiency Gains**:
+- vs. generating per broadcast per platform: 70% cheaper
+- vs. generating per document: 50% cheaper
+- Only generates for quality content that will actually be posted
 
 ---
 
