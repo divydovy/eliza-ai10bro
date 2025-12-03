@@ -29,9 +29,9 @@ async function sendPendingBroadcasts() {
         if (process.env.BROADCAST_ID) {
             // Send a specific broadcast
             pendingBroadcasts = db.prepare(`
-                SELECT id, content as message, client as platform 
-                FROM broadcasts 
-                WHERE id = ? 
+                SELECT id, content as message, client as platform, image_url
+                FROM broadcasts
+                WHERE id = ?
                 AND status IN ('pending', 'sending')
                 AND client = 'telegram'
             `).all(process.env.BROADCAST_ID);
@@ -39,7 +39,7 @@ async function sendPendingBroadcasts() {
             // Send only 1 pending broadcast per run for proper pacing
             // Quality threshold: 0.15 (from alignment-keywords-refined.json)
             pendingBroadcasts = db.prepare(`
-                SELECT id, content as message, client as platform
+                SELECT id, content as message, client as platform, image_url
                 FROM broadcasts
                 WHERE status = 'pending'
                 AND client = 'telegram'
@@ -74,8 +74,19 @@ async function sendPendingBroadcasts() {
             let success = false;
             for (const chatId of chatIds) {
                 try {
-                    await bot.telegram.sendMessage(chatId, cleanMessage);
-                    console.log(`   ✅ Sent to chat ${chatId}`);
+                    // Send with image if available
+                    if (broadcast.image_url && fs.existsSync(broadcast.image_url)) {
+                        await bot.telegram.sendPhoto(chatId, { source: broadcast.image_url }, {
+                            caption: cleanMessage,
+                            parse_mode: 'Markdown'
+                        });
+                        console.log(`   ✅ Sent to chat ${chatId} (with image)`);
+                    } else {
+                        await bot.telegram.sendMessage(chatId, cleanMessage, {
+                            parse_mode: 'Markdown'
+                        });
+                        console.log(`   ✅ Sent to chat ${chatId}`);
+                    }
                     success = true;
                 } catch (error) {
                     console.error(`   ❌ Failed to send to chat ${chatId}:`, error.message);
