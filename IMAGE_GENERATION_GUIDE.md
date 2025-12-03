@@ -28,7 +28,8 @@ Features:
 - ✅ **© ai10bro watermark** on all images
 - ✅ **Improved visual style**: Gradients, depth, vibrant colors, isometric perspective
 - ✅ **LLM-powered prompts**: Uses Claude to analyze full documents and create optimal Gemini prompts
-- ✅ **Graceful fallback**: Works without ANTHROPIC_API_KEY (uses improved baseline prompt)
+- ✅ **Multiple LLM providers**: Supports OpenRouter (preferred) or direct Anthropic API
+- ✅ **Graceful fallback**: Works without LLM API keys (uses improved baseline prompt)
 - Uses Gemini Nano Banana Pro (gemini-3-pro-image-preview)
 - Reads full document content from database (not just broadcast summary)
 - 16:9 aspect ratio at 2K resolution
@@ -57,14 +58,26 @@ python generate-broadcast-image-v2.py doc-abc-123 "MIT develops new battery tech
 
 ## 🔨 Remaining Steps
 
-### Step 1: Add GEMINI_API_KEY
+### Step 1: Add API Keys
 
+**Required**: Gemini API key for image generation
 Get your API key from: https://makersuite.google.com/app/apikey
+
+**Optional**: LLM API key for better prompt generation (choose one)
+- **OpenRouter** (recommended): https://openrouter.ai
+- **Anthropic**: https://console.anthropic.com
 
 Then add to `.env`:
 ```bash
-# Gemini API for image generation
+# Required: Gemini API for image generation
 GEMINI_API_KEY=your_key_here
+
+# Optional: LLM for prompt generation (choose one)
+OPENROUTER_API_KEY=your_key_here  # Preferred
+# OR
+ANTHROPIC_API_KEY=your_key_here   # Alternative
+
+# Without an LLM key, the script still works using improved baseline prompts
 ```
 
 ### Step 2: Integrate into process-unprocessed-docs.js

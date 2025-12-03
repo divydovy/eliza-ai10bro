@@ -10,9 +10,21 @@ import sys
 import json
 import sqlite3
 from pathlib import Path
-from anthropic import Anthropic
 from google import genai
 from google.genai import types
+
+# Import LLM clients (gracefully handle missing packages)
+try:
+    from anthropic import Anthropic
+    HAS_ANTHROPIC = True
+except ImportError:
+    HAS_ANTHROPIC = False
+
+try:
+    from openai import OpenAI
+    HAS_OPENAI = True
+except ImportError:
+    HAS_OPENAI = False
 
 
 def get_document_content(document_id, db_path="agent/data/db.sqlite"):
@@ -41,23 +53,26 @@ def get_document_content(document_id, db_path="agent/data/db.sqlite"):
 
 def create_image_prompt_with_llm(document_text, broadcast_summary):
     """
-    Use Claude to analyze the full document and create an optimal Gemini image prompt.
+    Use Claude (via OpenRouter or Anthropic) to analyze the full document and create an optimal Gemini image prompt.
 
     This produces much better results than using just the broadcast summary because:
     - Claude can identify the most visualizable concepts
     - It can extract technical details for accuracy
     - It can suggest better metaphors and visual compositions
+
+    Supports:
+    - OPENROUTER_API_KEY (preferred): Access Claude via OpenRouter
+    - ANTHROPIC_API_KEY (alternative): Direct Anthropic API access
     """
 
+    openrouter_key = os.environ.get("OPENROUTER_API_KEY")
     anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not anthropic_key:
-        print("⚠️  ANTHROPIC_API_KEY not found, falling back to basic prompt", file=sys.stderr)
+
+    if not openrouter_key and not anthropic_key:
+        print("⚠️  No LLM API key found (OPENROUTER_API_KEY or ANTHROPIC_API_KEY), falling back to basic prompt", file=sys.stderr)
         return create_fallback_prompt(broadcast_summary)
 
-    try:
-        client = Anthropic(api_key=anthropic_key)
-
-        prompt = f"""You are an expert at creating prompts for AI image generation.
+    prompt = f"""You are an expert at creating prompts for AI image generation.
 
 Analyze this technical article and create a detailed Gemini Nano Banana Pro image prompt that will generate an engaging, informative illustration.
 
@@ -87,19 +102,48 @@ Your prompt should:
 
 Generate ONLY the image prompt, no explanation. Make it detailed and specific for best results."""
 
-        response = client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=500,
-            messages=[{"role": "user", "content": prompt}]
-        )
+    # Try OpenRouter first (preferred)
+    if openrouter_key and HAS_OPENAI:
+        try:
+            client = OpenAI(
+                api_key=openrouter_key,
+                base_url="https://openrouter.ai/api/v1"
+            )
 
-        generated_prompt = response.content[0].text.strip()
-        print(f"   🤖 Generated prompt using Claude ({len(generated_prompt)} chars)")
-        return generated_prompt
+            response = client.chat.completions.create(
+                model="anthropic/claude-sonnet-4-20250514",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=500
+            )
 
-    except Exception as e:
-        print(f"⚠️  Claude prompt generation failed: {e}", file=sys.stderr)
-        return create_fallback_prompt(broadcast_summary)
+            generated_prompt = response.choices[0].message.content.strip()
+            print(f"   🤖 Generated prompt using Claude via OpenRouter ({len(generated_prompt)} chars)")
+            return generated_prompt
+
+        except Exception as e:
+            print(f"⚠️  OpenRouter prompt generation failed: {e}", file=sys.stderr)
+            # Fall through to try Anthropic or fallback
+
+    # Try direct Anthropic API
+    if anthropic_key and HAS_ANTHROPIC:
+        try:
+            client = Anthropic(api_key=anthropic_key)
+
+            response = client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=500,
+                messages=[{"role": "user", "content": prompt}]
+            )
+
+            generated_prompt = response.content[0].text.strip()
+            print(f"   🤖 Generated prompt using Claude via Anthropic API ({len(generated_prompt)} chars)")
+            return generated_prompt
+
+        except Exception as e:
+            print(f"⚠️  Anthropic prompt generation failed: {e}", file=sys.stderr)
+
+    # Fallback to improved baseline prompt
+    return create_fallback_prompt(broadcast_summary)
 
 
 def create_fallback_prompt(broadcast_text):
