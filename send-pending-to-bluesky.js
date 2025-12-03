@@ -41,7 +41,7 @@ async function sendPendingBroadcasts() {
         if (process.env.BROADCAST_ID) {
             // Send a specific broadcast
             pendingBroadcasts = db.prepare(`
-                SELECT id, content as message, client as platform
+                SELECT id, content as message, client as platform, image_url
                 FROM broadcasts
                 WHERE id = ?
                 AND status IN ('pending', 'sending')
@@ -51,7 +51,7 @@ async function sendPendingBroadcasts() {
             // Send only 1 pending broadcast per run for proper pacing
             // Quality threshold: 0.15 (from alignment-keywords-refined.json)
             pendingBroadcasts = db.prepare(`
-                SELECT id, content as message, client as platform
+                SELECT id, content as message, client as platform, image_url
                 FROM broadcasts
                 WHERE status = 'pending'
                 AND client = 'bluesky'
@@ -86,10 +86,50 @@ async function sendPendingBroadcasts() {
                     messageText = broadcast.message;
                 }
 
+                // Upload image if present
+                let embed = undefined;
+                if (broadcast.image_url && fs.existsSync(broadcast.image_url)) {
+                    try {
+                        console.log(`   📸 Uploading image: ${broadcast.image_url}`);
+
+                        // Try to use sharp for resizing, but gracefully fallback if not available
+                        let imageBuffer;
+                        try {
+                            const sharp = require('sharp');
+                            // Resize if needed (Bluesky max: 1MB)
+                            imageBuffer = await sharp(broadcast.image_url)
+                                .resize(1200, 675, { fit: 'inside' })
+                                .jpeg({ quality: 85 })
+                                .toBuffer();
+                        } catch (sharpError) {
+                            // If sharp not available, use original image
+                            console.log(`   ⚠️  Sharp not available, using original image`);
+                            imageBuffer = fs.readFileSync(broadcast.image_url);
+                        }
+
+                        const uploadResponse = await agent.uploadBlob(imageBuffer, {
+                            encoding: 'image/jpeg'
+                        });
+
+                        embed = {
+                            $type: 'app.bsky.embed.images',
+                            images: [{
+                                alt: messageText.substring(0, 100),
+                                image: uploadResponse.data.blob
+                            }]
+                        };
+
+                        console.log(`   ✅ Image uploaded successfully`);
+                    } catch (imageError) {
+                        console.error(`   ⚠️  Failed to upload image (continuing without): ${imageError.message}`);
+                    }
+                }
+
                 // Post to Bluesky
                 const post = await agent.post({
                     text: messageText,
-                    createdAt: new Date().toISOString()
+                    createdAt: new Date().toISOString(),
+                    embed: embed
                 });
 
                 // Mark as sent in database
