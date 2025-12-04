@@ -24,6 +24,7 @@ async function getNextBroadcastsRoundRobin(db, broadcastsToSend = 1) {
             SELECT * FROM broadcasts
             WHERE status = 'pending'
             AND client = ?
+            AND alignment_score >= 0.15
             ORDER BY createdAt ASC
             LIMIT ?
         `).all(platform, perPlatform);
