@@ -50,6 +50,7 @@ async function sendPendingBroadcasts() {
                 WHERE id = ?
                 AND status IN ('pending', 'sending')
                 AND client = 'bluesky'
+                AND alignment_score >= 0.15
             `).all(process.env.BROADCAST_ID);
         } else {
             // Send only 1 pending broadcast per run for proper pacing
