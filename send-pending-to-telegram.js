@@ -77,14 +77,11 @@ async function sendPendingBroadcasts() {
                     // Send with image if available
                     if (broadcast.image_url && fs.existsSync(broadcast.image_url)) {
                         await bot.telegram.sendPhoto(chatId, { source: broadcast.image_url }, {
-                            caption: cleanMessage,
-                            parse_mode: 'Markdown'
+                            caption: cleanMessage
                         });
                         console.log(`   ✅ Sent to chat ${chatId} (with image)`);
                     } else {
-                        await bot.telegram.sendMessage(chatId, cleanMessage, {
-                            parse_mode: 'Markdown'
-                        });
+                        await bot.telegram.sendMessage(chatId, cleanMessage);
                         console.log(`   ✅ Sent to chat ${chatId}`);
                     }
                     success = true;

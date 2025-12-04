@@ -1,8 +1,11 @@
 import { Service, IAgentRuntime, Memory, UUID, ServiceType, embed } from "@elizaos/core";
 import { BroadcastDB } from "../db/operations";
 import { createBroadcastMessage } from "../actions/createMessage/service";
-import { spawn } from "child_process";
+import { spawn, exec as execCallback } from "child_process";
+import { promisify } from "util";
 import * as path from "path";
+
+const execPromise = promisify(execCallback);
 
 export class AutoBroadcastService extends Service {
     private runtime: IAgentRuntime;
@@ -59,11 +62,6 @@ export class AutoBroadcastService extends Service {
     async checkForNewDocuments(): Promise<void> {
         try {
             console.log("🔍 AutoBroadcastService: Triggering unified broadcast creation...");
-
-            // Use the unified broadcast creation system
-            const { exec } = require('child_process');
-            const { promisify } = require('util');
-            const execPromise = promisify(exec);
 
             // Call the unified create-broadcasts script with a limit of 10
             const { stdout, stderr } = await execPromise('node create-broadcasts.js 10', {

@@ -22,15 +22,17 @@ async function generateSamples() {
         const db = sqlite3(dbPath);
 
         // Get top 10 documents by alignment score
+        // Use GROUP BY to ensure TRUE deduplication by documentId
         const documents = db.prepare(`
-            SELECT DISTINCT
+            SELECT
                 documentId,
-                content,
-                alignment_score
+                MAX(content) as content,
+                MAX(alignment_score) as alignment_score
             FROM broadcasts
             WHERE status = 'pending'
                 AND alignment_score >= 0.15
                 AND image_url IS NULL
+            GROUP BY documentId
             ORDER BY alignment_score DESC
             LIMIT 10
         `).all();
