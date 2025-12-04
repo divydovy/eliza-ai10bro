@@ -4,6 +4,10 @@ const sqlite3 = require('better-sqlite3');
 const { Telegraf } = require('telegraf');
 const fs = require('fs');
 const path = require('path');
+const { exec } = require('child_process');
+const { promisify } = require('util');
+
+const execPromise = promisify(exec);
 
 async function sendPendingBroadcasts() {
     try {
@@ -29,7 +33,7 @@ async function sendPendingBroadcasts() {
         if (process.env.BROADCAST_ID) {
             // Send a specific broadcast
             pendingBroadcasts = db.prepare(`
-                SELECT id, content as message, client as platform, image_url
+                SELECT id, documentId, content as message, client as platform, image_url
                 FROM broadcasts
                 WHERE id = ?
                 AND status IN ('pending', 'sending')
@@ -39,7 +43,7 @@ async function sendPendingBroadcasts() {
             // Send only 1 pending broadcast per run for proper pacing
             // Quality threshold: 0.15 (from alignment-keywords-refined.json)
             pendingBroadcasts = db.prepare(`
-                SELECT id, content as message, client as platform, image_url
+                SELECT id, documentId, content as message, client as platform, image_url
                 FROM broadcasts
                 WHERE status = 'pending'
                 AND client = 'telegram'
@@ -70,6 +74,40 @@ async function sendPendingBroadcasts() {
 
             // Clean message (remove broadcast tags)
             const cleanMessage = messageText.replace(/\[BROADCAST:[^\]]+\]\s*/, '');
+
+            // Just-in-time image generation (if not already generated)
+            if (!broadcast.image_url && process.env.ENABLE_IMAGE_GENERATION === 'true' && process.env.GEMINI_API_KEY) {
+                try {
+                    console.log(`   🎨 Generating image on-the-fly...`);
+
+                    // Use broadcast content for image prompt (strip source URL)
+                    const textForImage = cleanMessage.replace(/\n\n🔗 Source:.*$/, '').substring(0, 500);
+
+                    // Generate image using Python script
+                    const { stdout } = await execPromise(
+                        `python3 generate-broadcast-image-v2.py "${broadcast.documentId}" "${textForImage.replace(/"/g, '\\"')}"`
+                    );
+
+                    // Extract image path from output
+                    const imageMatch = stdout.match(/Image saved to: (.+\.png)/);
+                    if (imageMatch) {
+                        const imageUrl = imageMatch[1];
+                        console.log(`   ✅ Image generated: ${imageUrl}`);
+
+                        // Update ALL broadcasts for this document with the image
+                        db.prepare(`
+                            UPDATE broadcasts
+                            SET image_url = ?
+                            WHERE documentId = ?
+                        `).run(imageUrl, broadcast.documentId);
+
+                        // Update local broadcast object
+                        broadcast.image_url = imageUrl;
+                    }
+                } catch (error) {
+                    console.log(`   ⚠️  Image generation failed (continuing without image): ${error.message}`);
+                }
+            }
 
             let success = false;
             for (const chatId of chatIds) {
