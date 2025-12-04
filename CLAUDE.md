@@ -6,6 +6,141 @@
 **Main Character**: AI10BRO
 **Location**: `/Users/davidlockie/Documents/Projects/Eliza/`
 
+## Session: 2025-12-04
+
+### Major Accomplishments
+
+#### 1. Just-in-Time Image Generation System
+- **Problem**: Needed on-demand image generation for broadcasts at send time
+- **Implementation**:
+  - Added image generation check in send scripts before sending
+  - Uses Gemini V2 API via `generate-broadcast-image-v2.py`
+  - Updates ALL broadcasts for same documentId with generated image (reuse)
+  - Generation takes ~30 seconds per image
+- **Benefits**:
+  - Only generates images for quality broadcasts (>= 0.15 alignment score)
+  - Efficient reuse across multiple platforms
+  - No wasted generations for filtered broadcasts
+- **Commits**: 087eccee7 (implementation), tested successfully with 2 broadcasts
+
+#### 2. Fixed Critical Quality Control Bug
+- **Problem**: Low-quality broadcast (score 0.144) sent without image, bypassing threshold
+- **Root Cause**: BROADCAST_ID query path missing `alignment_score >= 0.15` filter
+- **Investigation**:
+  - Traced cron job → Action API → send scripts flow
+  - Found two query paths: normal vs BROADCAST_ID (for specific broadcast)
+  - BROADCAST_ID path used by cron was missing quality filter
+- **Fix**: Added `AND alignment_score >= 0.15` to BROADCAST_ID queries in:
+  - `send-pending-to-telegram.js:41`
+  - `send-pending-to-bluesky.js:53`
+- **Result**: Both query paths now enforce consistent quality threshold
+- **Commit**: 9e8f0e41e
+
+#### 3. Documentation Crisis Resolved
+- **Problem**: User questioned 0.15 threshold - docs showed 0.8
+- **Investigation Revealed**: Two completely different scoring systems documented
+  - **OLD (OBSOLETE)**: Base score 0.5, range 0.5-1.0, threshold 0.8 (in BROADCAST_QUALITY_FLOW.md)
+  - **NEW (CURRENT)**: Keyword-based, range 0.08-0.30+, threshold 0.15 (in alignment-keywords-refined.json)
+- **Root Cause**: Documentation never updated when scoring system changed to keyword-based
+- **Fixes**:
+  - Created **BROADCAST_SEND_ARCHITECTURE.md** with correct keyword-based system documentation
+  - Added deprecation warning to **BROADCAST_QUALITY_FLOW.md** (obsolete)
+  - Documented actual score calculation algorithm and thresholds
+  - Added current broadcast distribution stats (343 will send, 937 blocked)
+- **Commits**: a96f5f573 (architecture doc), 5b5d345f1 (corrections)
+
+### Current Broadcast Quality System
+
+**Keyword-Based Scoring** (from alignment-keywords-refined.json):
+```javascript
+// For each document:
+1. Count keyword matches across 11 weighted themes
+   - biomimicry_nature (weight: 0.50)
+   - biology_biotech (weight: 0.40)
+   - environmental_conservation (weight: 0.35)
+   - etc.
+
+2. Calculate theme scores:
+   theme_score = (matches / total_keywords) * theme.weight
+
+3. Sum all theme scores
+
+4. Apply source quality multiplier:
+   - Obsidian: 4.0x
+   - Premium sources (Nature.com, Science.org): 1.3x
+   - Trusted sources: 1.15x
+   - Industry sources: 1.1x
+```
+
+**Thresholds**:
+- `core_alignment_minimum: 0.08` - Min to consider for broadcast creation
+- **`quality_threshold: 0.15`** - Required to send to platforms
+- Typical score range: 0.08-0.30 (without Obsidian multiplier)
+
+**Current Distribution**:
+- 343 pending broadcasts >= 0.15 (WILL send)
+- 937 pending broadcasts < 0.15 (BLOCKED)
+- Average: 0.136, Range: 0.086-0.199
+
+### Key Technical Insights
+
+#### Dual Query Path Architecture
+Both send scripts have two query paths - both must enforce same quality controls:
+1. **Normal Path**: `WHERE status = 'pending' AND alignment_score >= 0.15 LIMIT 1`
+2. **BROADCAST_ID Path**: `WHERE id = ? AND alignment_score >= 0.15` (used by Action API/cron)
+
+**Why Both Paths Exist**:
+- Normal: Manual testing and fallback
+- BROADCAST_ID: Action API enforces round-robin distribution, prevents race conditions
+
+**Lesson**: When adding quality controls, must update ALL code paths, not just the obvious ones.
+
+### Documentation Created/Updated
+1. **BROADCAST_SEND_ARCHITECTURE.md** (NEW) - Comprehensive system documentation:
+   - Cron → Action API → Send Scripts flow
+   - Keyword-based scoring algorithm
+   - Quality control thresholds
+   - Just-in-time image generation
+   - Troubleshooting guide
+
+2. **BROADCAST_QUALITY_FLOW.md** (DEPRECATED) - Added warning that it documents obsolete system
+
+### GitHub Repository
+- **Repo**: divydovy/eliza-ai10bro
+- **Latest commits**:
+  - 5b5d345f1 - docs: Correct alignment score documentation
+  - a96f5f573 - docs: Add comprehensive broadcast system architecture documentation
+  - 9e8f0e41e - fix: Add alignment score filter to BROADCAST_ID query path
+  - 087eccee7 - feat: Implement just-in-time image generation at send time
+- **Branch**: main
+- **Status**: Clean, all changes pushed
+
+### System Health Status
+
+**Working Components**:
+- ✅ Just-in-time image generation (~30s per image, reuses across platforms)
+- ✅ Quality threshold enforcement on BOTH query paths (>= 0.15)
+- ✅ Telegram hourly sends at :00
+- ✅ Bluesky hourly sends at :40
+- ✅ Farcaster disabled (commented in cron)
+- ✅ Eliza agent running (process 9980)
+
+**Pending Statistics**:
+- ~1,280 total pending broadcasts
+- 343 meet quality threshold (will send)
+- 937 below threshold (blocked)
+- 0 broadcasts >= 0.8 (old threshold not applicable)
+
+### Next Session TODOs
+
+1. ~~Fix quality control bypass~~ ✅ DONE
+2. ~~Document actual scoring system~~ ✅ DONE
+3. **Monitor broadcast sends** - Verify only >= 0.15 broadcasts are sent
+4. **Evaluate quality threshold** - Is 0.15 too low? Should it be higher?
+5. **Consider regenerating low-quality broadcasts** - 937 blocked, could delete and recreate
+
+---
+
 ## Session: 2025-12-03
 
 ### Major Accomplishments
