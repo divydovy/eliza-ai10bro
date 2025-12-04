@@ -1,5 +1,19 @@
 # Broadcast System - Complete Flow & Quality Checks
 
+> **⚠️ DEPRECATION NOTICE**
+>
+> This document describes an **OBSOLETE** broadcast generation system (`generate-platform-broadcasts.js`) that is no longer in use.
+>
+> **CURRENT SYSTEM:** The active broadcast system uses:
+> - **Broadcast Creation**: `create-broadcasts.js` → `process-unprocessed-docs.js`
+> - **Alignment Scoring**: Keyword-based system from `alignment-keywords-refined.json`
+> - **Quality Threshold**: 0.15 (NOT 0.8 as documented below)
+> - **Score Range**: 0.08-0.30+ (NOT 0.5-1.0 normalized scale)
+>
+> For current documentation, see: **`BROADCAST_SEND_ARCHITECTURE.md`**
+>
+> This file is kept for historical reference only.
+
 ## 📊 Current System Overview
 
 ### Components

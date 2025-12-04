@@ -94,18 +94,55 @@ pendingBroadcasts = db.prepare(`
 
 ## Quality Control: Alignment Score
 
-### Threshold: >= 0.15
+### Current System: Keyword-Based Scoring
 
-All broadcasts must have an alignment score of 0.15 or higher to be sent. This score measures:
-- Content alignment with AI10BRO's goals
-- Source credibility
-- Newsworthiness
+The alignment score uses a **keyword-matching system** defined in `alignment-keywords-refined.json`:
+
+**Score Calculation:**
+```javascript
+// For each document:
+alignmentScore = 0;
+
+// 1. Check theme keywords (weighted by importance)
+for each theme in [biomimicry_nature, biology_biotech, etc.]:
+    matchCount = keywords found in content
+    themeScore = (matchCount / total_keywords) * theme.weight
+    alignmentScore += themeScore
+
+// 2. Apply source quality multiplier
+if (source === 'obsidian') multiplier = 4.0
+else if (premium source) multiplier = 1.3
+else if (trusted source) multiplier = 1.15
+else multiplier = 1.0
+
+finalScore = alignmentScore * multiplier
+```
+
+**Score Range:**
+- Typical range: 0.08 - 0.30 (without Obsidian multiplier)
+- Obsidian documents: Can reach 1.0+ (with 4x multiplier)
+- NOT 0.0-1.0 normalized scale
+
+**Quality Thresholds** (from alignment-keywords-refined.json):
+- `core_alignment_minimum: 0.08` - Minimum to consider documents for broadcast creation
+- **`quality_threshold: 0.15`** - Required score for sending broadcasts to platforms
+- Higher scores indicate stronger alignment with AI10BRO's biology/biomimicry focus
+
+### Current Broadcast Distribution
+
+```
+Pending broadcasts (as of 2025-12-04):
+- 343 broadcasts with score >= 0.15 (WILL send)
+- 937 broadcasts with score < 0.15 (BLOCKED)
+- Average pending score: 0.136
+- Score range: 0.086 - 0.199
+```
 
 ### Why Quality Filtering Matters
 
-- Prevents low-quality content from being broadcast
-- Ensures only credible sources are shared
-- Maintains brand reputation
+- **Biology-focused curation**: Only content matching AI10BRO's biomimicry mission
+- **Source credibility**: Premium scientific sources (Nature, Science) get priority
+- **Brand alignment**: Maintains focus on nature-inspired innovation
 
 ## The Bug (Fixed: 2025-09-23)
 
