@@ -1,0 +1,148 @@
+{
+  "description": "Refined keyword alignment based on Obsidian document analysis",
+  "analysis_date": "2025-09-29",
+  "documents_analyzed": 186,
+
+  "themes": {
+    "ai_computing": {
+      "weight": 0.45,
+      "description": "AI, machine learning, and computational advances",
+      "keywords": [
+        "AI", "artificial intelligence", "AGI", "machine learning",
+        "deep learning", "neural", "algorithm", "computing", "data",
+        "reinforcement learning", "transformer", "LLM", "automation",
+        "quantum", "robotics", "neuroAI", "biocomputing", "model",
+        "network", "computer", "digital", "systems"
+      ]
+    },
+
+    "innovation_markets": {
+      "weight": 0.40,
+      "description": "Innovation, breakthroughs, and market developments",
+      "keywords": [
+        "innovation", "breakthrough", "revolution", "transformation",
+        "technology", "research", "development", "market", "investment",
+        "commercial", "startup", "disruption", "paradigm shift",
+        "patent", "scale", "growth", "forecast", "valuation",
+        "tech", "industry", "companies", "future", "institute"
+      ]
+    },
+
+    "synthetic_biology": {
+      "weight": 0.25,
+      "description": "Bioengineering and synthetic biology",
+      "keywords": [
+        "bioengineering", "synthetic biology", "biomanufacturing",
+        "protein", "cells", "biological", "gene", "DNA", "RNA",
+        "CRISPR", "genome", "metabolic", "fermentation", "enzyme",
+        "microorganism", "bacteria", "cultured", "cellular",
+        "microbiome", "biotech", "biotechnology", "precision fermentation",
+        "molecular", "tissue"
+      ]
+    },
+
+    "health_medicine": {
+      "weight": 0.25,
+      "description": "Healthcare and medical innovations",
+      "keywords": [
+        "health", "medicine", "disease", "therapeutic", "drug",
+        "cancer", "vaccine", "antibody", "clinical", "FDA",
+        "biomarker", "diagnostic", "personalized medicine",
+        "gene therapy", "immunotherapy", "antibiotics", "pathogen",
+        "treatment", "cure", "pharmaceutical", "patient", "medical",
+        "care", "therapy"
+      ]
+    },
+
+    "clean_energy": {
+      "weight": 0.20,
+      "description": "Clean energy and climate solutions",
+      "keywords": [
+        "renewable", "solar", "wind", "battery", "hydrogen",
+        "sustainable", "carbon", "climate", "green", "clean energy",
+        "energy storage", "grid", "electrification", "decarbonization",
+        "fusion", "geothermal", "net zero", "carbon negative",
+        "carbon capture", "emissions", "energy"
+      ]
+    },
+
+    "advanced_materials": {
+      "weight": 0.15,
+      "description": "Materials science and circular economy",
+      "keywords": [
+        "materials", "nanomaterials", "biomaterials", "plastic",
+        "circular economy", "recycling", "polymer", "composite",
+        "3D printing", "additive manufacturing", "biodegradable",
+        "sustainable materials", "waste", "self-healing", "material",
+        "nano", "quantum", "chemical", "structure"
+      ]
+    },
+
+    "agriculture_food": {
+      "weight": 0.10,
+      "description": "Agriculture and food systems",
+      "keywords": [
+        "agriculture", "farming", "vertical farming", "regenerative",
+        "food", "crop", "soil", "nutrition", "alternative protein",
+        "cultured meat", "lab grown", "precision agriculture",
+        "sustainable agriculture", "food security", "animals"
+      ]
+    },
+
+    "general_tech": {
+      "weight": 0.25,
+      "description": "General technology and science terms",
+      "keywords": [
+        "time", "space", "human", "world", "based", "used",
+        "using", "make", "people", "small", "real time",
+        "doi", "nature", "www", "https", "com", "org"
+      ]
+    }
+  },
+
+  "high_frequency_terms": {
+    "description": "Terms appearing in >20% of documents",
+    "terms": [
+      "AI", "research", "gene", "data", "RNA", "technology",
+      "development", "AGI", "health", "innovation",
+      "artificial intelligence", "biological", "medicine",
+      "disease", "materials", "bioengineering", "market",
+      "revolution", "breakthrough", "protein", "machine learning",
+      "sustainable", "drug", "cells", "climate", "investment",
+      "commercial", "algorithm", "carbon", "crop", "green",
+      "cancer", "wind", "food", "DNA", "computing",
+      "transformation", "neural", "plastic", "therapeutic"
+    ]
+  },
+
+  "source_quality_indicators": {
+    "premium_sources": [
+      "nature.com", "science.org", "cell.com", "pnas.org",
+      "mit.edu", "stanford.edu", "harvard.edu", "oxfordjournals.org",
+      "nejm.org", "thelancet.com", "sciencedirect.com"
+    ],
+    "trusted_sources": [
+      "eurekalert.org", "phys.org", "sciencedaily.com",
+      "technologyreview.com", "wired.com", "ieee.org",
+      "pubmed.ncbi.nlm.nih.gov", "arxiv.org", "biorxiv.org"
+    ],
+    "industry_sources": [
+      "mckinsey.com", "bcg.com", "deloitte.com", "pwc.com",
+      "gartner.com", "forrester.com", "idc.com"
+    ]
+  },
+
+  "scoring_recommendations": {
+    "core_alignment_minimum": 0.08,
+    "quality_threshold": 0.15,
+    "preferred_themes": ["ai_computing", "innovation_markets", "synthetic_biology"],
+    "boost_for_multiple_themes": true,
+    "source_quality_multiplier": {
+      "obsidian": 4.0,
+      "premium": 1.3,
+      "trusted": 1.15,
+      "industry": 1.1,
+      "unknown": 1.0
+    }
+  }
+}

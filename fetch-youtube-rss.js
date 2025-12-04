@@ -23,25 +23,53 @@ function stringToUuid(str) {
     ].join('-');
 }
 
-// YouTube channels to monitor (add more as needed)
+// YouTube channels to monitor - FOCUS: Tech + Biology Intersection
 const YOUTUBE_CHANNELS = [
-    { name: 'TED', channelId: 'UCAuUUnT6oDeKwE6v1NGQxug' },
-    { name: 'MIT', channelId: 'UCk0Gn0le4XOgrODmhwKdvkg' },
-    { name: 'Google', channelId: 'UCK8sQmJBp8GCxrOtXWBpyEA' },
-    { name: 'Microsoft', channelId: 'UCFtEEv80fQVKkD4h1PF-Xqw' },
-    { name: 'NASA', channelId: 'UCLA_DiR1FfKNvjuUpBHmylQ' },
-    { name: 'SpaceX', channelId: 'UCtI0Hodo5o5dUb67FeUjDeA' },
-    { name: 'Two Minute Papers', channelId: 'UCbfYPyITQ-7l4upoX8nvctg' },
+    // Bio-tech & Synthetic Biology (CORE)
+    { name: 'SynBioBeta', channelId: 'UCE4WT0VqHX-Y5YLRBqZ0rqQ' },
+    { name: 'iBiology', channelId: 'UCsvqEZBO-kNmwuDBbKbfL6A' },
+
+    // Biomimicry & Nature-inspired (CORE)
+    { name: 'Deep Look (KQED)', channelId: 'UC-3SbfTPJsL8fJAPKiVqBLg' },
+    { name: 'Journey to the Microcosmos', channelId: 'UCBbnbBWJtwsf0jLGUwX5Q3g' },
+
+    // Science Communication (Intersection-focused)
     { name: 'Veritasium', channelId: 'UCHnyfMqiRRG1u-2MsSQLbXA' },
-    { name: 'Kurzgesagt', channelId: 'UCsXVk37bltHxD1rDPwtNM8Q' }
+    { name: 'Kurzgesagt', channelId: 'UCsXVk37bltHxD1rDPwtNM8Q' },
+    { name: 'SciShow', channelId: 'UCZYTClx2T1of7BRZ86-8fow' },
+
+    // Tech + Bio institutions
+    { name: 'MIT', channelId: 'UCk0Gn0le4XOgrODmhwKdvkg' },
+    { name: 'TED', channelId: 'UCAuUUnT6oDeKwE6v1NGQxug' },
+    { name: 'Nature Video', channelId: 'UCvBqzzvUBLCs8Y7Axb-jZew' }
 ];
 
-// Keywords to filter for AI10bro interests
+// Keywords to filter for AI10bro interests - INTERSECTION of technology + biology
 const KEYWORDS = [
-    'ai', 'artificial intelligence', 'machine learning', 'quantum', 'sustainable',
-    'renewable', 'carbon', 'climate', 'biotech', 'nanotech', 'robotics', 'neural',
-    'breakthrough', 'innovation', 'research', 'science', 'technology', 'future',
-    'energy', 'solar', 'fusion', 'computing', 'algorithm', 'deep learning'
+    // Biomimicry & Nature-inspired Tech (CORE)
+    'biomimicry', 'biomimetic', 'nature-inspired', 'bio-inspired',
+    'evolutionary algorithm', 'swarm intelligence', 'neural network', 'ant colony',
+    'genetic algorithm', 'artificial life', 'evolutionary robotics',
+
+    // Synthetic Biology & Bioengineering (CORE)
+    'synthetic biology', 'bioengineering', 'biomanufacturing', 'biotech',
+    'CRISPR', 'gene editing', 'metabolic engineering', 'cellular agriculture',
+    'precision fermentation', 'lab-grown', 'cultured meat', 'tissue engineering',
+
+    // Bio-computing & AI (INTERSECTION)
+    'neuromorphic', 'brain-inspired', 'biological computing', 'DNA computing',
+    'bio-AI', 'computational biology', 'bioinformatics',
+
+    // Bio-materials & Design (INTERSECTION)
+    'biomaterials', 'bio-concrete', 'mycelium', 'living materials',
+    'self-healing materials', 'spider silk', 'bio-plastic', 'living architecture',
+
+    // Clean Energy (Bio-focused)
+    'biofuel', 'algae fuel', 'photosynthesis', 'biomass', 'biogas',
+    'microbial fuel cell', 'bio-solar',
+
+    // General Innovation (keep for context)
+    'breakthrough', 'innovation', 'sustainable', 'regenerative'
 ];
 
 function fetchRSSFeed(channelId) {

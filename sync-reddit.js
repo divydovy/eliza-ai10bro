@@ -12,24 +12,32 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-// Subreddits aligned with AI10BRO's mission
+// Subreddits aligned with AI10BRO's mission - INTERSECTION of Tech + Biology
 const SUBREDDITS = [
-    // Tier 1 - Core Mission
-    'syntheticbiology',
-    'biotech', 
-    'biomimicry',
-    'sustainability',
-    'RenewableEnergy',
-    'ClimateActionPlan',
-    // Tier 2 - Supporting Tech
-    'cleantech',
-    'CircularEconomy',
-    'Permaculture',
-    'solarpunk',
-    // Tier 3 - Emerging Tech
-    'longevity',
-    'VerticalFarming',
-    'labgrown'
+    // Tier 1 - Core Intersection (Tech + Bio)
+    'syntheticbiology',      // Synthetic biology & bioengineering
+    'biotech',               // Biotechnology innovations
+    'biomimicry',            // Nature-inspired design
+    'Biohackers',            // DIY biology & experimentation
+    'bioinformatics',        // Computational biology
+
+    // Tier 2 - Applied Bio-tech
+    'labgrown',              // Cultured meat & cellular agriculture
+    'VerticalFarming',       // Agricultural technology
+    'Permaculture',          // Regenerative agriculture systems
+    'Myco',                  // Mycology & fungal applications
+
+    // Tier 3 - Sustainable Tech
+    'sustainability',        // Sustainable innovation
+    'RenewableEnergy',       // Clean energy tech
+    'cleantech',             // Environmental technology
+    'CircularEconomy',       // Waste-free systems
+    'solarpunk',             // Optimistic sustainable future
+
+    // Tier 4 - Broader Context
+    'ClimateActionPlan',     // Climate solutions
+    'longevity',             // Life extension research
+    'Futurology'             // Emerging technologies (filtered by keywords)
 ];
 
 // Helper to generate UUID v4 from string
