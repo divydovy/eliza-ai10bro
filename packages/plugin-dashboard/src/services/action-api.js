@@ -513,11 +513,17 @@ const actionHandlers = {
                     broadcastId: broadcast.id
                 });
 
-                // Execute send script
+                // Execute send script (with longer timeout for image generation)
                 const { execSync } = await import('child_process');
-                const output = execSync(`BROADCAST_ID=${broadcast.id} node send-pending-to-bluesky.js`, {
+                const output = execSync(`node send-pending-to-bluesky.js`, {
                     encoding: 'utf8',
-                    timeout: 30000
+                    timeout: 60000, // 60 seconds for image generation
+                    env: {
+                        ...process.env,
+                        BROADCAST_ID: broadcast.id,
+                        ENABLE_IMAGE_GENERATION: process.env.ENABLE_IMAGE_GENERATION || 'true',
+                        GEMINI_API_KEY: process.env.GEMINI_API_KEY
+                    }
                 });
 
                 // Check if it was sent
@@ -584,11 +590,17 @@ const actionHandlers = {
                     broadcastId: broadcast.id
                 });
 
-                // Execute send script
+                // Execute send script (with longer timeout for image generation)
                 const { execSync } = await import('child_process');
-                const output = execSync(`BROADCAST_ID=${broadcast.id} node send-pending-to-telegram.js`, {
+                const output = execSync(`node send-pending-to-telegram.js`, {
                     encoding: 'utf8',
-                    timeout: 30000
+                    timeout: 60000, // 60 seconds for image generation
+                    env: {
+                        ...process.env,
+                        BROADCAST_ID: broadcast.id,
+                        ENABLE_IMAGE_GENERATION: process.env.ENABLE_IMAGE_GENERATION || 'true',
+                        GEMINI_API_KEY: process.env.GEMINI_API_KEY
+                    }
                 });
 
                 // Check if it was sent
