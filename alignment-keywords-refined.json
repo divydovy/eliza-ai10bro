@@ -80,8 +80,8 @@
     },
 
     "clean_energy": {
-      "weight": 0.30,
-      "description": "Clean energy and climate solutions",
+      "weight": 0.15,
+      "description": "Clean energy and climate solutions (bio-focused only)",
       "keywords": [
         "renewable", "solar", "wind", "battery", "hydrogen",
         "sustainable", "carbon", "climate", "green", "clean energy",
@@ -170,7 +170,7 @@
 
   "scoring_recommendations": {
     "core_alignment_minimum": 0.08,
-    "quality_threshold": 0.15,
+    "quality_threshold": 0.12,
     "preferred_themes": ["biomimicry_nature", "biology_biotech", "environmental_conservation"],
     "boost_for_multiple_themes": true,
     "source_quality_multiplier": {

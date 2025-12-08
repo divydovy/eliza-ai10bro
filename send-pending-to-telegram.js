@@ -38,17 +38,17 @@ async function sendPendingBroadcasts() {
                 WHERE id = ?
                 AND status IN ('pending', 'sending')
                 AND client = 'telegram'
-                AND alignment_score >= 0.15
+                AND alignment_score >= 0.12
             `).all(process.env.BROADCAST_ID);
         } else {
             // Send only 1 pending broadcast per run for proper pacing
-            // Quality threshold: 0.15 (from alignment-keywords-refined.json)
+            // Quality threshold: 0.12 (from alignment-keywords-refined.json)
             pendingBroadcasts = db.prepare(`
                 SELECT id, documentId, content as message, client as platform, image_url
                 FROM broadcasts
                 WHERE status = 'pending'
                 AND client = 'telegram'
-                AND alignment_score >= 0.15
+                AND alignment_score >= 0.12
                 ORDER BY createdAt ASC
                 LIMIT 1
             `).all();

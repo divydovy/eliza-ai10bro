@@ -505,7 +505,7 @@ const actionHandlers = {
             }
 
             // Get one broadcast to send
-            const broadcast = db.prepare('SELECT * FROM broadcasts WHERE client = ? AND status = ? AND alignment_score >= 0.15 LIMIT 1').get('bluesky', 'pending');
+            const broadcast = db.prepare('SELECT * FROM broadcasts WHERE client = ? AND status = ? AND alignment_score >= 0.12 LIMIT 1').get('bluesky', 'pending');
             if (broadcast) {
                 result.steps.push({
                     step: 'Sending broadcast',
@@ -582,7 +582,7 @@ const actionHandlers = {
             }
 
             // Get one broadcast to send
-            const broadcast = db.prepare('SELECT * FROM broadcasts WHERE client = ? AND status = ? AND alignment_score >= 0.15 LIMIT 1').get('telegram', 'pending');
+            const broadcast = db.prepare('SELECT * FROM broadcasts WHERE client = ? AND status = ? AND alignment_score >= 0.12 LIMIT 1').get('telegram', 'pending');
             if (broadcast) {
                 result.steps.push({
                     step: 'Sending broadcast',
