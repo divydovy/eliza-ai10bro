@@ -177,7 +177,10 @@
       "obsidian": 1.5,
       "premium": 1.3,
       "trusted": 1.15,
+      "arxiv": 1.15,
       "industry": 1.1,
+      "reddit": 1.0,
+      "web": 1.0,
       "unknown": 1.0
     }
   }

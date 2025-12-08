@@ -1,0 +1,40 @@
+name: Fetch PubMed Biology Papers
+on:
+  schedule:
+    - cron: '0 6 * * *'  # 6am UTC daily
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  fetch-papers:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install axios
+
+      - name: Fetch biomimicry papers
+        run: |
+          node fetch-pubmed.js biomimicry
+
+      - name: Fetch synthetic biology papers
+        run: |
+          node fetch-pubmed.js "synthetic biology"
+
+      - name: Fetch bioengineering papers
+        run: |
+          node fetch-pubmed.js bioengineering
+
+      - name: Commit new papers
+        run: |
+          git config user.name "AI10BRO Bot"
+          git config user.email "bot@ai10bro.com"
+          git add Papers/
+          git commit -m "Daily PubMed papers: $(date +%Y-%m-%d)" || exit 0
+          git push

@@ -36,6 +36,12 @@ const REPOSITORIES = [
         path: 'Notes/YouTube_Notes',
         name: 'YouTube Content',
         sourceType: 'youtube'
+    },
+    {
+        url: 'https://github.com/divydovy/ai10bro-pubmed',
+        path: 'Papers',
+        name: 'PubMed Research',
+        sourceType: 'pubmed'
     }
 ];
 
