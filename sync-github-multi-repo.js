@@ -28,17 +28,11 @@ const REPOSITORIES = [
     {
         url: 'https://github.com/divydovy/ai10bro-gdelt',
         path: 'Notes',
-        name: 'GDELT News',
-        sourceType: 'github-gdelt'
+        name: 'General Biology Content',
+        sourceType: 'general'
     },
     {
         url: 'https://github.com/divydovy/ai10bro-gdelt',
-        path: 'Notes/YouTube_Notes',
-        name: 'YouTube Content',
-        sourceType: 'youtube'
-    },
-    {
-        url: 'https://github.com/divydovy/ai10bro-pubmed',
         path: 'Papers',
         name: 'PubMed Research',
         sourceType: 'pubmed'
