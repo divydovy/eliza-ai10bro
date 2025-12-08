@@ -131,13 +131,12 @@
     },
 
     "innovation_markets": {
-      "weight": 0.20,
-      "description": "Innovation and market developments",
+      "weight": 0.02,
+      "description": "Innovation and market developments (minimal weight to avoid generic matches)",
       "keywords": [
-        "innovation", "breakthrough", "revolution", "transformation",
-        "research", "development", "market", "investment",
-        "commercial", "startup", "disruption", "paradigm shift",
-        "scale", "growth"
+        "bio-innovation", "biotech breakthrough", "biological revolution",
+        "biotech market", "biotech investment", "life sciences commercial",
+        "biotech startup", "biological disruption"
       ]
     },
 
@@ -175,7 +174,7 @@
     "preferred_themes": ["biomimicry_nature", "biology_biotech", "environmental_conservation"],
     "boost_for_multiple_themes": true,
     "source_quality_multiplier": {
-      "obsidian": 4.0,
+      "obsidian": 1.5,
       "premium": 1.3,
       "trusted": 1.15,
       "industry": 1.1,

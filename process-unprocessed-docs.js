@@ -247,13 +247,15 @@ async function processUnprocessedDocuments(targetBroadcasts = 10) {
 
                 // Ensure Obsidian documents always pass (manually curated)
                 if (content.source === 'obsidian') {
-                    alignmentScore = Math.max(alignmentScore, 0.35); // Minimum 35% for Obsidian (HIGH threshold is 30%)
+                    alignmentScore = Math.max(alignmentScore, 0.15); // Minimum 15% for Obsidian (manually curated)
                 }
 
-                // Boost for multiple strong themes
-                const strongThemes = Object.values(themeScores).filter(score => score > 0.1).length;
+                // Boost for multiple themes (rewards cross-cutting bio relevance)
+                const strongThemes = Object.values(themeScores).filter(score => score > 0.05).length;
                 if (strongThemes >= 3) {
-                    alignmentScore *= 1.15; // 15% boost for interdisciplinary content
+                    alignmentScore *= 1.3; // 30% boost for interdisciplinary content
+                } else if (strongThemes >= 2) {
+                    alignmentScore *= 1.15; // 15% boost for dual-theme content
                 }
 
                 // Cap at 1.0
