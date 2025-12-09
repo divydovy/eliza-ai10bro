@@ -6,6 +6,46 @@
 **Main Character**: AI10BRO
 **Location**: `/Users/davidlockie/Documents/Projects/Eliza/`
 
+## Session: 2025-12-09
+
+### Major Accomplishments
+
+#### 1. Fixed Broadcast Deduplication System
+- **Problem**: Same topics being broadcast 4 times within hours
+  - Example: Carverr DNA barcodes sent 4x (10:00, 09:40, 09:00, 08:41)
+  - Example: Antibiotic resistance research sent 4x
+  - Root cause: 2 source documents about same topic × 2 platforms each
+- **Investigation**:
+  - Old deduplication: 100 chars, 80% similarity threshold
+  - Carverr broadcasts only 55% similar (different AI wording)
+  - "Genetic element" broadcasts from 2 different documents bypassing checks
+- **Solution** (commit 131599254):
+  - Increased comparison length: 100 → 200 characters
+  - Lowered thresholds: 70% raw OR 75% normalized similarity
+  - Added entity-based detection: 2+ shared entities + 50% similarity catches duplicates
+  - Added 7-day time window (reduces overhead, only checks recent broadcasts)
+  - Reduced comparison set: 100 → 50 recent broadcasts per platform
+- **Testing**:
+  - Carverr broadcasts now caught: 3 shared entities (Carverr, By, Biology Century)
+  - Would prevent ~50% of duplicate broadcasts observed in last 2 days
+- **Result**: Future broadcasts will be deduplicated even when AI generates different wordings
+
+#### 2. PubMed Integration Deployed
+- **Setup**: Daily biology paper fetching via GitHub Actions
+- **Repository**: ai10bro-gdelt (existing repo, not new one)
+- **Files Created**:
+  - `pubmed_obsidian_poc.py` - Fetches papers via PubMed E-utilities API
+  - `.github/workflows/pubmed-fetch.yml` - Runs daily at 6am UTC
+- **Configuration**:
+  - Target folder: `Papers/` (separate from `Notes/`)
+  - Search terms: biomimicry, synthetic biology, bioengineering, bio-inspired design
+  - Limit: 5 papers per term = ~25 papers/day
+  - Source type: `pubmed` with 1.15x quality multiplier
+- **Testing**: Successfully fetched 8 papers in 17 seconds
+- **Impact**: Will add 10-25 curated research papers daily starting 2025-12-10
+
+---
+
 ## Session: 2025-12-04
 
 ### Major Accomplishments
