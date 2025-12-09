@@ -569,27 +569,55 @@ OUTPUT YOUR BROADCAST NOW (no labels, just the engaging text):`;
                     const jsonContent = JSON.stringify({ text: platformContent });
 
                     // Check for duplicate content on this platform
-                    // Extract first 100 chars for similarity check (ignore minor variations)
-                    const contentPreview = platformContent.substring(0, 100).trim();
+                    // Use first 200 chars for better similarity detection
+                    const contentPreview = platformContent.substring(0, 200).trim();
+                    // Also extract key entities/phrases for comparison
+                    const contentNormalized = platformContent.toLowerCase()
+                        .replace(/\s+/g, ' ')
+                        .replace(/[^\w\s]/g, '');
+
+                    // Extract potential company/entity names (capitalized words/phrases)
+                    const entityMatches = platformContent.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g) || [];
+                    const keyEntities = new Set(entityMatches.slice(0, 5)); // Top 5 entities
 
                     const existingBroadcasts = db.prepare(`
                         SELECT id, content FROM broadcasts
                         WHERE client = ?
                         AND (status = 'pending' OR status = 'sent')
+                        AND createdAt > ?
                         ORDER BY createdAt DESC
-                        LIMIT 100
-                    `).all(platform);
+                        LIMIT 50
+                    `).all(platform, Date.now() - (7 * 24 * 60 * 60 * 1000)); // Only check last 7 days
 
                     let isDuplicate = false;
                     for (const existing of existingBroadcasts) {
                         try {
                             const existingContent = JSON.parse(existing.content).text;
-                            const existingPreview = existingContent.substring(0, 100).trim();
+                            const existingPreview = existingContent.substring(0, 200).trim();
+                            const existingNormalized = existingContent.toLowerCase()
+                                .replace(/\s+/g, ' ')
+                                .replace(/[^\w\s]/g, '');
 
-                            // Check if first 100 chars are very similar (>80% match)
+                            // Check if first 200 chars are very similar (>70% match)
                             const similarity = stringSimilarity(contentPreview, existingPreview);
-                            if (similarity > 0.8) {
-                                console.log(`⚠️  Skipping duplicate ${platform} broadcast (${(similarity * 100).toFixed(0)}% similar to ${existing.id})`);
+
+                            // Also check normalized content similarity (accounts for minor wording changes)
+                            const normalizedSimilarity = stringSimilarity(
+                                contentNormalized.substring(0, 200),
+                                existingNormalized.substring(0, 200)
+                            );
+
+                            // Extract entities from existing broadcast
+                            const existingEntityMatches = existingContent.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g) || [];
+                            const existingEntities = new Set(existingEntityMatches.slice(0, 5));
+
+                            // Check for entity overlap (if 2+ key entities match, likely duplicate)
+                            const sharedEntities = [...keyEntities].filter(e => existingEntities.has(e));
+                            const entityOverlap = sharedEntities.length >= 2;
+
+                            if (similarity > 0.7 || normalizedSimilarity > 0.75 ||
+                                (entityOverlap && similarity > 0.5)) {
+                                console.log(`⚠️  Skipping duplicate ${platform} broadcast (${(Math.max(similarity, normalizedSimilarity) * 100).toFixed(0)}% similar${entityOverlap ? ', shared entities: ' + sharedEntities.join(', ') : ''} - similar to ${existing.id})`);
                                 isDuplicate = true;
                                 break;
                             }
