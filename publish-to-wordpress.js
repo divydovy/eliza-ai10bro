@@ -2,44 +2,23 @@
 
 /**
  * WordPress Publisher for AI10BRO
- *
- * Publishes quality broadcasts (alignment >= 0.20) to WordPress site as enriched Daily Insight articles.
- *
- * Usage:
- *   node publish-to-wordpress.js --dry-run --limit=1        # Test mode (drafts only)
- *   node publish-to-wordpress.js --limit=5                  # Publish 5 articles
- *   BROADCAST_ID=uuid node publish-to-wordpress.js          # Publish specific broadcast
- *
- * Environment Variables (.env.wordpress):
- *   WP_BASE_URL     - WordPress site URL (e.g., http://localhost:8885)
- *   WP_USERNAME     - WordPress username
- *   WP_APP_PASSWORD - WordPress application password
- *   GEMINI_API_KEY  - Gemini API key for image generation
+ * 
+ * Publishes quality broadcasts (alignment >= 0.20) to WordPress as Daily Insight articles
  */
 
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
-import fetch from 'node-fetch';
-import FormData from 'form-data';
-import fs from 'fs';
-import path from 'path';
-import dotenv from 'dotenv';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Load environment variables
-dotenv.config({ path: '.env' });
-dotenv.config({ path: '.env.wordpress' });
+const Database = require('better-sqlite3');
+const fetch = require('node-fetch');
+const FormData = require('form-data');
+const fs = require('fs');
+const path = require('path');
+require('dotenv').config({ path: '.env' });
+require('dotenv').config({ path: '.env.wordpress' });
 
 // Configuration
 const CONFIG = {
   WP_BASE_URL: process.env.WP_BASE_URL || 'http://localhost:8885',
   WP_USERNAME: process.env.WP_USERNAME || 'admin',
   WP_APP_PASSWORD: process.env.WP_APP_PASSWORD,
-  GEMINI_API_KEY: process.env.GEMINI_API_KEY,
   DB_PATH: process.env.DB_PATH || './agent/data/db.sqlite',
   ALIGNMENT_THRESHOLD: parseFloat(process.env.WP_ALIGNMENT_THRESHOLD || '0.20'),
   DRY_RUN: process.argv.includes('--dry-run'),
@@ -47,7 +26,7 @@ const CONFIG = {
   BROADCAST_ID: process.env.BROADCAST_ID || null,
 };
 
-// Bio theme mapping (from ELIZA_AGENT_GUIDE.md)
+// Bio theme mapping
 const BIO_THEME_MAP = {
   'biomimicry': 2,
   'synbio': 3,
@@ -62,61 +41,32 @@ const BIO_THEME_MAP = {
   'manufacturing': 12,
 };
 
-// Reverse mapping for display
-const BIO_THEME_NAMES = Object.fromEntries(
-  Object.entries(BIO_THEME_MAP).map(([k, v]) => [v, k])
-);
-
 /**
- * Database connection
+ * Ensure WordPress tracking columns exist
  */
-async function getDb() {
-  return open({
-    filename: CONFIG.DB_PATH,
-    driver: sqlite3.Database
-  });
-}
-
-/**
- * Add WordPress tracking columns to broadcasts table
- */
-async function ensureWordPressColumns(db) {
-  const schema = await db.get("PRAGMA table_info(broadcasts)");
-  const columns = await db.all("PRAGMA table_info(broadcasts)");
+function ensureWordPressColumns(db) {
+  const columns = db.prepare("PRAGMA table_info(broadcasts)").all();
   const columnNames = columns.map(c => c.name);
 
   if (!columnNames.includes('wordpress_published')) {
-    console.log('📊 Adding WordPress tracking columns to broadcasts table...');
-
-    await db.exec(`
-      ALTER TABLE broadcasts ADD COLUMN wordpress_published BOOLEAN DEFAULT FALSE;
-    `);
-    await db.exec(`
-      ALTER TABLE broadcasts ADD COLUMN wordpress_post_id INTEGER;
-    `);
-    await db.exec(`
-      ALTER TABLE broadcasts ADD COLUMN wordpress_published_at DATETIME;
-    `);
-    await db.exec(`
-      ALTER TABLE broadcasts ADD COLUMN wordpress_status TEXT;
-    `);
-    await db.exec(`
-      ALTER TABLE broadcasts ADD COLUMN wordpress_error TEXT;
-    `);
-
-    console.log('✅ WordPress columns added successfully');
+    console.log('📊 Adding WordPress tracking columns...');
+    
+    db.exec(`ALTER TABLE broadcasts ADD COLUMN wordpress_published BOOLEAN DEFAULT FALSE`);
+    db.exec(`ALTER TABLE broadcasts ADD COLUMN wordpress_post_id INTEGER`);
+    db.exec(`ALTER TABLE broadcasts ADD COLUMN wordpress_published_at DATETIME`);
+    db.exec(`ALTER TABLE broadcasts ADD COLUMN wordpress_status TEXT`);
+    db.exec(`ALTER TABLE broadcasts ADD COLUMN wordpress_error TEXT`);
+    
+    console.log('✅ WordPress columns added\n');
   }
 }
 
 /**
- * Fetch broadcasts ready for WordPress publishing
+ * Fetch broadcasts to publish
  */
-async function fetchBroadcastsToPublish(db) {
-  let query, params;
-
+function fetchBroadcastsToPublish(db) {
   if (CONFIG.BROADCAST_ID) {
-    // Specific broadcast
-    query = `
+    return db.prepare(`
       SELECT
         b.id,
         b.documentId,
@@ -128,11 +78,9 @@ async function fetchBroadcastsToPublish(db) {
       LEFT JOIN memories m ON b.documentId = m.id
       WHERE b.id = ?
         AND (b.wordpress_published IS NULL OR b.wordpress_published = FALSE)
-    `;
-    params = [CONFIG.BROADCAST_ID];
+    `).all(CONFIG.BROADCAST_ID);
   } else {
-    // Query quality broadcasts not yet published
-    query = `
+    return db.prepare(`
       SELECT
         b.id,
         b.documentId,
@@ -144,46 +92,29 @@ async function fetchBroadcastsToPublish(db) {
       LEFT JOIN memories m ON b.documentId = m.id
       WHERE b.alignment_score >= ?
         AND (b.wordpress_published IS NULL OR b.wordpress_published = FALSE)
+        AND b.status = 'pending'
       ORDER BY b.alignment_score DESC, b.createdAt DESC
       LIMIT ?
-    `;
-    params = [CONFIG.ALIGNMENT_THRESHOLD, CONFIG.LIMIT];
+    `).all(CONFIG.ALIGNMENT_THRESHOLD, CONFIG.LIMIT);
   }
-
-  return db.all(query, params);
 }
 
 /**
- * Extract bio theme from document content
+ * Extract bio theme from document
  */
 function extractBioTheme(documentContent) {
   try {
-    const content = typeof documentContent === 'string'
-      ? documentContent
-      : JSON.parse(documentContent).text;
-
-    // Try to find tags in YAML frontmatter
+    const content = typeof documentContent === 'string' ? documentContent : documentContent;
+    
+    // Check YAML frontmatter
     const yamlMatch = content.match(/^---\n([\s\S]*?)\n---/);
     if (yamlMatch) {
       const frontmatter = yamlMatch[1];
-      const tagsMatch = frontmatter.match(/tags:\s*\[(.*?)\]/);
-      if (tagsMatch) {
-        const tags = tagsMatch[1].split(',').map(t => t.trim().replace(/['"]/g, ''));
-        for (const tag of tags) {
-          const normalized = tag.toLowerCase().replace(/[_\s-]+/g, '');
-          for (const [theme, _] of Object.entries(BIO_THEME_MAP)) {
-            if (normalized.includes(theme) || theme.includes(normalized)) {
-              return theme;
-            }
-          }
-        }
-      }
-
-      // Try category field
+      
+      // Check category
       const categoryMatch = frontmatter.match(/category:\s*(\w+)/);
       if (categoryMatch) {
         const category = categoryMatch[1].toLowerCase();
-        // Map common categories to bio themes
         const categoryMap = {
           'microbiology': 'synbio',
           'biotechnology': 'synbio',
@@ -192,174 +123,116 @@ function extractBioTheme(documentContent) {
           'agriculture': 'agtech',
           'medicine': 'health',
           'health': 'health',
-          'ai': 'ai',
-          'computing': 'ai',
-          'environment': 'environment',
-          'space': 'space',
-          'manufacturing': 'manufacturing',
         };
-        if (categoryMap[category]) {
-          return categoryMap[category];
-        }
+        if (categoryMap[category]) return categoryMap[category];
       }
     }
-
-    // Fallback: keyword matching in content
+    
+    // Keyword matching
     const contentLower = content.toLowerCase();
-    const themeKeywords = {
-      'biomimicry': ['biomimicry', 'nature-inspired', 'bio-inspired'],
-      'synbio': ['synthetic biology', 'genetic engineering', 'crispr', 'gene editing', 'bioengineering'],
-      'materials': ['material', 'composite', 'polymer', 'carbon fiber'],
-      'energy': ['energy', 'solar', 'battery', 'hydrogen', 'renewable'],
-      'agtech': ['agriculture', 'farming', 'crop', 'vertical farm', 'precision fermentation'],
-      'health': ['medicine', 'therapeutic', 'drug', 'clinical', 'patient'],
-      'ai': ['artificial intelligence', 'machine learning', 'neural network', 'alphafold'],
-      'innovation': ['funding', 'investment', 'startup', 'market', 'ipo'],
-      'environment': ['climate', 'carbon', 'emission', 'conservation', 'sustainability'],
-      'space': ['space', 'orbit', 'satellite', 'mars', 'iss'],
-      'manufacturing': ['manufacturing', 'production', 'industrial', 'factory'],
-    };
-
-    for (const [theme, keywords] of Object.entries(themeKeywords)) {
-      if (keywords.some(kw => contentLower.includes(kw))) {
-        return theme;
-      }
-    }
-
-    // Default fallback
-    return 'innovation';
-
+    if (contentLower.includes('synthetic biology') || contentLower.includes('bioengineering')) return 'synbio';
+    if (contentLower.includes('material')) return 'materials';
+    if (contentLower.includes('energy') || contentLower.includes('battery')) return 'energy';
+    if (contentLower.includes('agriculture') || contentLower.includes('farming')) return 'agtech';
+    if (contentLower.includes('medicine') || contentLower.includes('therapeutic')) return 'health';
+    
+    return 'innovation'; // default
   } catch (error) {
-    console.warn('⚠️  Could not extract bio theme:', error.message);
     return 'innovation';
   }
 }
 
 /**
- * Generate rich Daily Insight article from broadcast + source document
+ * Extract source URL from document
  */
-async function generateRichArticle(broadcast, sourceDocument) {
-  const broadcastText = typeof broadcast.content === 'string'
-    ? broadcast.content
-    : JSON.parse(broadcast.content).text;
+function extractSourceUrl(documentContent) {
+  try {
+    const content = typeof documentContent === 'string' ? documentContent : documentContent;
+    
+    const yamlMatch = content.match(/^---\n([\s\S]*?)\n---/);
+    if (yamlMatch) {
+      const sourceMatch = yamlMatch[1].match(/source:\s*(https?:\/\/[^\s]+)/);
+      if (sourceMatch) return sourceMatch[1];
+      
+      const doiMatch = yamlMatch[1].match(/doi:\s*["']?(10\.\d+\/[^\s"']+)["']?/);
+      if (doiMatch) return `https://doi.org/${doiMatch[1]}`;
+    }
+    
+    const urlMatch = content.match(/https?:\/\/[^\s<)]+/);
+    if (urlMatch) return urlMatch[0];
+    
+    return null;
+  } catch (error) {
+    return null;
+  }
+}
 
-  const documentText = typeof sourceDocument === 'string'
-    ? sourceDocument
-    : JSON.parse(sourceDocument).text;
+/**
+ * Generate article content
+ */
+function generateArticleContent(broadcast, sourceDocument) {
+  // Parse broadcast content if it's JSON
+  let broadcastText;
+  try {
+    const parsed = JSON.parse(broadcast.content);
+    broadcastText = parsed.text || broadcast.content;
+  } catch (e) {
+    // If not JSON, use as-is
+    broadcastText = broadcast.content;
+  }
+  
+  // For now, create a simple article
+  // TODO: Integrate LLM for richer generation
 
-  const prompt = `You are AI10BRO, a science journalism AI specializing in bio/sustainability/tech innovations.
+  // Extract title (first line, or first sentence)
+  const firstLine = broadcastText.split('\n')[0].trim();
+  const title = firstLine.slice(0, 80).replace(/🔗.*$/, '').trim();
 
-TASK: Transform this broadcast into a comprehensive 800-1200 word Daily Insight article.
+  // Extract excerpt (remove emoji and source links)
+  const excerpt = broadcastText
+    .replace(/🔗.*$/gm, '')
+    .replace(/\n+/g, ' ')
+    .slice(0, 160)
+    .trim();
+  
+  // Split into paragraphs, removing source links
+  const cleanText = broadcastText
+    .replace(/🔗.*$/gm, '')
+    .trim();
 
-BROADCAST:
-${broadcastText}
+  const paragraphs = cleanText.split('\n\n').filter(p => p.trim());
+  const firstPara = paragraphs[0] || cleanText;
 
-SOURCE DOCUMENT:
-${documentText}
+  const content = `<p>${firstPara}</p>
 
-ARTICLE STRUCTURE:
+<h2>The Research</h2>
 
-1. HOOK (1-2 sentences)
-Write a compelling opening that captures the breakthrough. Use one of these styles:
-- Direct news lead: "[Company/Institution] just cracked the code for..."
-- Impact first: "Your [x] could [outcome] thanks to..."
-- Problem-solution: "The [problem] just met its match..."
-- Future vision: "By [year], [outcome] could become reality..."
-
-2. OVERVIEW (2-3 paragraphs, ~200 words)
-- Who: Company/research institution
-- What: The innovation/breakthrough
-- When: Timeline/announcement date
-- Key numbers/facts
-
-3. CONTEXT & DETAILS (3-4 paragraphs, ~300 words)
-- How does the technology work? (Accessible explanation, use analogies)
-- What makes it novel/significant?
-- Technical details without jargon
-- Comparison to existing approaches
-
-4. WHY IT MATTERS (2-3 paragraphs, ~200 words)
-- Industry implications
-- Potential impact on sustainability/bio sector
-- Market opportunity/size
-- Regulatory or policy context (if relevant)
-
-5. RELATED DEVELOPMENTS (1-2 paragraphs, ~100 words)
-- Mention similar innovations in the space
-- Broader trend context
-
-6. LOOKING AHEAD (1 paragraph, ~100 words)
-- Future milestones
-- Timeline to commercialization/scaling
-- What to watch for
-
-TONE: Informative journalism (like TechCrunch, Axios, MIT Technology Review)
-- Not academic, not hype
-- Credible but accessible
-- Optimistic but grounded
-
-STYLE:
-- Short paragraphs (2-4 sentences each)
-- H2 subheadings for each section
-- Bullet lists for key points (sparingly)
-- Natural keyword integration
-- No fluff, no repetition
-- NO AI-isms like "It's important to note", "delve into", "landscape", "realm"
-- NO generic conclusions like "Only time will tell"
-
-OUTPUT FORMAT:
-- HTML with <p>, <h2>, <h3>, <ul>, <li>, <strong>, <em> tags only
-- DO NOT include title or meta tags (WordPress handles those)
-- First paragraph should be plain <p> (no heading)
-
-Generate the article now:`;
-
-  // This is where you'd call your LLM API
-  // For now, return a template that can be manually edited
-  // In production, this would call Ollama, Claude, or another LLM
-
-  console.log('🤖 Generating article with LLM...');
-
-  // TODO: Implement actual LLM call here
-  // For now, create a structured template from the broadcast
-
-  const title = broadcastText.split('\n')[0].slice(0, 80);
-  const excerpt = broadcastText.slice(0, 160).replace(/\n/g, ' ');
-
-  const articleHTML = `<p>${broadcastText.split('\n\n')[0]}</p>
-
-<h2>The Breakthrough</h2>
-
-<p>${broadcastText}</p>
+${paragraphs.slice(1).map(p => `<p>${p}</p>`).join('\n\n') || `<p>${cleanText}</p>`}
 
 <h2>Why This Matters</h2>
 
-<p>This development represents a significant step forward in the field. The implications for sustainability and innovation are substantial.</p>
+<p>This development represents a significant advancement in the field. The research provides new insights that could inform future innovations in biotechnology and materials science.</p>
 
 <h2>Looking Ahead</h2>
 
-<p>As this technology matures, we can expect to see broader adoption and further refinements. The next 12-18 months will be critical for validation and scale-up.</p>
+<p>As this research progresses, we can expect to see further applications and refinements. The findings lay important groundwork for future breakthroughs in this area.</p>
 
-<p><em>Note: This article was auto-generated from research content. Enhanced version coming soon.</em></p>`;
+<p><small><em>Article generated from research broadcast. Full source document analysis available in original paper.</em></small></p>`;
 
   return {
     title,
-    content: articleHTML,
+    content,
     excerpt,
-    wordCount: articleHTML.split(/\s+/).length
+    wordCount: content.split(/\s+/).length
   };
 }
 
 /**
- * Upload image to WordPress media library
+ * Upload image to WordPress
  */
-async function uploadImageToWordPress(imagePath, title) {
-  if (!CONFIG.WP_APP_PASSWORD) {
-    throw new Error('WP_APP_PASSWORD not configured');
-  }
-
+async function uploadImage(imagePath, title) {
   const auth = Buffer.from(`${CONFIG.WP_USERNAME}:${CONFIG.WP_APP_PASSWORD}`).toString('base64');
-
+  
   const form = new FormData();
   form.append('file', fs.createReadStream(imagePath));
   form.append('title', title);
@@ -367,15 +240,12 @@ async function uploadImageToWordPress(imagePath, title) {
 
   const response = await fetch(`${CONFIG.WP_BASE_URL}/wp-json/wp/v2/media`, {
     method: 'POST',
-    headers: {
-      'Authorization': `Basic ${auth}`,
-    },
+    headers: { 'Authorization': `Basic ${auth}` },
     body: form
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Image upload failed: ${response.status} ${error}`);
+    throw new Error(`Image upload failed: ${response.status}`);
   }
 
   const data = await response.json();
@@ -383,13 +253,9 @@ async function uploadImageToWordPress(imagePath, title) {
 }
 
 /**
- * Create WordPress post via REST API
+ * Create WordPress post
  */
-async function createWordPressPost(article, bioTheme, alignmentScore, sourceUrl, featuredMediaId) {
-  if (!CONFIG.WP_APP_PASSWORD) {
-    throw new Error('WP_APP_PASSWORD not configured');
-  }
-
+async function createPost(article, bioTheme, alignmentScore, sourceUrl, featuredMediaId) {
   const auth = Buffer.from(`${CONFIG.WP_USERNAME}:${CONFIG.WP_APP_PASSWORD}`).toString('base64');
 
   const postData = {
@@ -420,51 +286,14 @@ async function createWordPressPost(article, bioTheme, alignmentScore, sourceUrl,
     throw new Error(`Post creation failed: ${response.status} ${error}`);
   }
 
-  const data = await response.json();
-  return data;
+  return response.json();
 }
 
 /**
- * Extract source URL from document content
+ * Update broadcast WordPress status
  */
-function extractSourceUrl(documentContent) {
-  try {
-    const content = typeof documentContent === 'string'
-      ? documentContent
-      : JSON.parse(documentContent).text;
-
-    // Try to find source in YAML frontmatter
-    const yamlMatch = content.match(/^---\n([\s\S]*?)\n---/);
-    if (yamlMatch) {
-      const sourceMatch = yamlMatch[1].match(/source:\s*(https?:\/\/[^\s]+)/);
-      if (sourceMatch) {
-        return sourceMatch[1];
-      }
-
-      const doiMatch = yamlMatch[1].match(/doi:\s*["']?(10\.\d+\/[^\s"']+)["']?/);
-      if (doiMatch) {
-        return `https://doi.org/${doiMatch[1]}`;
-      }
-    }
-
-    // Fallback: find any URL in content
-    const urlMatch = content.match(/https?:\/\/[^\s<)]+/);
-    if (urlMatch) {
-      return urlMatch[0];
-    }
-
-    return null;
-  } catch (error) {
-    console.warn('⚠️  Could not extract source URL:', error.message);
-    return null;
-  }
-}
-
-/**
- * Update broadcast with WordPress metadata
- */
-async function updateBroadcastWordPressStatus(db, broadcastId, postId, status, error = null) {
-  await db.run(`
+function updateBroadcastStatus(db, broadcastId, postId, status, error = null) {
+  db.prepare(`
     UPDATE broadcasts
     SET
       wordpress_published = ?,
@@ -473,13 +302,13 @@ async function updateBroadcastWordPressStatus(db, broadcastId, postId, status, e
       wordpress_status = ?,
       wordpress_error = ?
     WHERE id = ?
-  `, [
+  `).run(
     status === 'publish' || status === 'draft' ? 1 : 0,
     postId,
     status,
     error,
     broadcastId
-  ]);
+  );
 }
 
 /**
@@ -487,62 +316,43 @@ async function updateBroadcastWordPressStatus(db, broadcastId, postId, status, e
  */
 async function processBroadcast(db, broadcast) {
   console.log(`\n📝 Processing broadcast ${broadcast.id.slice(0, 8)}...`);
-  console.log(`   Alignment score: ${broadcast.alignment_score.toFixed(3)}`);
+  console.log(`   Alignment: ${broadcast.alignment_score.toFixed(3)}`);
 
   try {
-    // Extract bio theme
+    // Extract metadata
     const bioTheme = extractBioTheme(broadcast.document_content);
-    console.log(`   Bio theme: ${bioTheme} (term ID: ${BIO_THEME_MAP[bioTheme]})`);
-
-    // Generate rich article
-    const article = await generateRichArticle(broadcast, broadcast.document_content);
-    console.log(`   Generated article: "${article.title}"`);
-    console.log(`   Word count: ${article.wordCount}`);
-
-    if (article.wordCount < 200) {
-      console.warn('⚠️  Article too short, needs manual review');
-    }
-
-    // Extract source URL
     const sourceUrl = extractSourceUrl(broadcast.document_content);
-    console.log(`   Source URL: ${sourceUrl || 'none'}`);
+    console.log(`   Theme: ${bioTheme} (ID: ${BIO_THEME_MAP[bioTheme]})`);
+    console.log(`   Source: ${sourceUrl || 'none'}`);
+
+    // Generate article
+    const article = generateArticleContent(broadcast, broadcast.document_content);
+    console.log(`   Title: "${article.title}"`);
+    console.log(`   Words: ${article.wordCount}`);
 
     // Handle featured image
     let featuredMediaId = null;
     if (broadcast.image_url) {
       const imagePath = path.resolve(broadcast.image_url);
       if (fs.existsSync(imagePath)) {
-        console.log(`   Uploading image: ${path.basename(imagePath)}`);
+        console.log(`   Uploading image...`);
         try {
-          featuredMediaId = await uploadImageToWordPress(imagePath, article.title);
-          console.log(`   ✅ Image uploaded (media ID: ${featuredMediaId})`);
+          featuredMediaId = await uploadImage(imagePath, article.title);
+          console.log(`   ✅ Image uploaded (ID: ${featuredMediaId})`);
         } catch (error) {
           console.warn(`   ⚠️  Image upload failed: ${error.message}`);
         }
-      } else {
-        console.warn(`   ⚠️  Image file not found: ${imagePath}`);
       }
     }
 
-    // Create WordPress post
-    console.log(`   Creating WordPress post (${CONFIG.DRY_RUN ? 'DRAFT' : 'PUBLISH'})...`);
-    const post = await createWordPressPost(
-      article,
-      bioTheme,
-      broadcast.alignment_score,
-      sourceUrl,
-      featuredMediaId
-    );
-
+    // Create post
+    console.log(`   Creating ${CONFIG.DRY_RUN ? 'DRAFT' : 'PUBLISHED'} post...`);
+    const post = await createPost(article, bioTheme, broadcast.alignment_score, sourceUrl, featuredMediaId);
+    
     console.log(`   ✅ Post created: ${post.link}`);
 
-    // Update broadcast in database
-    await updateBroadcastWordPressStatus(
-      db,
-      broadcast.id,
-      post.id,
-      CONFIG.DRY_RUN ? 'draft' : 'publish'
-    );
+    // Update database
+    updateBroadcastStatus(db, broadcast.id, post.id, CONFIG.DRY_RUN ? 'draft' : 'publish');
 
     return {
       success: true,
@@ -555,16 +365,8 @@ async function processBroadcast(db, broadcast) {
 
   } catch (error) {
     console.error(`   ❌ Failed: ${error.message}`);
-
-    // Update broadcast with error
-    await updateBroadcastWordPressStatus(
-      db,
-      broadcast.id,
-      null,
-      'error',
-      error.message
-    );
-
+    updateBroadcastStatus(db, broadcast.id, null, 'error', error.message);
+    
     return {
       success: false,
       broadcastId: broadcast.id,
@@ -585,37 +387,31 @@ async function main() {
 
   if (!CONFIG.WP_APP_PASSWORD) {
     console.error('❌ Error: WP_APP_PASSWORD not configured');
-    console.error('   Generate an application password in WordPress:');
-    console.error('   Users → Profile → Application Passwords');
-    console.error('   Then add to .env.wordpress:');
-    console.error('   WP_APP_PASSWORD=xxxx xxxx xxxx xxxx xxxx xxxx\n');
+    console.error('   Set it in .env.wordpress\n');
     process.exit(1);
   }
 
   console.log(`📊 Configuration:`);
   console.log(`   WordPress: ${CONFIG.WP_BASE_URL}`);
-  console.log(`   Alignment threshold: >= ${CONFIG.ALIGNMENT_THRESHOLD}`);
-  console.log(`   Limit: ${CONFIG.LIMIT} broadcasts`);
-  console.log(`   Database: ${CONFIG.DB_PATH}\n`);
+  console.log(`   Threshold: >= ${CONFIG.ALIGNMENT_THRESHOLD}`);
+  console.log(`   Limit: ${CONFIG.LIMIT} broadcasts\n`);
 
-  const db = await getDb();
+  const db = new Database(CONFIG.DB_PATH);
+  
+  // Ensure columns exist
+  ensureWordPressColumns(db);
 
-  // Ensure WordPress columns exist
-  await ensureWordPressColumns(db);
-
-  // Fetch broadcasts to publish
+  // Fetch broadcasts
   console.log('🔍 Fetching broadcasts...');
-  const broadcasts = await fetchBroadcastsToPublish(db);
+  const broadcasts = fetchBroadcastsToPublish(db);
 
   if (broadcasts.length === 0) {
-    console.log('✨ No broadcasts found matching criteria');
-    console.log(`   - Alignment score >= ${CONFIG.ALIGNMENT_THRESHOLD}`);
-    console.log(`   - Not yet published to WordPress\n`);
-    await db.close();
+    console.log('✨ No broadcasts found matching criteria\n');
+    db.close();
     return;
   }
 
-  console.log(`📚 Found ${broadcasts.length} broadcast(s) to process\n`);
+  console.log(`📚 Found ${broadcasts.length} broadcast(s)\n`);
 
   // Process each broadcast
   const results = [];
@@ -623,7 +419,6 @@ async function main() {
     const result = await processBroadcast(db, broadcast);
     results.push(result);
 
-    // Small delay between posts to avoid rate limiting
     if (broadcasts.length > 1) {
       await new Promise(resolve => setTimeout(resolve, 2000));
     }
@@ -631,7 +426,7 @@ async function main() {
 
   // Summary
   console.log('\n' + '='.repeat(60));
-  console.log('📊 PUBLISHING SUMMARY\n');
+  console.log('📊 SUMMARY\n');
 
   const successful = results.filter(r => r.success);
   const failed = results.filter(r => !r.success);
@@ -656,7 +451,7 @@ async function main() {
 
   console.log('\n' + '='.repeat(60));
 
-  await db.close();
+  db.close();
 }
 
 // Run
