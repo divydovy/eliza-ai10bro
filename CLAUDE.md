@@ -6,6 +6,176 @@
 **Main Character**: AI10BRO
 **Location**: `/Users/davidlockie/Documents/Projects/Eliza/`
 
+## Session: 2025-12-11
+
+### Major Accomplishments
+
+#### 1. WordPress Integration Complete (Build Phase)
+- **Goal**: Enable automated publishing from Eliza agent to AI10BRO WordPress site
+- **Status**: ✅ Build complete, ready for testing
+
+**What Was Built:**
+
+1. **`publish-to-wordpress.js`** - Complete WordPress publishing script
+   - Queries broadcasts with alignment >= 0.20 (not yet published)
+   - Fetches source document for full context
+   - Generates 800-1200 word Daily Insight articles
+   - Uploads featured images to WordPress media library
+   - Creates posts via WordPress REST API
+   - Tracks publishing status in database
+   - Includes dry-run mode for testing
+   - Error handling and retry logic
+   - Comprehensive logging
+
+2. **Database Schema Updates** - Added WordPress tracking columns
+   - `wordpress_published` (BOOLEAN) - Published flag
+   - `wordpress_post_id` (INTEGER) - WordPress post ID
+   - `wordpress_published_at` (DATETIME) - Publish timestamp
+   - `wordpress_status` (TEXT) - 'draft', 'publish', or 'error'
+   - `wordpress_error` (TEXT) - Error message if failed
+
+3. **Configuration Files**
+   - `.env.wordpress.example` - Configuration template
+   - `WORDPRESS_INTEGRATION_SPEC.md` - Complete technical specification (17KB)
+   - `WORDPRESS_PUBLISHER_README.md` - Comprehensive user guide (13KB)
+
+4. **Bio Theme Detection** - Automatic category mapping
+   - Extracts bio theme from document YAML frontmatter or content
+   - Maps to WordPress term IDs (2-12)
+   - Fallback to keyword matching if metadata unavailable
+   - Default to 'innovation' (ID 9) if uncertain
+
+5. **Article Generation Framework**
+   - Template for 800-1200 word Daily Insights
+   - 6-section structure (hook, overview, context, why it matters, related, looking ahead)
+   - Informative journalism tone (TechCrunch/Axios style)
+   - HTML formatting with semantic tags
+   - TODO: Integrate LLM for richer generation
+
+**Publishing Flow:**
+```
+Eliza Broadcasts (alignment >= 0.20, not published)
+    ↓
+Fetch source document
+    ↓
+Generate 800-1200 word Daily Insight
+    ↓
+Upload featured image to WordPress
+    ↓
+Create post via REST API (draft or publish)
+    ↓
+Update broadcast: wordpress_published = true
+```
+
+**Key Features:**
+- ✅ Quality threshold: Only publishes alignment >= 0.20
+- ✅ Idempotent: Won't publish same broadcast twice
+- ✅ Non-destructive: Doesn't affect Telegram/Bluesky broadcasts
+- ✅ Dry-run mode: Test with drafts before going live
+- ✅ Error tracking: Failed publishes logged for debugging
+- ✅ Batch processing: `--limit=N` for controlled publishing
+- ✅ Specific broadcast: `BROADCAST_ID=uuid` for single publish
+
+**Usage:**
+```bash
+# Test mode (creates drafts)
+node publish-to-wordpress.js --dry-run --limit=1
+
+# Publish 5 articles
+node publish-to-wordpress.js --limit=5
+
+# Automated (cron): Publish 3 articles every 2 hours
+0 */2 * * * cd /path/to/eliza && node publish-to-wordpress.js --limit=3
+```
+
+**Documentation Created:**
+- `WORDPRESS_INTEGRATION_SPEC.md` - Full technical specification
+  - Publishing flow architecture
+  - REST API endpoints and authentication
+  - Article generation prompt template
+  - Database schema updates
+  - Bio theme mapping
+  - Error handling strategies
+  - Quality criteria
+  - Testing strategy
+
+- `WORDPRESS_PUBLISHER_README.md` - Complete user guide
+  - Quick start guide (5 steps)
+  - How it works (flow diagrams)
+  - Configuration options
+  - Usage examples
+  - Troubleshooting section
+  - Performance metrics
+  - Monitoring queries
+  - Next steps roadmap
+
+#### 2. Content Strategy Alignment
+- **Source**: `ELIZA_AGENT_GUIDE.md` from WordPress project
+- **Content Types Defined**:
+  1. Daily Insights (800-1200 words) - Automated from Eliza
+  2. Deep Dives (2000-4000 words) - Manual curation
+  3. Company Profiles (future)
+  4. Technology Explainers (future)
+  5. Market Reports (quarterly)
+
+- **Publishing Cadence**:
+  - Daily Insights: 3-5 per day (automated)
+  - Deep Dives: 1-2 per week (manual)
+  - Target: 90-150 articles/month
+
+- **11 Bio Themes** (from existing alignment system):
+  1. Biomimicry & Nature-Inspired Design
+  2. Synthetic Biology & Bioengineering
+  3. Advanced Materials
+  4. Clean Energy & Carbon Capture
+  5. Agriculture & Food Tech
+  6. Health & Medicine
+  7. AI & Computing
+  8. Innovation & Markets
+  9. Environmental Conservation
+  10. Space & Exploration
+  11. Manufacturing & Industry
+
+**Next Steps:**
+
+1. **Testing Phase** (User action required):
+   - Generate WordPress Application Password
+   - Configure `.env.wordpress` with credentials
+   - Run `node publish-to-wordpress.js --dry-run --limit=1`
+   - Review draft article in WordPress
+   - Test publish mode with `--limit=3`
+
+2. **Automation Phase** (Once stable):
+   - Add cron job for automated publishing
+   - Monitor for first week
+   - Adjust alignment threshold if needed
+   - Fine-tune article generation
+
+3. **Enhancement Phase** (Future):
+   - Integrate LLM (Claude/Ollama) for better article generation
+   - Add internal linking automation
+   - Implement entity extraction
+   - Create social media auto-posting workflow
+
+**Integration Status:**
+- ✅ WordPress site ready (http://localhost:8885)
+- ✅ Custom theme installed with 11 bio themes
+- ✅ Sample content (10 articles with AI images)
+- ✅ REST API endpoints functional
+- ✅ Publishing script complete
+- ⏳ Awaiting WordPress credentials setup
+- ⏳ First test publish pending
+
+**Files Created:**
+- `/Users/davidlockie/Documents/Projects/Eliza/publish-to-wordpress.js`
+- `/Users/davidlockie/Documents/Projects/Eliza/.env.wordpress.example`
+- `/Users/davidlockie/Documents/Projects/Eliza/WORDPRESS_INTEGRATION_SPEC.md`
+- `/Users/davidlockie/Documents/Projects/Eliza/WORDPRESS_PUBLISHER_README.md`
+
+**Commits**: Ready to commit (4 new files)
+
+---
+
 ## Session: 2025-12-09
 
 ### Major Accomplishments
