@@ -500,20 +500,84 @@ OUTPUT YOUR BROADCAST NOW (no labels, just the engaging text):`;
                     }
                 }
 
+                // Load WordPress prompts for long-form content
+                const wpPrompts = require('./wordpress-prompts.json');
+
                 // Create broadcasts for all platforms
-                const platforms = ['telegram', 'farcaster', 'bluesky'];
+                const platforms = ['telegram', 'farcaster', 'bluesky', 'wordpress_insight', 'wordpress_deepdive'];
                 const platformLimits = {
                     telegram: 4096,
                     farcaster: 320,
-                    bluesky: 300
+                    bluesky: 300,
+                    wordpress_insight: 20000,  // Daily Insights
+                    wordpress_deepdive: 40000   // Deep Dives
                 };
 
                 for (const platform of platforms) {
-                    let platformContent = generated;
+                    let platformContent;
                     const maxLength = platformLimits[platform];
 
-                    // Adjust content for platform limits
-                    if (platformContent.length > maxLength) {
+                    // Handle WordPress platforms differently - generate long-form content
+                    if (platform === 'wordpress_insight' || platform === 'wordpress_deepdive') {
+                        const promptConfig = platform === 'wordpress_insight'
+                            ? wpPrompts.daily_insight
+                            : wpPrompts.deep_dive;
+
+                        // Check if document meets WordPress threshold
+                        if (alignmentScore < promptConfig.alignment_threshold) {
+                            console.log(`   ⏭️  Skipping ${platform} (alignment ${(alignmentScore * 100).toFixed(0)}% < ${(promptConfig.alignment_threshold * 100).toFixed(0)}%)`);
+                            continue;
+                        }
+
+                        // Check if document has sufficient content
+                        if (textLength < 500) {
+                            console.log(`   ⏭️  Skipping ${platform} (content too short: ${textLength} chars)`);
+                            continue;
+                        }
+
+                        console.log(`   📝 Generating ${promptConfig.name} article...`);
+
+                        // Prepare WordPress prompt
+                        const wpPrompt = promptConfig.prompt
+                            .replace('{document_content}', cleanContent)
+                            .replace('{trend_context}', trendConnection || 'No specific trend context available.');
+
+                        // Generate WordPress article using LLM
+                        const wpArticleRaw = await generateBroadcastWithOpenRouter(wpPrompt);
+
+                        // Try to parse as JSON (expected format from prompt)
+                        let wpArticle;
+                        try {
+                            wpArticle = JSON.parse(wpArticleRaw);
+                        } catch (e) {
+                            // If not JSON, treat as plain content and extract title
+                            const lines = wpArticleRaw.split('\n').filter(l => l.trim());
+                            const title = lines[0].substring(0, 100).replace(/<[^>]+>/g, '');
+                            wpArticle = {
+                                title: title,
+                                excerpt: generated.substring(0, 160).replace(/🔗 Source:.*$/, '').trim(),
+                                content: wpArticleRaw
+                            };
+                        }
+
+                        // Store as JSON with metadata
+                        platformContent = JSON.stringify({
+                            title: wpArticle.title,
+                            excerpt: wpArticle.excerpt,
+                            content: wpArticle.content,
+                            type: promptConfig.name.toLowerCase().replace(' ', '_'),
+                            publish_status: promptConfig.publish_status
+                        });
+
+                        console.log(`   ✅ Generated ${promptConfig.name}: "${wpArticle.title}" (~${wpArticle.content.length} chars)`);
+
+                    } else {
+                        // Regular short-form platforms use the standard generated content
+                        platformContent = generated;
+                    }
+
+                    // Adjust content for platform limits (only for non-WordPress platforms)
+                    if (!platform.startsWith('wordpress_') && platformContent.length > maxLength) {
                         // Check if content has source URL
                         const sourceMatch = platformContent.match(/🔗 Source: (https?:\/\/[^\s]+)/);
 
@@ -565,12 +629,25 @@ OUTPUT YOUR BROADCAST NOW (no labels, just the engaging text):`;
                         }
                     }
 
-                    // Wrap content in JSON for storage
-                    const jsonContent = JSON.stringify({ text: platformContent });
+                    // Wrap content in JSON for storage (WordPress already JSON)
+                    const jsonContent = platform.startsWith('wordpress_')
+                        ? platformContent  // Already JSON from WordPress generation
+                        : JSON.stringify({ text: platformContent });
 
                     // Check for duplicate content on this platform
                     // Use first 200 chars for better similarity detection
-                    const contentPreview = platformContent.substring(0, 200).trim();
+                    // For WordPress, extract title for comparison
+                    let contentPreview;
+                    if (platform.startsWith('wordpress_')) {
+                        try {
+                            const wpData = JSON.parse(platformContent);
+                            contentPreview = wpData.title + ' ' + wpData.excerpt;
+                        } catch (e) {
+                            contentPreview = platformContent.substring(0, 200).trim();
+                        }
+                    } else {
+                        contentPreview = platformContent.substring(0, 200).trim();
+                    }
                     // Also extract key entities/phrases for comparison
                     const contentNormalized = platformContent.toLowerCase()
                         .replace(/\s+/g, ' ')
@@ -592,7 +669,9 @@ OUTPUT YOUR BROADCAST NOW (no labels, just the engaging text):`;
                     let isDuplicate = false;
                     for (const existing of existingBroadcasts) {
                         try {
-                            const existingContent = JSON.parse(existing.content).text;
+                            // Parse existing content (different format for WordPress)
+                            const existingParsed = JSON.parse(existing.content);
+                            const existingContent = existingParsed.text || (existingParsed.title + ' ' + existingParsed.excerpt);
                             const existingPreview = existingContent.substring(0, 200).trim();
                             const existingNormalized = existingContent.toLowerCase()
                                 .replace(/\s+/g, ' ')
