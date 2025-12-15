@@ -131,22 +131,35 @@
     },
 
     "innovation_markets": {
-      "weight": 0.02,
-      "description": "Innovation and market developments (minimal weight to avoid generic matches)",
+      "weight": 0.35,
+      "description": "Commercial innovations, market-ready products, real-world applications",
       "keywords": [
+        "commercial", "market", "production", "manufacturing", "scale",
+        "industrial", "company", "startup", "launched", "available",
         "bio-innovation", "biotech breakthrough", "biological revolution",
         "biotech market", "biotech investment", "life sciences commercial",
-        "biotech startup", "biological disruption"
+        "biotech startup", "biological disruption", "announced",
+        "FDA approved", "clinical trial", "commercialization", "patent",
+        "product", "platform", "scalable", "mass production",
+        "revenue", "customers", "deployed", "real-world", "operational",
+        "achieves", "demonstrates", "validates", "milestone",
+        "breakthrough performance", "efficiency gains", "cost reduction"
       ]
     },
 
     "ai_computing": {
       "weight": 0.10,
-      "description": "AI and computing (bio-focused only)",
+      "description": "AI, computing, robotics (bio-inspired and nature-mimicking)",
       "keywords": [
         "biocomputing", "neuroAI", "bio-AI", "computational biology",
         "bioinformatics", "neural networks", "evolutionary algorithms",
-        "swarm intelligence", "artificial life"
+        "swarm intelligence", "artificial life",
+        "artificial intelligence", "AI", "machine learning", "deep learning",
+        "robotics", "robot", "robotic", "automated", "automation",
+        "prosthetic", "prosthetics", "bionic", "cyborg",
+        "neural interface", "brain-computer interface", "BCI",
+        "exoskeleton", "wearable technology", "augmented human",
+        "adaptive control", "sensory feedback", "bio-robotics"
       ]
     }
   },
