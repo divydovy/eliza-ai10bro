@@ -36,7 +36,10 @@ const actionHandlers = {
                 message: 'Calling unified create-broadcasts.js script'
             });
 
-            const { stdout, stderr } = await execPromise('node ../../../../create-broadcasts.js 10');
+            // Calculate absolute path to create-broadcasts.js from project root
+            const projectRoot = path.join(__dirname, '../../../..');
+            const createBroadcastsPath = path.join(projectRoot, 'create-broadcasts.js');
+            const { stdout, stderr } = await execPromise(`node "${createBroadcastsPath}" 10`);
 
             // Parse the output to extract results
             const lines = stdout.split('\n');

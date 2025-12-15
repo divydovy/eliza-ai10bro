@@ -6,6 +6,70 @@
 **Main Character**: AI10BRO
 **Location**: `/Users/davidlockie/Documents/Projects/Eliza/`
 
+## Session: 2025-12-15 - BigQuery Cost Investigation
+
+### Major Accomplishments
+
+#### 1. BigQuery Usage Analysis - GOOD NEWS!
+**User Concern**: Recent changes may have increased BigQuery costs beyond free tier
+**Investigation Scope**: GitHub Actions workflows in gdelt-obsidian repository
+
+**Key Finding**: **GDELT/BigQuery integration is already disabled!**
+
+**Evidence**:
+- File: `/Users/davidlockie/Documents/Projects/gdelt-obsidian/gdelt_obsidian_poc.py`
+- Lines 1-422: Entirely commented out
+- Line 425: Only active code is `print("GDELT script is currently disabled.")`
+- **Current BigQuery cost: $0.00/month**
+
+**Historical Context** (when it was active):
+- **Query Pattern**: Daily at midnight UTC via `gdelt-fetch.yml` workflow
+- **Scope**: 6 entities (carbon_capture, quantum_computing, sustainable_materials, ethical_ai, renewable_energy, sustainable_agriculture)
+- **Per Query**: 50-200 GB processed per entity
+- **Estimated Cost**: ~$112/month (600 GB/day × $6.25/TB)
+- **Would exceed free tier** (1 TB/month) in ~3 days if re-enabled
+
+**Active Workflows** (All FREE - no BigQuery):
+1. `extended-scrapers.yml` - Twice daily (BioRxiv, Hacker News, Hugging Face, GitHub Trending, OWID)
+2. `news-fetch.yml` - Every 6 hours (RSS feeds from MIT Tech Review, Nature, Science Daily, Wired, The Verge)
+3. `youtube-fetch.yml` - Weekly (direct YouTube API, under quota)
+4. `semantic-scholar-fetch.yml` - As needed (free academic API)
+5. `arxiv_scraper.yml` - Daily (free arXiv API)
+
+**Recommendation**: Keep GDELT disabled (current state). If needed later, implement weekly runs + reduced entities to stay under free tier.
+
+### Investigation Process
+
+1. **Located Repository**: `/Users/davidlockie/Documents/Projects/gdelt-obsidian`
+2. **Examined Workflows**:
+   - `gdelt-fetch.yml:45-48` - Authenticates to Google Cloud and runs GDELT script
+   - All other workflows use free APIs/RSS feeds
+3. **Analyzed Python Script**:
+   - Lines 257-365: Complex BigQuery queries against `gdelt-bq.gdeltv2.events`
+   - Lines 356-361: Cost estimation logic (bytes_processed × $6.25/TB)
+   - Designed to process large date ranges with entity-focused queries
+4. **Reviewed Configuration**:
+   - `search_config.yml:203-226` - GDELT config entirely commented out
+   - Rotation schedule, quotas, all disabled
+
+### System Health Status
+
+**Current State**: 🟢 GREEN - No BigQuery costs incurred
+
+**Cost Breakdown**:
+- BigQuery: **$0.00** (script disabled)
+- GitHub Actions: **FREE** (within limits)
+- All content gathering: **FREE** (RSS feeds, free APIs)
+
+### Files Examined
+
+1. `/Users/davidlockie/Documents/Projects/gdelt-obsidian/.github/workflows/gdelt-fetch.yml` - Daily workflow (runs placeholder)
+2. `/Users/davidlockie/Documents/Projects/gdelt-obsidian/.github/workflows/extended-scrapers.yml` - Twice daily (no BigQuery)
+3. `/Users/davidlockie/Documents/Projects/gdelt-obsidian/gdelt_obsidian_poc.py` - Commented out (425 lines)
+4. `/Users/davidlockie/Documents/Projects/gdelt-obsidian/search_config.yml` - GDELT config disabled (lines 203-226)
+
+---
+
 ## Session: 2025-12-12 - WordPress Integration Complete
 
 ### Major Accomplishments
