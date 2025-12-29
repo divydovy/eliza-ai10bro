@@ -6,7 +6,120 @@
 **Main Character**: AI10BRO
 **Location**: `/Users/davidlockie/Documents/Projects/Eliza/`
 
-## Session: 2025-12-15 - BigQuery Cost Investigation
+## Session: 2025-12-15 Evening - Broadcast System Fixes & Content Optimization
+
+### Critical Issues Resolved
+
+#### 1. Broadcast Creation System - FIXED ✅
+**Problem**: Broadcast creation broken for 5+ days (since Dec 10)
+**Root Cause**: Path error in `action-api.js:39-42` - going up 5 levels instead of 4
+**Fix**: Corrected path calculation to project root
+**Verification**: Created 5 test broadcasts successfully
+**File**: `packages/plugin-dashboard/src/services/action-api.js` (committed: 6becdbf59)
+
+#### 2. Commercial Content Scoring - MAJOR BOOST ✅
+**User Requirement**: "I WANT commercial. I'm actually less interested in research and more interested in what's actually possible right now."
+
+**Changes**:
+- Boosted `innovation_markets` weight: 0.02 → 0.35 (17.5x increase!)
+- Added 30+ commercial keywords: announced, company, production, scale, FDA approved, commercialization, validates, milestone, etc.
+- Added 15+ AI/robotics keywords: AI, prosthetic, bionic, neural interface, exoskeleton, etc.
+
+**Result**: eXoZymes commercial announcement: 11.19% → 18.37% (64% increase!)
+**File**: `alignment-keywords-refined.json` (committed: 6becdbf59)
+
+#### 3. Broadcast Actionable Guidance ✅
+**User Requirement**: "We should be saying how people can use this info (follow the research vs consider this material for your next project)"
+
+**Implementation**: Updated broadcastPrompt to include:
+- Research/early-stage: "Follow [researcher/lab/company]"
+- Commercial/market-ready: "Consider [material/technology/platform] for your next project"
+
+**File**: `characters/ai10bro.character.json` (NOT committed - contains secrets)
+
+#### 4. LLM-Based Content Cleaning ✅
+**Problem**: Web clipper pollution (navigation, ads, stock tickers making up 32-98% of content)
+
+**Solution**: Created `llm-clean-obsidian-docs.js` using qwen2.5:32b
+**Results**:
+- Cleaned 35 Obsidian documents across 2 runs
+- Noise reduction: 32-98% (one doc: 62,612 → 1,408 chars!)
+- Remaining: 196 low-scoring Obsidian docs to clean
+
+**Files Created**:
+- `llm-clean-obsidian-docs.js` (production, 25 docs/run)
+- `llm-clean-content.js` (original test, 10 docs)
+- `clean-web-clippings.js` (regex-based, less effective)
+
+#### 5. Sync Schedules Verified ✅
+**Obsidian Import**: Daily at 2:30am - Working (imported 2 new docs manually)
+**GitHub Sync**: Daily at 2:00am - Working (2,170 docs in database)
+**Note**: Both failed Dec 3-15 when agent was down
+
+### Outstanding Issues
+
+#### ⚠️ Broadcasts Not Sending
+**Status**: 1,425 pending broadcasts but none sent since Dec 13
+- Telegram: 647 pending (cron: hourly at :00)
+- Bluesky: 645 pending (cron: hourly at :40)
+- WordPress: 16 pending (cron: every 4hrs at :20)
+- Farcaster: 117 pending (no signer - $20-50/mo cost)
+
+**Likely Cause**: Agent downtime (cron jobs couldn't reach API)
+**Action Required**: Monitor next broadcast window to verify sends resume
+
+#### ⚠️ GitHub Workers Stale (4-9 Months)
+**Finding**: ALL GitHub scrapers dormant since Aug 2024
+- arXiv, YouTube, News, HackerNews, GitHub Trending, OWID: All stale
+- GDELT: Disabled May 30 (BigQuery costs)
+- Impact: Manual Obsidian clipping is ONLY fresh content source
+
+**Action Required**: Reactivate scrapers OR implement Grok-discovered channels
+
+### Deliverables Created
+
+#### 1. Grok Research Brief
+**File**: `GITHUB_WORKERS_ANALYSIS_AND_GROK_BRIEF.md`
+
+**Contents**:
+- Entity discovery targets (companies, labs, researchers, VCs)
+- 200+ keywords to discover (commercial + technical terms)
+- Channel recommendations (SynBioBeta, BioCentury, bioRxiv, Twitter lists)
+- Search query library (platform-specific)
+- 10 specific questions for Grok
+- 3-phase timeline
+
+**Goal**: Automate 80%+ of content discovery, detect commercial milestones within 24hrs
+
+#### 2. Session Handoff
+**File**: `SESSION_HANDOFF_2025-12-15.md`
+Complete technical handoff with monitoring action items
+
+### System Status
+
+**Database**: 7,401 documents (imported 2 new, cleaned 35)
+**Broadcasts**:
+- Created: 5 new test broadcasts
+- Pending: 1,425 total (awaiting sends)
+- Sent: 1,858 total (but none since Dec 13)
+
+**Alignment Scores**:
+- Recalculated: All 7,399 documents (twice)
+- High scoring (>=30%): 166 documents
+- Ready for broadcast (>=12%): 28 documents
+
+**Model**: qwen2.5:32b (upgraded from 14b, 19GB download complete)
+
+### Next Session Priorities
+
+1. **IMMEDIATE**: Verify broadcasts START sending (check next hour)
+2. Rescore cleaned documents (run `calculate-alignment-scores.js`)
+3. Begin Grok research Phase 1
+4. Decide on GitHub scrapers (reactivate vs replace)
+
+---
+
+## Session: 2025-12-15 Morning - BigQuery Cost Investigation
 
 ### Major Accomplishments
 

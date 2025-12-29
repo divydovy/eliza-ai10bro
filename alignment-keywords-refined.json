@@ -161,6 +161,49 @@
         "exoskeleton", "wearable technology", "augmented human",
         "adaptive control", "sensory feedback", "bio-robotics"
       ]
+    },
+
+    "commercial_milestones": {
+      "weight": 0.25,
+      "description": "Commercial readiness, regulatory approvals, manufacturing scale-up, funding rounds",
+      "keywords": [
+        "100-fold scale-up", "commercial scale", "first customer", "first patient",
+        "production facility", "manufacturing partner", "market entry", "revenue-generating",
+        "pilot commercial", "full-scale production", "at-scale manufacturing",
+        "FDA approved", "FDA clearance", "FDA breakthrough", "FDA fast-track",
+        "GRAS status", "regulatory approval", "CE mark", "EMA approval",
+        "clinical trial", "Phase I", "Phase II", "Phase III", "Phase II results",
+        "pivotal trial", "trial enrollment", "patient enrollment",
+        "patent granted", "patent filed", "IP portfolio", "licensing deal",
+        "Series A", "Series B funding", "Series C", "IPO", "SPAC merger",
+        "oversubscribed round", "unicorn valuation", "acquisition",
+        "pilot scale", "demonstration plant", "bioreactor", "10,000L", "100,000L",
+        "GMP compliant", "GMP facility", "cGMP", "ISO certified",
+        "commercial launch", "product launch", "market availability", "now available",
+        "strategic partnership", "commercial agreement", "offtake agreement",
+        "cost parity", "price competitive", "margin positive", "break-even"
+      ]
+    },
+
+    "emerging_tech": {
+      "weight": 0.15,
+      "description": "Cutting-edge biotechnology, next-generation platforms, frontier science",
+      "keywords": [
+        "AlphaFold", "AlphaFold3", "protein structure prediction", "AI-designed proteins",
+        "prime editing", "base editing", "CRISPR-Cas12", "CRISPR-Cas13", "Cas-CLOVER",
+        "gene writing", "DNA synthesis", "oligonucleotide synthesis",
+        "organoid", "organ-on-chip", "microphysiological systems", "spheroids",
+        "mRNA therapeutics", "mRNA vaccine", "lipid nanoparticle", "saRNA",
+        "CAR-T", "CAR-NK", "TCR-T", "TIL therapy", "allogeneic cell therapy",
+        "bispecific antibodies", "antibody-drug conjugate", "nanobody", "DARPin",
+        "cultivated meat", "cell-cultured meat", "cellular agriculture", "acellular agriculture",
+        "precision fermentation", "biomass fermentation", "hybrid fermentation",
+        "mycelium", "mycelium leather", "mycelium foam", "fungal materials",
+        "xenotransplantation", "transgenic organs", "organ bioprinting",
+        "microbiome therapeutics", "phage therapy", "live biotherapeutics",
+        "digital biology", "biological circuits", "genetic circuits", "cell-free systems",
+        "directed evolution", "continuous evolution", "ancestral reconstruction"
+      ]
     }
   },
 
