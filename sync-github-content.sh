@@ -9,23 +9,34 @@ echo "Timestamp: $(date)"
 # Change to gdelt-obsidian directory
 cd /Users/davidlockie/Documents/Projects/gdelt-obsidian || exit 1
 
-# Pull latest content from GitHub
-echo "📥 Pulling latest content from GitHub..."
-GIT_SSH_COMMAND="ssh -o IdentityAgent=~/.1password-agent.sock" git pull origin master
+# Fetch and reset to latest (more reliable than pull for automation)
+echo "📥 Fetching latest content from GitHub..."
+# Use gh CLI for authentication (works in cron without user interaction)
+GIT_ASKPASS=/opt/homebrew/bin/gh git fetch origin master
 
-# Check if pull was successful
+# Check if fetch was successful
 if [ $? -eq 0 ]; then
-    echo "✅ Git pull successful"
+    echo "✅ Git fetch successful"
+
+    # Reset to origin/master (discards any local changes)
+    echo "🧹 Resetting to origin/master..."
+    git reset --hard origin/master
+    git clean -fd
+
+    echo "✅ Sync complete"
 else
-    echo "❌ Git pull failed"
+    echo "❌ Git fetch failed"
     exit 1
 fi
 
 # Change to Eliza directory
 cd /Users/davidlockie/Documents/Projects/Eliza || exit 1
 
-# Run import script
+# Load nvm and run import script
 echo "📚 Importing new documents..."
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+nvm use 23.3.0 > /dev/null 2>&1
 node import-github-scrapers.js
 
 # Check import result

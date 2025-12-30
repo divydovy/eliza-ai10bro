@@ -75,11 +75,19 @@ function extractMetadata(content, filePath) {
         category = 'data-analysis';
     }
 
-    // Extract URL from content if present
+    // Extract URL from content if present (handles both markdown link and plain URL formats)
     let url = null;
-    const urlMatch = content.match(/\*\*URL\*\*:\s*\[.*?\]\((https?:\/\/[^\)]+)\)/);
+    // Try markdown link format first: **URL**: [text](https://...)
+    let urlMatch = content.match(/\*\*URL\*\*:\s*\[.*?\]\((https?:\/\/[^\)]+)\)/);
     if (urlMatch) {
         url = urlMatch[1];
+    } else {
+        // Try plain URL format: **URL:** https://... or - **URL:** https://...
+        // Look for URL followed by http/https
+        urlMatch = content.match(/URL.*?(https?:\/\/[^\s\n]+)/);
+        if (urlMatch) {
+            url = urlMatch[1];
+        }
     }
 
     return {

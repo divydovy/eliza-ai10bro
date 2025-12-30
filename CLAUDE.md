@@ -6,6 +6,165 @@
 **Main Character**: AI10BRO
 **Location**: `/Users/davidlockie/Documents/Projects/Eliza/`
 
+## Session: 2025-12-30 Afternoon - LLM-Based Scoring System
+
+### Critical System Fix - Replaced Broken Keyword Scoring
+
+#### Problem: Keyword Scoring Anti-Pattern
+**Root Cause**: Keyword scoring algorithm had fatal mathematical flaw:
+```javascript
+Score = (Matched Keywords / Total Keywords) × Weight
+// Adding keywords INCREASES denominator → LOWERS scores!
+```
+
+**Evidence**:
+- eXoZymes commercial article: Dropped from 12% to 8% after adding 93 keywords
+- Recent GitHub imports: All scoring 8-11% (below 12% send threshold)
+- Result: 1,666 pending broadcasts but ZERO flowing to Telegram/Bluesky
+
+**User Insight**: "Why not do the LLM route immediately? We have a good local LLM so it's free."
+
+#### Solution: LLM-Based Semantic Scoring ✅
+
+**Implementation**:
+1. Created `llm-score-documents.js` - Batch scoring with parallel workers
+2. Created `llm-score-document.js` - Single-doc scorer for imports
+3. Created `score-new-documents.js` - Cron-friendly incremental scorer
+4. Model: qwen2.5:32b (local, free, 21GB)
+
+**Domain-Specific Prompt** (Critical Fix):
+- First attempt: Scored ANY commercial content (Meta data centers: 30%!)
+- Fixed prompt: Explicit INCLUDE/EXCLUDE lists for biotech domains
+- Result: Proper domain enforcement (off-topic: 0-5%, biotech: 30-80%)
+
+**Performance Optimization**:
+- Initial: 20 workers → 41 ollama processes → ~22 hours (failed!)
+- Optimized: 5 workers → efficient serialization → ~2.4 hours
+- Lesson: Ollama can't truly parallelize many concurrent requests
+
+**Current Status**:
+- Batch scoring: 109/21,155 documents (0.5% complete)
+- Started: 16:22 WET
+- Estimated completion: ~18:42 WET
+- Future imports: Auto-scored via `score-new-documents.js` (cron every hour)
+
+**Files Created**:
+1. `/Users/davidlockie/Documents/Projects/Eliza/llm-score-documents.js`
+2. `/Users/davidlockie/Documents/Projects/Eliza/llm-score-document.js`
+3. `/Users/davidlockie/Documents/Projects/Eliza/score-new-documents.js`
+4. `/Users/davidlockie/Documents/Projects/Eliza/run-llm-scoring.sh`
+5. `/Users/davidlockie/Documents/Projects/Eliza/LLM_SCORING_FIX_2025-12-30.md`
+
+**Impact**:
+- Broadcasts will flow again after scoring completes
+- Domain accuracy: biotech/synthetic biology only
+- Commercial focus: products, funding, FDA approvals, market launches
+- Scalable: New docs scored automatically within 1 hour
+
+**Next Steps**:
+1. ⏭️ Wait for batch scoring to complete (~18:42 WET)
+2. ⏭️ Verify score distribution and spot-check samples
+3. ⏭️ Add cron job for `score-new-documents.js` (hourly at :30)
+4. ⏭️ Monitor broadcasts start flowing to Telegram/Bluesky
+5. ⏭️ Celebrate working broadcast system! 🎉
+
+---
+
+## Session: 2025-12-29 Afternoon - Grok Integration Phase 1 Complete
+
+### Major Accomplishments
+
+#### 1. Grok Research Integration - RSS Feeds ✅
+**Added 5 high-signal biotech RSS feeds** to GitHub news scraper:
+- BioPharma Dive (https://www.biopharmadive.com/rss/)
+- Fierce Biotech (https://www.fiercebiotech.com/rss)
+- GEN (https://www.genengnews.com/rss/)
+- SynBioBeta (https://www.synbiobeta.com/feed/)
+- medRxiv (https://connect.medrxiv.org/medrxiv_xml.php)
+
+**Commit**: 2cf8daad in divydovy/ai10bro-gdelt
+**File**: `gdelt-obsidian/search_config.yml`
+
+#### 2. Alignment Keywords Expansion - MASSIVE IMPACT ✅
+**Added 93 new keywords across 2 new themes**:
+
+**Theme 1: `commercial_milestones` (weight: 0.25)**
+- 48 keywords: FDA approved, Series B funding, commercial scale, 100-fold scale-up, GMP compliant, first customer, Phase II results, etc.
+
+**Theme 2: `emerging_tech` (weight: 0.15)**
+- 45 keywords: AlphaFold, CRISPR-Cas12, CAR-T, mRNA therapeutics, cultivated meat, precision fermentation, organoid, etc.
+
+**Impact**: 28 → 196 broadcast-ready documents (+600% increase!)
+
+**File**: `alignment-keywords-refined.json`
+
+#### 3. GitHub Content Import - FULLY AUTOMATED ✅
+**Problem Solved**: GitHub Actions scrapers were pulling 13,681 documents (arXiv, bioRxiv, News, YouTube, HackerNews, GitHub Trending, etc.) but they were NEVER being imported into Eliza's database.
+
+**Solution**:
+- Created `import-github-scrapers.js` - Imports all GitHub scraper content
+- Created `sync-github-content.sh` - Automated sync and import script
+- Added to cron: Runs twice daily at 3:30am and 3:30pm
+
+**Result**:
+- Imported 13,681 documents (News-RSS: 6,124, GitHub/GDELT: 4,515, BioRxiv: 2,459, Arxiv: 1,384, YouTube: 763, etc.)
+- Database: 7,403 → 21,084 documents (+185%)
+- Broadcast-ready: 196 → 201 documents
+
+**Files**: `import-github-scrapers.js`, `sync-github-content.sh`, `GITHUB_IMPORT_SETUP.md`
+
+#### 4. Content Cleaning Campaign - Ongoing
+**Progress**: 112+ documents cleaned (from 207 low-scoring Obsidian docs)
+- Average noise reduction: 70-98% character reduction
+- Batches 10-14 still running in background
+- LLM-based extraction using qwen2.5:32b
+
+**File**: `llm-clean-obsidian-docs.js`
+
+### System Status
+
+**Database**: 21,084 documents (from 7,403)
+**Broadcast-ready**: 201 documents (>= 12% alignment)
+**WordPress-ready**: 167 documents (>= 20% alignment)
+**High scoring**: 166 documents (>= 30% alignment)
+
+**Broadcasting**: 🟢 FULLY OPERATIONAL
+- Telegram: Hourly at :00
+- Bluesky: Hourly at :40
+- WordPress Insights: Every 4 hours at :20
+
+**Automation**:
+- GitHub import: Twice daily (3:30am, 3:30pm) ✅ NEW
+- Obsidian import: Daily (2:30am)
+- Broadcast creation: Every 6 hours (4am, 10am, 4pm, 10pm)
+
+### Files Created This Session
+
+1. **GROK_RESEARCH_PHASE_1_PROMPT.md** - Research brief with Grok output (200+ lines)
+2. **GROK_INTEGRATION_PLAN.md** - Complete integration roadmap
+3. **SESSION_SUMMARY_2025-12-29.md** - Detailed session summary
+4. **GITHUB_IMPORT_SETUP.md** - GitHub content automation documentation
+5. **import-github-scrapers.js** - Import script for GitHub scrapers
+6. **sync-github-content.sh** - Automated sync and import script
+7. **llm-clean-obsidian-docs.js** - Production cleaning script (25 docs/run)
+
+### Files Modified This Session
+
+1. **alignment-keywords-refined.json** - Added 93 keywords in 2 new themes
+2. **gdelt-obsidian/search_config.yml** - Added 5 Grok RSS feeds
+3. **Crontab** - Added GitHub import schedule
+4. **CLAUDE.md** - Updated with session documentation (this file)
+
+### Next Session Priorities
+
+1. Monitor RSS feeds for new biotech articles (first run pending)
+2. Complete cleaning campaign (~95 docs remaining)
+3. Generate broadcasts from newly eligible content
+4. Create entity tracking database (50 companies, 20 labs, 20 VCs)
+5. Set up Twitter monitoring (top 10 biotech accounts)
+
+---
+
 ## Session: 2025-12-15 Evening - Broadcast System Fixes & Content Optimization
 
 ### Critical Issues Resolved
