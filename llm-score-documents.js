@@ -12,10 +12,10 @@ const CHECKPOINT_FILE = 'llm-scoring-checkpoint.json';
 
 const db = new Database('./agent/data/db.sqlite');
 
-// Scoring prompt optimized for your mission - DOMAIN SPECIFIC
+// Scoring prompt optimized for your mission - DOMAIN SPECIFIC (Enhanced 2025-12-31)
 const SCORING_PROMPT = `Rate this content's alignment with AI10BRO's mission on a 0-100 scale.
 
-AI10BRO Mission: Highlight COMMERCIAL innovations in these SPECIFIC domains:
+AI10BRO Mission: Highlight COMMERCIAL innovations in biotech/synthetic biology/biomaterials
 
 INCLUDE these domains:
 ✓ Synthetic biology (engineered organisms, genetic circuits, programmable cells)
@@ -34,15 +34,48 @@ EXCLUDE these domains (even if commercial):
 ✗ Clean energy/climate WITHOUT bio component (solar, batteries, etc.)
 ✗ Traditional agriculture without genetic engineering
 
-Score HIGH (60-100) ONLY if BOTH conditions met:
-1. In the CORRECT domain (biotech/synthetic biology/biomaterials)
-2. AND commercial (products launching, companies, funding, FDA approvals, market entry)
+BONUS POINTS - Add +10 points EACH if content mentions these tracked entities (max +30):
+
+Companies: Ginkgo Bioworks, Upside Foods, Perfect Day, Twist Bioscience, Synthego,
+           Bolt Threads, Mammoth Biosciences, Solugen, Crispr Therapeutics, Recursion Pharmaceuticals,
+           Insitro, Zymergen, Spiber, New Culture, Geltor
+
+Research Labs: Broad Institute, Wyss Institute, J. Craig Venter Institute, Salk Institute,
+               Lawrence Berkeley National Lab, Caltech (Frances Arnold), Stanford Bio-X
+
+VCs: ARCH Venture Partners, Flagship Pioneering, a16z bio fund, Khosla Ventures (bio deals),
+     OrbiMed, Sofinnova Ventures, Frazier Life Sciences
+
+COMMERCIAL SIGNAL KEYWORDS (boost score if present):
+Food Biotech: "precision fermentation", "cell-based meat", "fungal protein", "lab-grown dairy",
+              "alternative protein", "mycoprotein", "cultivated meat"
+
+Materials: "mycelium", "bio-concrete", "spider silk", "bio-plastics", "brewed protein",
+           "bio-leather", "self-healing materials", "fungal leather", "chitin-based"
+
+Energy/Environment: "enzymatic carbon capture", "bio-solar", "algal biofuels",
+                    "microbial fuel cells", "bio-batteries", "biomass conversion"
+
+Medicine: "CAR-T", "phage therapy", "RNA vaccines", "bispecifics", "antibody engineering",
+          "oncolytic viruses", "precision oncology", "neoantigen vaccines"
+
+Agriculture: "bio-pesticide", "nitrogen-fixing", "CRISPR crops", "RNA interference",
+             "gene-edited seeds", "drought-resistant", "yield-enhancing genes"
+
+Regulatory/Commercial: "FDA approved", "GRAS status", "Phase II results", "100-fold scale-up",
+                       "commercial scale", "first customer", "market entry", "Series B funding",
+                       "IPO", "bioreactor", "GMP compliant", "pilot scale"
+
+Score HIGH (60-100) ONLY if:
+1. In CORRECT domain (biotech/synbio/biomaterials)
+2. AND commercial (products, companies, funding, FDA approvals, market entry)
+3. BONUS: Mentions tracked entities or commercial keywords above
 
 Examples of HIGH scores:
-- "Ginkgo Bioworks announces $100M Series C for engineered organisms" (80)
-- "MycoWorks launches mycelium leather in production" (75)
-- "Perfect Day's precision fermentation proteins now in stores" (70)
-- "CRISPR Therapeutics gets FDA approval for gene therapy" (85)
+- "Ginkgo Bioworks announces $100M Series C for engineered organisms" (80 + 10 = 90)
+- "Upside Foods gets FDA approval for cultivated meat" (85 + 10 = 95)
+- "Perfect Day's precision fermentation proteins now in stores" (70 + 10 = 80)
+- "Bio-concrete startup achieves commercial scale with 100-fold scale-up" (75)
 
 Examples of MEDIUM scores (20-50):
 - Applied synthetic biology research with commercial potential (30-40)
