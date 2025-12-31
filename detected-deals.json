@@ -1,0 +1,72 @@
+[
+  {
+    "type": "product",
+    "company_id": "723be1f22a2dcadfd41f52dc62e498da",
+    "company_name": "Cemvita",
+    "product_name": "two",
+    "regulatory_mention": null,
+    "context": "announced two",
+    "position": 306,
+    "source_document_id": "d51194d6-74d0-0f36-ba32-1d192ec6ff1d"
+  },
+  {
+    "type": "product",
+    "company_id": "723be1f22a2dcadfd41f52dc62e498da",
+    "company_name": "Cemvita",
+    "product_name": "two",
+    "regulatory_mention": null,
+    "context": "announced two",
+    "position": 1089,
+    "source_document_id": "d51194d6-74d0-0f36-ba32-1d192ec6ff1d"
+  },
+  {
+    "type": "product",
+    "company_id": "a49a12f6463e893a09872df6ae4b69a2",
+    "company_name": "Newlight Technologies",
+    "product_name": "the",
+    "regulatory_mention": null,
+    "context": "announced the",
+    "position": 495,
+    "source_document_id": "38b0a40f-a40f-40a40f70dc3-90b0a40f70dc339085-3390857f"
+  },
+  {
+    "type": "product",
+    "company_id": "a49a12f6463e893a09872df6ae4b69a2",
+    "company_name": "Newlight Technologies",
+    "product_name": "the",
+    "regulatory_mention": null,
+    "context": "announced the",
+    "position": 495,
+    "source_document_id": "30824566-b4db-062c-a8bd-ee90834138d4"
+  },
+  {
+    "type": "product",
+    "company_id": "723be1f22a2dcadfd41f52dc62e498da",
+    "company_name": "Cemvita",
+    "product_name": "two",
+    "regulatory_mention": null,
+    "context": "announced two",
+    "position": 306,
+    "source_document_id": "7e8f90e1-f60f-4498-88a7-750e70228a20"
+  },
+  {
+    "type": "product",
+    "company_id": "723be1f22a2dcadfd41f52dc62e498da",
+    "company_name": "Cemvita",
+    "product_name": "two",
+    "regulatory_mention": null,
+    "context": "announced two",
+    "position": 1089,
+    "source_document_id": "7e8f90e1-f60f-4498-88a7-750e70228a20"
+  },
+  {
+    "type": "product",
+    "company_id": "a49a12f6463e893a09872df6ae4b69a2",
+    "company_name": "Newlight Technologies",
+    "product_name": "the",
+    "regulatory_mention": null,
+    "context": "announced the",
+    "position": 495,
+    "source_document_id": "64b190b9-af99-4bb6-a221-eb022608c100"
+  }
+]
