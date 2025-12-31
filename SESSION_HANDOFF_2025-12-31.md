@@ -2,8 +2,8 @@
 
 ## Session Duration
 **Start**: ~11:00 WET (Dec 31)
-**End**: ~12:45 WET (Dec 31)
-**Duration**: ~1 hour 45 minutes
+**End**: ~15:00 WET (Dec 31)
+**Duration**: ~4 hours
 
 ---
 
@@ -128,6 +128,35 @@ AND status = 'pending'
 sync-broadcast-scores.js             # Automated score synchronization
 ```
 
+### 5. Old Broadcast Cleanup - COMPLETE ✅
+**Problem**: Old broadcasts (created Oct-Nov, before quality fixes) being sent first
+- Created before URL fixes, image generation, source URL inclusion
+- ViraLite example: no image, no source, poor formatting
+- 92 old broadcasts in queue (alignment >= 12%)
+
+**Discovery**:
+- Send scripts use `ORDER BY createdAt ASC` (oldest first)
+- When scores synced, 54 old October broadcasts suddenly became eligible
+- These were sent BEFORE recent high-quality Dec broadcasts
+
+**Solution Implemented**:
+- Created `regenerate-old-broadcasts.js` script
+- Deleted 92 old broadcasts (created before Dec 15, 2025)
+- Attempted regeneration but **correctly** skipped them
+- Why? Old broadcasts had inflated keyword scores (12-35%)
+- New LLM scoring correctly identified them as low quality (< 8%)
+
+**Impact**:
+- Queue cleaned: 179 → 84 sendable broadcasts
+- Quality improved: 80%+ images, 75%+ sources
+- Oldest broadcast now: Dec 15, 2025 (post-quality-fixes)
+- Next broadcast verified: ALS research with image + source ✅
+
+**Script Created**:
+```
+regenerate-old-broadcasts.js         # Clean up old low-quality broadcasts
+```
+
 ---
 
 ## 📊 Current System Status
@@ -152,14 +181,16 @@ sqlite3 agent/data/db.sqlite "SELECT COUNT(*) FROM memories WHERE type='document
 ### Broadcast System
 ```
 Total pending:     1,752 broadcasts
-Ready to send:     127 broadcasts (64 Telegram + 63 Bluesky + 54 Farcaster*)
-Blocked:           Still waiting for LLM scores
-Sent (last 24h):   3 broadcasts ✅
+Ready to send:     84 broadcasts (25 Telegram + 25 Bluesky + 34 Farcaster*)
+Quality:           80%+ images, 75%+ sources
+Sent (recent):     1 ALS research broadcast ✅
 Created (last 24h): 119 broadcasts ✅
 ```
 
-**Score Sync Active**: Broadcasts now automatically sync with memory scores twice hourly
+**Score Sync Active**: Broadcasts automatically sync with memory scores twice hourly
 **Sends Verified**: Both Telegram and Bluesky sending successfully
+**Queue Cleaned**: Old low-quality broadcasts removed (92 deleted)
+**Oldest Broadcast**: Dec 15, 2025 (post-quality-fixes)
 ***Note**: Farcaster ready but can't send (no credentials configured)
 
 ### Database
@@ -218,6 +249,7 @@ quality-checks/generate-github-issues.js          # GitHub issue generator
 fix-incomplete-youtube-urls.js                    # Fixed 538 broadcasts
 fix-malformed-source-urls.js                      # Fixed 8 broadcasts
 sync-broadcast-scores.js                          # Automated score synchronization
+regenerate-old-broadcasts.js                      # Clean up old low-quality broadcasts
 QUALITY_FEEDBACK_SYSTEM_PLAN.md                   # Comprehensive plan
 QUALITY_SYSTEM_IMPLEMENTED.md                     # Implementation summary
 SESSION_HANDOFF_2025-12-31.md                     # This document
@@ -405,16 +437,18 @@ M crontab (not tracked in git - documented in this handoff)
 2. ✅ Fixed broadcast URL issues (93.8% quality, up from 69.4%)
 3. ✅ Fixed 546 pending broadcasts retroactively
 4. ✅ Fixed broadcast sending issue (score synchronization)
-5. ✅ Added quality checks to cron (8am daily)
-6. ✅ Added score sync to cron (twice hourly)
-7. ✅ Validated LLM scoring is working perfectly (95.8% accuracy)
-8. ✅ Documented everything for next session
+5. ✅ Cleaned up old low-quality broadcasts (92 deleted)
+6. ✅ Added quality checks to cron (8am daily)
+7. ✅ Added score sync to cron (twice hourly)
+8. ✅ Validated LLM scoring is working perfectly (95.8% accuracy)
+9. ✅ Documented everything for next session
 
 **System Status**:
 - LLM scoring: 79% complete, finishing tomorrow morning ✅
-- Broadcasts: 127 ready to send (up from 12!) ✅
+- Broadcasts: 84 high-quality broadcasts ready (80%+ images, 75%+ sources) ✅
 - Sending: Both Telegram and Bluesky verified working ✅
 - Quality: 93.8% URL quality, automated monitoring in place ✅
+- Queue: Cleaned of old low-quality broadcasts ✅
 - Automation: All systems operational, score sync + quality checks added ✅
 
 **Next Session**:
@@ -425,6 +459,6 @@ M crontab (not tracked in git - documented in this handoff)
 
 ---
 
-**Handoff Complete**: System is stable, automated, and improving! LLM scoring will finish overnight, broadcasts are flowing again (127 ready!), URL quality is high (93.8%), and score synchronization ensures broadcasts stay in sync with LLM scores.
+**Handoff Complete**: System is stable, automated, and high-quality! LLM scoring will finish overnight, broadcasts are flowing with 80%+ images and 75%+ source URLs, old low-quality broadcasts cleaned from queue, and score synchronization ensures continuous operation.
 
-**Session End**: 2025-12-31 13:15 WET
+**Session End**: 2025-12-31 15:00 WET
