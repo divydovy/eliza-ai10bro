@@ -460,11 +460,29 @@ OUTPUT YOUR BROADCAST NOW (no labels, just the engaging text):`;
                     sourceUrl = externalUrl || null;
                 }
 
-                // Clean URL: strip query parameters (utm_source, etc.)
+                // Clean URL: strip tracking parameters but preserve essential ones
                 if (sourceUrl && sourceUrl.startsWith('http')) {
                     try {
                         const urlObj = new URL(sourceUrl);
-                        sourceUrl = urlObj.origin + urlObj.pathname;
+
+                        // Sites that NEED query parameters (don't strip)
+                        const sitesNeedingParams = [
+                            'youtube.com',
+                            'youtu.be',
+                            'twitter.com',
+                            'x.com',
+                            'linkedin.com'
+                        ];
+
+                        const needsParams = sitesNeedingParams.some(site => urlObj.hostname.includes(site));
+
+                        if (needsParams) {
+                            // Keep the URL as-is for these sites
+                            sourceUrl = urlObj.href;
+                        } else {
+                            // For other sites, strip query parameters to remove tracking
+                            sourceUrl = urlObj.origin + urlObj.pathname;
+                        }
                     } catch (e) {
                         // If URL parsing fails, use original
                     }
