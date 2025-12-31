@@ -81,6 +81,53 @@ fix-malformed-source-urls.js         # Fixed 8 broadcasts
 - URL quality: 69.4% → 93.8% (+24.4 points!)
 - Issues reduced: 98 → 20 broadcasts (80% reduction)
 
+### 4. Broadcast Score Synchronization - FIXED ✅
+**Problem**: Broadcasts stopped sending despite being ready (last send: Dec 29, 2 days ago)
+
+**Root Cause**:
+- Broadcasts created with alignment_score copied from memories at creation time
+- When LLM rescoring updated memories table, broadcasts table remained stale
+- Send scripts check `broadcasts.alignment_score >= 0.12`
+- Result: broadcasts table had 3-4% (old keyword scores), memories had 15-35% (new LLM scores)
+
+**Fixes Implemented**:
+
+**A. Immediate Fix** (SQL):
+```sql
+UPDATE broadcasts
+SET alignment_score = (
+    SELECT alignment_score FROM memories
+    WHERE memories.id = broadcasts.documentId
+)
+WHERE documentId IN (
+    SELECT id FROM memories
+    WHERE alignment_score IS NOT NULL
+)
+AND status = 'pending'
+```
+
+**B. Automated Solution** (`sync-broadcast-scores.js`):
+- Syncs broadcast scores with memory scores automatically
+- Runs twice hourly at :35 and :55 via cron
+- Runs BEFORE send scripts (Telegram :00, Bluesky :40)
+- Shows summary of ready broadcasts after sync
+
+**C. Verification**:
+- Manually tested both send scripts - working!
+- Bluesky: Successfully sent 1 broadcast
+- Telegram: Successfully sent 1 broadcast
+
+**Impact**:
+- Ready broadcasts: 12 → 127 (10x increase!)
+- Telegram ready: 0 → 64 broadcasts
+- Bluesky ready: 0 → 63 broadcasts
+- Sends will now flow automatically every hour
+
+**Script Created**:
+```
+sync-broadcast-scores.js             # Automated score synchronization
+```
+
 ---
 
 ## 📊 Current System Status
@@ -105,13 +152,15 @@ sqlite3 agent/data/db.sqlite "SELECT COUNT(*) FROM memories WHERE type='document
 ### Broadcast System
 ```
 Total pending:     1,752 broadcasts
-Ready to send:     16 broadcasts (8 Telegram + 8 Bluesky)
+Ready to send:     127 broadcasts (64 Telegram + 63 Bluesky + 54 Farcaster*)
 Blocked:           Still waiting for LLM scores
 Sent (last 24h):   3 broadcasts ✅
 Created (last 24h): 119 broadcasts ✅
 ```
 
-**As more documents get scored → more broadcasts become sendable!**
+**Score Sync Active**: Broadcasts now automatically sync with memory scores twice hourly
+**Sends Verified**: Both Telegram and Bluesky sending successfully
+***Note**: Farcaster ready but can't send (no credentials configured)
 
 ### Database
 ```
@@ -126,13 +175,15 @@ Source breakdown:
 
 ### Cron Schedule (Updated)
 ```
-02:00  - Sync GitHub repositories
-02:30  - Import Obsidian content
-03:30  - Import GitHub scraper content (also 15:30)
-04:00  - Create broadcasts (also 10:00, 16:00, 22:00)
-08:00  - Run quality checks (NEW!)
+02:00      - Sync GitHub repositories
+02:30      - Import Obsidian content
+03:30      - Import GitHub scraper content (also 15:30)
+04:00      - Create broadcasts (also 10:00, 16:00, 22:00)
+08:00      - Run quality checks (NEW!)
 Every :00  - Send Telegram broadcasts
+Every :35  - Sync broadcast scores (NEW!)
 Every :40  - Send Bluesky broadcasts
+Every :55  - Sync broadcast scores (NEW!)
 Every 4hrs - Send WordPress Insights (at :20)
 ```
 
@@ -143,6 +194,7 @@ Every 4hrs - Send WordPress Insights (at :20)
 ### ✅ Working Correctly
 - **LLM Scoring**: Running overnight (5 workers, stable)
 - **Broadcast Creation**: Every 6 hours
+- **Broadcast Score Sync**: Twice hourly at :35 and :55 (NEW)
 - **Telegram Sends**: Hourly at :00
 - **Bluesky Sends**: Hourly at :40
 - **WordPress Insights**: Every 4 hours at :20
@@ -165,6 +217,7 @@ quality-checks/run-quality-checks.js              # Automated quality checker
 quality-checks/generate-github-issues.js          # GitHub issue generator
 fix-incomplete-youtube-urls.js                    # Fixed 538 broadcasts
 fix-malformed-source-urls.js                      # Fixed 8 broadcasts
+sync-broadcast-scores.js                          # Automated score synchronization
 QUALITY_FEEDBACK_SYSTEM_PLAN.md                   # Comprehensive plan
 QUALITY_SYSTEM_IMPLEMENTED.md                     # Implementation summary
 SESSION_HANDOFF_2025-12-31.md                     # This document
@@ -174,7 +227,7 @@ logs/quality/                                     # Quality reports directory
 ### Modified
 ```
 process-unprocessed-docs.js                       # Smart URL cleaning (lines 463-489)
-crontab                                           # Added quality checks at 8am
+crontab                                           # Added quality checks + score sync
 ```
 
 ### From Yesterday's Session (Still Running)
@@ -243,6 +296,18 @@ sqlite3 agent/data/db.sqlite "SELECT client, COUNT(*) FROM broadcasts WHERE stat
 
 # Recently sent?
 sqlite3 agent/data/db.sqlite "SELECT datetime(createdAt/1000, 'unixepoch', 'localtime') as sent_at, client FROM broadcasts WHERE status='sent' ORDER BY createdAt DESC LIMIT 10"
+
+# Check for score sync issues
+sqlite3 agent/data/db.sqlite "SELECT COUNT(*) as out_of_sync FROM broadcasts b JOIN memories m ON b.documentId = m.id WHERE b.status='pending' AND m.alignment_score IS NOT NULL AND (b.alignment_score IS NULL OR b.alignment_score != m.alignment_score)"
+```
+
+### Check Score Sync Status
+```bash
+# Manually run score sync
+node sync-broadcast-scores.js
+
+# Check sync log
+tail -f logs/cron-sync-scores.log
 ```
 
 ### Run Quality Check Manually
@@ -339,15 +404,18 @@ M crontab (not tracked in git - documented in this handoff)
 1. ✅ Built complete quality feedback system (automated daily checks)
 2. ✅ Fixed broadcast URL issues (93.8% quality, up from 69.4%)
 3. ✅ Fixed 546 pending broadcasts retroactively
-4. ✅ Added quality checks to cron (8am daily)
-5. ✅ Validated LLM scoring is working perfectly (95.8% accuracy)
-6. ✅ Documented everything for next session
+4. ✅ Fixed broadcast sending issue (score synchronization)
+5. ✅ Added quality checks to cron (8am daily)
+6. ✅ Added score sync to cron (twice hourly)
+7. ✅ Validated LLM scoring is working perfectly (95.8% accuracy)
+8. ✅ Documented everything for next session
 
 **System Status**:
 - LLM scoring: 79% complete, finishing tomorrow morning ✅
-- Broadcasts: 16 ready to send, more coming as scoring completes ✅
+- Broadcasts: 127 ready to send (up from 12!) ✅
+- Sending: Both Telegram and Bluesky verified working ✅
 - Quality: 93.8% URL quality, automated monitoring in place ✅
-- Automation: All systems operational, quality checks added ✅
+- Automation: All systems operational, score sync + quality checks added ✅
 
 **Next Session**:
 - Verify scoring completed successfully
@@ -357,6 +425,6 @@ M crontab (not tracked in git - documented in this handoff)
 
 ---
 
-**Handoff Complete**: System is stable, automated, and improving! LLM scoring will finish overnight, then broadcasts will flow freely with high-quality URLs and proper filtering.
+**Handoff Complete**: System is stable, automated, and improving! LLM scoring will finish overnight, broadcasts are flowing again (127 ready!), URL quality is high (93.8%), and score synchronization ensures broadcasts stay in sync with LLM scores.
 
-**Session End**: 2025-12-31 12:45 WET
+**Session End**: 2025-12-31 13:15 WET
