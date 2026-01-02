@@ -123,7 +123,7 @@ export class GitHubClient {
                     owner,
                     repo,
                     path: path || '',
-                    ref: 'main'
+                    ref: 'master'
                 });
 
                 if (!Array.isArray(response.data)) {

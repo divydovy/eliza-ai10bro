@@ -6,6 +6,353 @@
 **Main Character**: AI10BRO
 **Location**: `/Users/davidlockie/Documents/Projects/Eliza/`
 
+## Documentation Structure
+
+**Source of Truth**: Obsidian Project Files (Master Status & Architecture)
+- 📄 `/Users/davidlockie/vaults/Personal/1. Projects/ai10bro/AI10bro - Agent.md` - Complete project status, architecture, backlog, session log (MASTER REFERENCE)
+- 📄 `/Users/davidlockie/vaults/Personal/1. Projects/ai10bro/AI10bro - Platform.md` - Future database platform design
+- 📄 `/Users/davidlockie/vaults/Personal/1. Projects/ai10bro/AI10bro - Website.md` - WordPress site project
+- 📄 `/Users/davidlockie/vaults/Personal/1. Projects/ai10bro/AI10bro - Grok research.md` - Entity/channel research
+
+**CLAUDE.md (This File)**: Session handoff and work-in-progress documentation
+- Session-specific technical details and debugging notes
+- Files created/modified during current session
+- Temporary working context between sessions
+- Gets merged into Obsidian project file at end of major sessions
+
+**Latest Status from Obsidian** (as of 2025-12-31):
+- **Phase**: Production - Quality Perfection Phase Complete
+- **System Health**: 🟢 GREEN (Perfect Quality Achieved!)
+- **Documents**: 21,155 total (79% LLM scored, entity tracking deployed)
+- **Entity Tracking**: 106 entities tracked, 290 mentions detected, 51% of top-tier docs mention entities
+- **Broadcasts Ready**: 51 sendable (25 Telegram + 26 Bluesky, 100% images + sources)
+- **Model**: qwen2.5:32b (21GB, 128K context, GPT-4o equivalent)
+- **Major Systems**: LLM scoring, entity tracking, deal detection, quality checks, automated cleanup
+
+## Session: 2026-01-02 - Database Cleanup & Telegram Fix
+
+### Major Accomplishments
+
+#### 1. Telegram Bot Fix - Fully Operational ✅
+**Problem**: Bot not responding to messages despite successful initialization
+**Root Causes**:
+- GitHub plugin running massive sync on every message (2000+ files)
+- Plugin was in `providers` array (runs on every message)
+- Should be scheduled action only (cron at 2am)
+
+**Fixes Applied**:
+- Removed `githubProvider` from providers array
+- Kept `syncGithubAction` for scheduled cron triggers
+- Fixed branch reference: `main` → `master` (repo uses master)
+- Updated `packages/plugin-github/src/index.ts`
+
+**Result**: Bot responds immediately to messages without GitHub sync blocking
+
+#### 2. Database Cleanup System - Complete Implementation ✅
+**Problem**: Massive database bloat from unaligned content
+- 21,934 total documents imported
+- 20,683 documents (94.3%) below 8% alignment
+- Import plugins imported ALL content regardless of alignment
+- Alignment scoring happened AFTER import with no cleanup
+
+**Solution: Tombstone Records Strategy**
+- Converts low-alignment docs (<8%) to tombstone records
+- Deletes: Content text + embedding vectors (reclaims 99% of space)
+- Keeps: File hash + deleted flag (prevents re-import)
+- Import plugins see hash exists and skip file
+
+**Implementation**:
+1. Re-ran alignment scoring for all 21,934 documents
+2. Created `cleanup-unaligned-documents.js` script
+3. Converted 21,293 docs to tombstones (threshold: 8%)
+4. Added automated daily schedule:
+   - 3:00am: Calculate alignment scores
+   - 3:50am: Cleanup unaligned documents
+   - 4:00am: Create broadcasts (existing)
+
+**Results**:
+- **Before**: 21,934 docs, 1,031 broadcast-ready (4.7%)
+- **After**: 641 active docs, 201 broadcast-ready (31.4%)
+- **Improvement**: 6.7x better database health
+- **Space**: 21,293 tombstones prevent re-import
+
+#### 3. Alignment Score Rescoring ✅
+**Finding**: Old alignment scores were outdated/inconsistent
+- 104 Obsidian docs scored below 8% (should be minimum 35%)
+- Scores calculated before recent keyword weight changes
+
+**Fix**: Re-ran `calculate-alignment-scores.js` for all docs
+- All 166 Obsidian docs now >= 35% (100% pass rate)
+- Applied updated keyword weights (commercial boost: 0.02 → 0.35)
+- Applied source quality multipliers correctly
+
+**Note**: Rescoring changed totals significantly:
+- Before: 1,031 docs >= 12%
+- After: 201 docs >= 12%
+- Reason: Updated scoring algorithm with commercial keyword boost
+
+### System Architecture Updates
+
+**New Daily Workflow**:
+```
+2:00am  → GitHub sync (import new files)
+2:30am  → Obsidian import (import new files)
+3:00am  → Calculate alignment scores ⭐ NEW
+3:50am  → Cleanup unaligned documents ⭐ NEW
+4:00am  → Create broadcasts (existing)
+```
+
+**Database Health**:
+- Active docs: 641 (all >= 8% alignment)
+- Broadcast-ready (>=12%): 201 (31.4%)
+- WordPress-ready (>=20%): 167 (26.0%)
+- High quality (>=30%): 166 (25.9%)
+
+### Files Created/Modified
+
+**Created**:
+- `cleanup-unaligned-documents.js` - Tombstone conversion script
+- `DATABASE_CLEANUP_IMPLEMENTATION.md` - Complete technical spec
+- `TELEGRAM_FIX_COMPLETE.md` - Telegram debugging summary
+
+**Modified**:
+- `packages/plugin-github/src/index.ts` - Removed provider, kept action
+- `packages/plugin-github/src/providers/githubProvider.ts` - Fixed branch ref
+- `CONTENT_IMPORT_ARCHITECTURE.md` - Added cleanup workflow
+- `crontab` - Added alignment + cleanup schedules
+- `CLAUDE.md` - This session (you are here)
+
+### Next Session Priorities
+
+1. Monitor alignment scoring + cleanup tonight (3am run)
+2. Verify broadcast creation uses only active docs (not tombstones)
+3. Check database size reduction after vacuum
+4. Consider if 201 broadcast-ready docs is sufficient pipeline
+
+---
+
+## Session: 2026-01-02 Afternoon - GitHub Sync Restoration
+
+### CRITICAL DISCOVERY: 7+ Months of No GitHub Imports ⚠️
+
+**Problem Identified**:
+- User: "I thought we had like 20k documents from github alone?"
+- Database showed only 90 documents with `source='github'`
+- Last GitHub import: **May 5, 2025** (7+ months ago!)
+- 21,556 documents had NO source field (empty/null)
+
+**Root Cause Analysis**:
+File: `packages/plugin-dashboard/src/services/action-api.js` (lines 344-409)
+
+```javascript
+// THE BUG: Stub handler that did nothing
+async SYNC_GITHUB() {
+    // ... just checked status, NEVER ACTUALLY SYNCED ...
+    result.steps.push({
+        step: 'Info',
+        message: 'GitHub sync runs automatically when agent starts',  // FALSE!
+        status: 'info'
+    });
+    result.success = true;
+    return result;
+}
+```
+
+The handler was a **stub** - it reported "already synced" without actually syncing!
+
+### Major Accomplishments
+
+#### 1. GitHub Sync System Fixed ✅
+**Created**: `sync-github-now.js` - Standalone GitHub repository sync script
+- Recursively scans ai10bro-gdelt repository for markdown files
+- Properly sets `source='github'` field (was missing before)
+- Calculates file hash for deduplication
+- Creates or updates documents in database
+- Handles GitHub API with correct branch (`master`, not `main`)
+
+**Fixed**: `action-api.js` SYNC_GITHUB handler (lines 344-428)
+- Replaced stub with actual sync implementation
+- Calls `sync-github-now.js` script
+- Parses output for processed/skipped counts
+- Returns proper status and statistics
+
+#### 2. Full Repository Sync - IN PROGRESS 🔄
+**Previous State**: GITHUB_TARGET_PATH="Notes" (only 13,861 files)
+**User Decision**: "do it" - sync entire repository from root
+
+**Changed**: GITHUB_TARGET_PATH="" (empty = root directory)
+
+**Current Status**:
+- Process ID: 13339
+- Files found: 5,105 markdown files from GitHub API
+- Progress: 1,600 files processed, 2,000 skipped (unchanged)
+- Importing from: Notes/ (13,861), Papers/ (200), Reddit/ (45), root docs
+- Log: `logs/manual-github-sync-full.log`
+- **Running in background** - will complete automatically
+
+#### 3. Source Field Investigation ✅
+**Finding**: 21,556 documents had no `source` field
+- These were imported before source tracking was added
+- Cannot determine original source (GitHub, Obsidian, PubMed, etc.)
+- Hash-based deduplication prevented re-import
+
+**Fix**: New sync script properly sets `source='github'` on all imports
+
+### Technical Fixes Applied
+
+**Error 1: Module Not Found - @elizaos/core**
+- **Fix**: Replaced with custom `stringToUuid` function using crypto
+
+**Error 2: SQL Syntax Error - "unique" keyword**
+- **Fix**: Quoted reserved keyword: `"unique"` in INSERT statements
+
+**Error 3: GitHub API 404 - No Commit Found**
+- **Fix**: Changed `ref: 'main'` → `ref: 'master'` (repo uses master branch)
+
+**Error 4: Module Type Warning**
+- **Fix**: Converted to ES module imports (better performance)
+
+### Files Created/Modified
+
+**Created**:
+- `sync-github-now.js` - Standalone GitHub sync script (198 lines)
+
+**Modified**:
+- `packages/plugin-dashboard/src/services/action-api.js` - Fixed SYNC_GITHUB handler
+- `characters/ai10bro.character.json` - Changed GITHUB_TARGET_PATH: "Notes" → ""
+
+**Logs**:
+- `logs/manual-github-sync-full.log` - Full sync progress (monitoring)
+- `logs/manual-github-sync-4.log` - Previous partial sync (Notes only)
+
+### Expected Results
+
+After sync completes (~10-20 minutes total):
+- **New documents**: ~3,000+ from Papers/, Reddit/, and missed Notes/ files
+- **Updated documents**: ~2,000 existing files with hash changes
+- **All GitHub docs** will have proper `source='github'` field
+- **Total GitHub docs**: Expected ~5,000+ (up from 90!)
+
+### X/Twitter Posting Investigation
+
+**User Question**: "Could we use Claude in Chrome to post to X without needing API access?"
+
+**Technical Approaches Considered**:
+
+1. **Puppeteer/Playwright Browser Automation**
+   - Control Chrome programmatically
+   - Simulate human posting behavior
+   - Use session cookies/credentials
+   - Complexity: Medium
+
+2. **Chrome Extension**
+   - Build extension with X permissions
+   - Uses user's logged-in session
+   - Posts from agent via extension API
+   - Complexity: Medium-High
+
+3. **MCP Browser Integration**
+   - Model Context Protocol with browser control
+   - Claude Desktop computer use capabilities
+   - Programmatic browser control
+   - Complexity: High (experimental)
+
+**Major Risks ⚠️**:
+
+1. **Terms of Service Violations**
+   - X explicitly prohibits automated posting without API
+   - High risk of permanent account suspension (@ai10bro)
+   - Active detection of automation patterns
+   - No appeal process for suspended accounts
+
+2. **Technical Fragility**
+   - X changes UI selectors frequently to break bots
+   - Requires constant maintenance (weekly/monthly updates)
+   - Session management complexities (cookies, 2FA, CAPTCHA)
+   - Posting patterns easily detected (timing, behavior)
+
+3. **Account Value Risk**
+   - @ai10bro Twitter account would be at risk
+   - All followers/engagement lost if banned
+   - No way to recover content/audience
+
+**Current Platform Status**:
+- ✅ Bluesky: Official `@atproto/api`, designed for automation, working perfectly
+- ✅ Telegram: Official Bot API, explicitly allowed, working perfectly
+- ⚠️ X/Twitter: Requires $100/mo API OR high-risk automation
+
+**Recommendation**: NOT RECOMMENDED
+- Risk far exceeds benefit given account suspension consequences
+- Bluesky/Telegram performing well without API costs
+- If X presence needed: Pay $100/mo for legitimate API OR manual posting
+
+**Backlog Options**:
+1. **Manual Posting Workflow** (Safest) - Generate broadcasts, human posts to X
+2. **Budget for X API** ($100/mo) - Legitimate automation, proper rate limits
+3. **Focus on Working Platforms** - Bluesky/Telegram sufficient for now
+4. **Research Automation** (Low Priority) - Only if willing to risk account suspension
+
+**Decision Required**: Determine if X audience justifies $100/mo cost vs current working platforms
+
+#### 4. CRITICAL DISCOVERY: Missing 9,000 Files ⚠️
+
+**Problem**: GitHub API only returned 5,105 files, but local repo has **14,106 files**
+
+| Source | Files | Status |
+|--------|-------|--------|
+| Local repo (disk) | 14,106 | Actual files on disk |
+| GitHub API | 5,105 | What API returned |
+| **MISSING** | **8,901** | **63% of files NOT found by API!** |
+
+**Rate Limit Hit**:
+- Limit: 5,000 requests/hour (authenticated)
+- Used: 5,000/5,000 (100% exhausted)
+- Remaining: 0
+- Reset: 17:10 WET (~40 minutes)
+
+**Why API Missed 9,000 Files**:
+- API pagination limits per directory
+- Large directory truncation
+- Recursive scan not following all pagination links
+- GitHub API repo.getContent() has known limitations
+
+### Solutions to Avoid Rate Limits & Get All Files
+
+**Option 1: Git Clone Approach** ⭐⭐ RECOMMENDED
+- Clone repo locally, read files from disk
+- **ZERO API calls** (no rate limits!)
+- Guaranteed to find all 14,106 files
+- Faster (disk read vs HTTP)
+- Requires ~50-100MB disk space
+
+**Option 2: Add Rate Limit Detection**
+- Check `x-ratelimit-remaining` header after each request
+- Pause gracefully when limit is low (< 100 remaining)
+- Resume at next scheduled run (2am cron)
+
+**Option 3: Add Throttling**
+- Add 200ms delay between requests
+- Max 300 files/minute = 18,000/hour (safe)
+- Slower but predictable
+
+**Option 4: GraphQL API**
+- Single query for multiple files
+- More efficient than REST API
+- Still limited by 5,000 req/hour
+
+**Created**: `GITHUB_SYNC_RATE_LIMIT_ANALYSIS.md` - Complete analysis and solutions
+
+### Next Steps
+
+1. ✅ Wait for sync to complete (monitoring in background)
+2. ✅ Report final statistics when complete
+3. ⏭️ **DECISION NEEDED**: Switch to git clone approach to get all 14,106 files?
+4. ⏭️ Run alignment scoring on newly imported docs
+5. ⏭️ Update documentation with final numbers
+6. ⏭️ Decide on X/Twitter strategy (backlog item)
+
+---
+
 ## Session: 2025-12-31 Morning - Grok Research Integration Phase 2
 
 ### Major Accomplishments

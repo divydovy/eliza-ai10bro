@@ -347,65 +347,83 @@ const actionHandlers = {
             started: new Date().toISOString(),
             steps: []
         };
-        
+
         try {
-            // Check if GitHub sync is configured
-            const characterPath = path.join(process.cwd(), 'characters/ai10bro.character.json');
-            const character = JSON.parse(readFileSync(characterPath, 'utf-8'));
-            const githubToken = character.settings?.secrets?.GITHUB_TOKEN;
-            
-            if (!githubToken) {
-                result.steps.push({
-                    step: 'Configuration check',
-                    message: 'GitHub token not configured',
-                    status: 'error'
-                });
-                result.success = false;
-                return result;
+            // Calculate absolute path to GitHub sync script from project root
+            const projectRoot = path.join(__dirname, '../../../..');
+            const syncScriptPath = path.join(projectRoot, 'sync-github-now.js');
+
+            result.steps.push({
+                step: 'Starting GitHub sync',
+                message: 'Scanning repository for markdown files...'
+            });
+
+            // Call the GitHub sync script
+            const { stdout, stderr } = await execPromise(`node "${syncScriptPath}"`);
+
+            // Parse the output
+            const lines = stdout.split('\n');
+            let processed = 0;
+            let skipped = 0;
+            let total = 0;
+
+            for (const line of lines) {
+                if (line.includes('Found') && line.includes('Markdown files')) {
+                    const match = line.match(/Found.*?(\d+).*Markdown files/);
+                    if (match) {
+                        total = parseInt(match[1]);
+                        result.steps.push({
+                            step: 'Scanning',
+                            message: `Found ${total} markdown files in repository`,
+                            count: total
+                        });
+                    }
+                }
+                if (line.includes('Processing file:')) {
+                    processed++;
+                }
+                if (line.includes('Skipping unchanged file:')) {
+                    skipped++;
+                }
+                if (line.includes('Sync complete:')) {
+                    const match = line.match(/(\d+) files processed.*?(\d+) files skipped/);
+                    if (match) {
+                        processed = parseInt(match[1]);
+                        skipped = parseInt(match[2]);
+                    }
+                }
             }
-            
-            // Check current GitHub documents
-            const githubDocs = db.prepare(`
-                SELECT COUNT(*) as count FROM memories 
-                WHERE type = 'documents' 
-                AND json_extract(content, '$.source') = 'github'
-            `).get();
-            
-            result.steps.push({
-                step: 'Current GitHub docs',
-                message: `Found ${githubDocs.count} documents from GitHub`,
-                count: githubDocs.count
-            });
-            
-            // Check if plugin-github is loaded
-            result.steps.push({
-                step: 'Sync status',
-                message: `GitHub documents already synced via plugin-github`,
-                status: 'success'
-            });
-            
-            if (githubDocs.count > 0) {
+
+            if (stderr) {
+                console.error('GitHub sync stderr:', stderr);
                 result.steps.push({
-                    step: 'Info',
-                    message: 'GitHub sync runs automatically when agent starts',
-                    status: 'info'
-                });
-            } else {
-                result.steps.push({
-                    step: 'Action needed',
-                    message: 'Check that plugin-github is enabled in character file',
+                    step: 'Warning',
+                    message: stderr.substring(0, 200),
                     status: 'warning'
                 });
             }
-            
+
+            result.steps.push({
+                step: 'Sync complete',
+                message: `Processed ${processed} new/changed files, skipped ${skipped} unchanged files`,
+                processed,
+                skipped,
+                total
+            });
+
             result.success = true;
             result.completed = new Date().toISOString();
-            
+
         } catch (error) {
             result.success = false;
             result.error = error.message;
+            result.steps.push({
+                step: 'Error',
+                message: error.message,
+                status: 'error'
+            });
         }
-        
+
         return result;
     },
 
