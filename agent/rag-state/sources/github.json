@@ -1,8 +1,5 @@
 {
-  "lastChecked": "2025-09-16T17:00:23.917Z",
-  "totalDocuments": 0,
-  "processedDocuments": 0,
-  "skippedDocuments": 0,
-  "lastUpdated": "2025-09-16T17:00:24.358Z",
-  "lastError": "No commit found for the ref main - https://docs.github.com/v3/repos/contents/"
+  "processedDocuments": 731,
+  "skippedDocuments": 518,
+  "lastUpdated": "2026-01-02T15:25:24.929Z"
 }

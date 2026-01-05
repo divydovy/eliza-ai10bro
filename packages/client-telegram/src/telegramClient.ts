@@ -4,6 +4,8 @@ import { IAgentRuntime, elizaLogger } from "@elizaos/core";
 import { MessageManager } from "./messageManager.ts";
 import { getOrCreateRecommenderInBe } from "./getOrCreateRecommenderInBe.ts";
 
+elizaLogger.log("🔴 LOADING TELEGRAM CLIENT SOURCE FILE - VERSION CHECK 🔴");
+
 export class TelegramClient {
     private bot: Telegraf<Context>;
     private runtime: IAgentRuntime;
@@ -26,9 +28,10 @@ export class TelegramClient {
     public async start(): Promise<void> {
         elizaLogger.log("🚀 Starting Telegram bot...");
         try {
-            await this.initializeBot();
+            // Setup handlers BEFORE launching bot
             this.setupMessageHandlers();
             this.setupShutdownHandlers();
+            await this.initializeBot();
         } catch (error) {
             elizaLogger.error("❌ Failed to launch Telegram bot:", error);
             throw error;
@@ -36,14 +39,21 @@ export class TelegramClient {
     }
 
     private async initializeBot(): Promise<void> {
-        this.bot.launch({ dropPendingUpdates: true });
-        elizaLogger.log(
-            "✨ Telegram bot successfully launched and is running!"
-        );
+        elizaLogger.log("Initializing bot WITHOUT await on launch...");
 
+        // Don't await bot.launch() - it blocks forever due to polling loop
+        // Launch returns a promise that resolves only when bot stops
+        this.bot.launch({
+            allowedUpdates: ['message', 'edited_message', 'callback_query', 'inline_query']
+        });
+
+        elizaLogger.log("Bot launch initiated (non-blocking)...");
+
+        // Get bot info to ensure connection is established
         const botInfo = await this.bot.telegram.getMe();
         this.bot.botInfo = botInfo;
-        elizaLogger.success(`Bot username: @${botInfo.username}`);
+        elizaLogger.success(`✨ Bot ready: @${botInfo.username}`);
+        elizaLogger.log(`Bot can_read_all_group_messages: ${botInfo.can_read_all_group_messages}`);
 
         this.messageManager.bot = this.bot;
     }
@@ -81,6 +91,13 @@ export class TelegramClient {
     private setupMessageHandlers(): void {
         elizaLogger.log("Setting up message handler...");
 
+        // Catch ALL updates to debug
+        this.bot.use(async (ctx, next) => {
+            elizaLogger.log("🔔 UPDATE RECEIVED:", ctx.updateType);
+            elizaLogger.log("Update data:", JSON.stringify(ctx.update).substring(0, 200));
+            await next();
+        });
+
         this.bot.on(message("new_chat_members"), async (ctx) => {
             try {
                 const newMembers = ctx.message.new_chat_members;
@@ -97,11 +114,22 @@ export class TelegramClient {
         });
 
         this.bot.on("message", async (ctx) => {
+            elizaLogger.log("📨 TELEGRAM MESSAGE RECEIVED");
+            elizaLogger.log("From:", ctx.from?.id, ctx.from?.username);
+            elizaLogger.log("Chat:", ctx.chat?.id, ctx.chat?.type);
+            elizaLogger.log("BotInfo available:", !!this.bot.botInfo);
+
             try {
                 // Check group authorization first
-                if (!(await this.isGroupAuthorized(ctx))) {
+                const isAuthorized = await this.isGroupAuthorized(ctx);
+                elizaLogger.log("Authorization check result:", isAuthorized);
+
+                if (!isAuthorized) {
+                    elizaLogger.log("❌ Message REJECTED by authorization");
                     return;
                 }
+
+                elizaLogger.log("✅ Calling messageManager.handleMessage");
 
                 if (this.tgTrader) {
                     const userId = ctx.from?.id.toString();
