@@ -29,6 +29,114 @@
 - **Model**: qwen2.5:32b (21GB, 128K context, GPT-4o equivalent)
 - **Major Systems**: LLM scoring, entity tracking, deal detection, quality checks, automated cleanup
 
+## Session: 2026-01-07 - Dashboard Quality Fixes
+
+### Session Summary: ✅ COMPLETE - All 6 Dashboard Issues Fixed
+
+**Duration**: ~90 minutes
+**Focus**: Comprehensive dashboard fixes per user directive "Fix it all"
+
+### Issues Fixed
+
+#### 1. Duplicate Broadcast Entries ✅
+**Problem**: Same broadcast appearing 6 times in "Recent Broadcast Activity"
+**Root Cause**: Query returned all broadcasts without deduplication
+**Fix**: Modified `/api/recent-broadcasts` endpoint (broadcast-api.js:314-364)
+- Added INNER JOIN with subquery to group by documentId
+- Returns one broadcast per document (most recent)
+- Filters to only 'sent' status broadcasts
+
+#### 2. "Untitled" Document Titles ✅
+**Problem**: All documents in "Recently Imported Knowledge" showing as "Untitled"
+**Root Cause**: GitHub documents store title in YAML frontmatter, not as separate field
+**Fix**: Created `extractTitleFromYAML()` helper function (broadcast-api.js:31-64)
+- Parses YAML frontmatter to extract title
+- Handles quoted and unquoted title values
+- Fallback chain: explicit title → YAML frontmatter → text substring → "Untitled"
+
+#### 3. Outdated Source Quality Metrics ✅
+**Problem**: Source metrics showing 12,153 GitHub docs (actual: 14,776)
+**Root Cause**: Used LIKE-based queries on JSON content (inefficient and inaccurate)
+**Fix**: Rewrote `/api/source-metrics` query (broadcast-api.js:474-485)
+- Uses `json_extract(m.content, '$.source')` for accurate extraction
+- Counts DISTINCT sent broadcasts only
+- Orders by document count DESC
+
+#### 4. Incorrect Automation Schedule Info ✅
+**Problem**: Dashboard reading LaunchAgent plists (don't exist - using cron)
+**Root Cause**: Legacy code expecting macOS LaunchAgents instead of crontab
+**Fix**: Completely rewrote `/api/schedule` endpoint (broadcast-api.js:510-594)
+- Parses actual crontab via `execSync('crontab -l')`
+- Detects 9 schedule patterns (GitHub sync, LLM scoring, broadcasts, etc.)
+- Parses cron expressions: hourly, every N hours, N times daily, etc.
+- Shows accurate icons and descriptions per task
+
+#### 5. Misleading Broadcast Coverage ✅
+**Problem**: Coverage showed "1% of documents" (compares to ALL docs including garbage)
+**Root Cause**: Coverage calculated against totalDocuments instead of broadcast-ready docs
+**Fix**: Added broadcast-ready docs calculation (broadcast-api.js:210-227)
+- Counts docs with alignment >= 12% as `broadcastReadyDocs`
+- Calculates coverage as: `docsWithBroadcasts / broadcastReadyDocs * 100`
+- Updated dashboard HTML to use server-calculated coverage (broadcast-dashboard.html:1200-1216)
+- Display text: "X of Y ready docs" instead of "X of Y total docs"
+
+#### 6. Platform Status Breakdown ✅
+**Status**: Already working correctly!
+**Verified**: Dashboard shows per-platform stats with enabled/paused indicators
+- Telegram: 403 sent, ✅ active
+- Bluesky: 389 sent, 7 failed, ✅ active
+- WordPress Insights: 18 sent (tracked but not enabled in clients)
+- Uses `/api/platform-config` to read character.json clients array
+
+### Technical Improvements
+
+**Syntax Error Fix**: Moved helper function outside if/else chain
+- Placed `extractTitleFromYAML()` at module level (line 31) instead of inside request handler
+- Prevented "Unexpected token 'else'" syntax error
+
+**Query Optimization**:
+- Source metrics: Changed from multiple LIKE clauses to single JSON extract
+- Broadcast deduplication: Uses INNER JOIN instead of DISTINCT
+- Added `COUNT(DISTINCT CASE WHEN b.status = 'sent' ...)` for accurate broadcast counts
+
+### Files Modified
+
+1. **packages/plugin-dashboard/src/services/broadcast-api.js** (5 fixes)
+   - Lines 31-64: Added extractTitleFromYAML helper
+   - Lines 314-364: Fixed duplicate broadcasts query
+   - Lines 410-470: Fixed title extraction in /api/recent-documents
+   - Lines 474-485: Fixed source metrics query
+   - Lines 510-594: Rewrote schedule endpoint for crontab
+   - Lines 210-227: Added broadcast-ready docs calculation
+
+2. **packages/plugin-dashboard/src/public/broadcast-dashboard.html** (1 fix)
+   - Lines 1200-1216: Updated coverage calculation to use server-provided values
+
+### System Status
+
+**Dashboard**: http://localhost:3001/broadcast-dashboard.html - ✅ All metrics accurate
+
+**Database** (as of Jan 7):
+- Total documents: 36,503
+- GitHub documents: 14,776 (100% of repository)
+- Broadcast-ready (>=12%): 239
+- Broadcasts sent: 810 (403 Telegram, 389 Bluesky, 18 WordPress)
+
+**Platform Status**:
+- ✅ Telegram: Active, hourly sends at :00
+- ✅ Bluesky: Active, hourly sends at :40
+- ✅ WordPress: Active, every 4 hours at :20
+- ❌ Farcaster: Disabled (no signer)
+
+### Next Session Priorities
+
+1. Monitor dashboard metrics for accuracy
+2. Review broadcast quality from ollama-only generation
+3. Consider entity mention tracking implementation
+4. Evaluate need for X/Twitter integration
+
+---
+
 ## Session: 2026-01-05 - Git Clone Sync Verification
 
 ### Session Summary: ✅ COMPLETE - System Fully Operational

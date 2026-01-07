@@ -4,6 +4,7 @@ import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 import Database from 'better-sqlite3';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -26,6 +27,41 @@ if (fs.existsSync(envPath)) {
 // Configuration
 const PORT = process.env.BROADCAST_API_PORT || 3001;
 const DB_PATH = process.env.DB_PATH || path.join(process.cwd(), 'agent/data/db.sqlite');
+
+// Helper function to extract title from YAML frontmatter
+function extractTitleFromYAML(text) {
+    if (!text || typeof text !== 'string') return null;
+
+    // Check if text starts with YAML frontmatter
+    if (!text.trim().startsWith('---')) return null;
+
+    try {
+        // Extract frontmatter block
+        const lines = text.split('\n');
+        const frontmatterEnd = lines.findIndex((line, idx) => idx > 0 && line.trim() === '---');
+
+        if (frontmatterEnd === -1) return null;
+
+        // Find title line in frontmatter
+        const frontmatterLines = lines.slice(1, frontmatterEnd);
+        const titleLine = frontmatterLines.find(line => line.trim().startsWith('title:'));
+
+        if (!titleLine) return null;
+
+        // Extract title value (handle both "title: value" and "title: 'value'" and "title: \"value\"")
+        let title = titleLine.substring(titleLine.indexOf(':') + 1).trim();
+
+        // Remove quotes if present
+        if ((title.startsWith('"') && title.endsWith('"')) ||
+            (title.startsWith("'") && title.endsWith("'"))) {
+            title = title.slice(1, -1);
+        }
+
+        return title || null;
+    } catch (e) {
+        return null;
+    }
+}
 
 // Initialize database connection
 let db;
@@ -206,6 +242,14 @@ const server = http.createServer((req, res) => {
                 WHERE documentId IS NOT NULL
             `).get().count;
 
+            // Get broadcast-ready documents (alignment >= 12%)
+            const broadcastReadyDocs = db.prepare(`
+                SELECT COUNT(*) as count
+                FROM memories
+                WHERE type = 'documents'
+                AND alignment_score >= 0.12
+            `).get().count;
+
             const response = {
                 totalDocuments: totalDocs,
                 totalBroadcasts: totalBroadcasts,
@@ -214,6 +258,8 @@ const server = http.createServer((req, res) => {
                 failedBroadcasts: failedBroadcasts,
                 docsWithBroadcasts: docsWithBroadcasts,
                 docsWithoutBroadcasts: Math.max(0, totalDocs - docsWithBroadcasts),
+                broadcastReadyDocs: broadcastReadyDocs,
+                coveragePercent: broadcastReadyDocs > 0 ? Math.round((docsWithBroadcasts / broadcastReadyDocs) * 100) : 0,
                 platformStats: platformStats,
                 recentActivity: formattedActivity,
                 lastUpdated: new Date().toISOString()
@@ -264,7 +310,7 @@ const server = http.createServer((req, res) => {
     }
     // Route: /api/config - Provides configuration for dashboard
     else if (req.url === '/api/config' && req.method === 'GET') {
-        res.writeHead(200, { 
+        res.writeHead(200, {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*'
         });
@@ -279,18 +325,58 @@ const server = http.createServer((req, res) => {
             }
         }));
     }
+    // Route: /api/platform-config - Returns enabled platforms from character config
+    else if (req.url === '/api/platform-config' && req.method === 'GET') {
+        try {
+            const characterPath = path.join(process.cwd(), 'characters/ai10bro.character.json');
+            const characterConfig = JSON.parse(fs.readFileSync(characterPath, 'utf8'));
+            const clients = characterConfig.clients || [];
+
+            // Filter to broadcast-relevant clients (exclude 'direct')
+            const enabledPlatforms = clients.filter(c => c !== 'direct');
+
+            res.writeHead(200, {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            });
+            res.end(JSON.stringify({
+                enabledPlatforms: enabledPlatforms,
+                allClients: clients
+            }));
+        } catch (error) {
+            console.error('Error reading character config:', error);
+            res.writeHead(200, {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            });
+            // Fallback to default
+            res.end(JSON.stringify({
+                enabledPlatforms: ['telegram'],
+                allClients: ['direct', 'telegram']
+            }));
+        }
+    }
     // Route: /api/recent-broadcasts
     else if (req.url === '/api/recent-broadcasts' && req.method === 'GET') {
         try {
+            // Get unique broadcasts (one per document), prioritizing most recent
             const broadcasts = db.prepare(`
                 SELECT
-                    content,
-                    status,
-                    client as platform,
-                    createdAt,
-                    sent_at
-                FROM broadcasts
-                ORDER BY createdAt DESC
+                    b.content,
+                    b.status,
+                    b.client as platform,
+                    b.createdAt,
+                    b.sent_at,
+                    b.documentId
+                FROM broadcasts b
+                INNER JOIN (
+                    SELECT documentId, MAX(createdAt) as maxCreated
+                    FROM broadcasts
+                    WHERE status = 'sent'
+                    GROUP BY documentId
+                ) latest ON b.documentId = latest.documentId AND b.createdAt = latest.maxCreated
+                WHERE b.status = 'sent'
+                ORDER BY b.createdAt DESC
                 LIMIT 20
             `).all();
 
@@ -365,8 +451,16 @@ const server = http.createServer((req, res) => {
                     createdTime = new Date(parseInt(doc.createdAt)).toLocaleString();
                 }
 
+                // Extract title with priority: explicit title > YAML frontmatter > text substring > 'Untitled'
+                let title = parsed.title || extractTitleFromYAML(parsed.text) || parsed.text?.substring(0, 100) || 'Untitled';
+
+                // Clean up title if it's a substring (remove leading/trailing whitespace and add ellipsis if truncated)
+                if (!parsed.title && !extractTitleFromYAML(parsed.text) && parsed.text && title.length === 100) {
+                    title = title.trim() + '...';
+                }
+
                 return {
-                    title: parsed.title || parsed.text?.substring(0, 100) || 'Untitled',
+                    title: title,
                     source: source,
                     sourceType: sourceType,
                     createdTime: createdTime,
@@ -385,26 +479,18 @@ const server = http.createServer((req, res) => {
     // Route: /api/source-metrics
     else if (req.url === '/api/source-metrics' && req.method === 'GET') {
         try {
+            // Get accurate source counts by extracting from JSON content
             const metrics = db.prepare(`
                 SELECT
-                    CASE
-                        WHEN m.content LIKE '%gdelt%' THEN 'github-gdelt'
-                        WHEN m.content LIKE '%youtube%' THEN 'github-youtube'
-                        WHEN m.content LIKE '%arxiv%' THEN 'github-arxiv'
-                        WHEN m.content LIKE '%obsidian%' THEN 'obsidian'
-                        WHEN m.content LIKE '%github%' THEN 'github'
-                        WHEN m.content LIKE '%reddit%' THEN 'reddit'
-                        WHEN m.content LIKE '%nature%' THEN 'nature'
-                        ELSE 'other'
-                    END as source,
+                    COALESCE(json_extract(m.content, '$.source'), 'unknown') as source,
                     COUNT(*) as documents,
-                    SUM(CASE WHEN b.id IS NOT NULL THEN 1 ELSE 0 END) as broadcasts,
+                    COUNT(DISTINCT CASE WHEN b.status = 'sent' THEN b.id END) as broadcasts,
                     MAX(m.createdAt) as lastImport
                 FROM memories m
                 LEFT JOIN broadcasts b ON b.documentId = m.id
                 WHERE m.type = 'documents'
                 GROUP BY source
-                ORDER BY broadcasts DESC
+                ORDER BY documents DESC
             `).all();
 
             const formattedMetrics = {
@@ -434,82 +520,76 @@ const server = http.createServer((req, res) => {
     else if (req.url === '/api/schedule' && req.method === 'GET') {
         try {
             const schedule = [];
-            const launchAgentDir = `${process.env.HOME}/Library/LaunchAgents`;
-            const elizaAgents = ['com.eliza.github-sync', 'com.eliza.broadcast-create', 'com.eliza.broadcast-send', 'com.ai10bro.obsidian-update'];
 
-            for (const agent of elizaAgents) {
-                const plistPath = `${launchAgentDir}/${agent}.plist`;
-                if (fs.existsSync(plistPath)) {
-                    try {
-                        const plistContent = fs.readFileSync(plistPath, 'utf8');
+            // Parse actual crontab instead of LaunchAgents
+            const { execSync } = require('child_process');
+            const crontab = execSync('crontab -l 2>/dev/null || echo ""', { encoding: 'utf-8' });
 
-                        // Parse schedule from the plist file
-                        let times = [];
-                        let interval = '';
+            // Define schedule patterns to look for
+            const schedulePatterns = [
+                { pattern: /sync-github-local\.js/, name: 'GitHub Sync', icon: '🔄', description: 'Clone-based repository sync' },
+                { pattern: /IMPORT_OBSIDIAN/, name: 'Obsidian Import', icon: '🧠', description: 'Import notes from vault' },
+                { pattern: /calculate-alignment-scores\.js/, name: 'Alignment Scoring', icon: '📊', description: 'Score all documents' },
+                { pattern: /score-new-documents\.js/, name: 'LLM Scoring', icon: '🤖', description: 'Score new documents (Ollama)' },
+                { pattern: /cleanup-unaligned-documents\.js/, name: 'Database Cleanup', icon: '🧹', description: 'Remove low-quality docs' },
+                { pattern: /process-unprocessed-docs\.js/, name: 'Create Broadcasts', icon: '✨', description: 'Generate broadcasts' },
+                { pattern: /send-pending-to-telegram\.js/, name: 'Send to Telegram', icon: '✈️', description: 'Post to Telegram' },
+                { pattern: /send-pending-to-bluesky\.js/, name: 'Send to Bluesky', icon: '🦋', description: 'Post to Bluesky' },
+                { pattern: /send-pending-to-wordpress\.js/, name: 'Publish to WordPress', icon: '📝', description: 'Publish insights' }
+            ];
 
-                        // Check for StartCalendarInterval (hour-based scheduling)
-                        const hourMatches = plistContent.matchAll(/<key>Hour<\/key>\s*<integer>(\d+)<\/integer>/g);
-                        if (hourMatches) {
-                            for (const match of hourMatches) {
-                                const hour = parseInt(match[1]);
-                                times.push(`${String(hour).padStart(2, '0')}:00`);
-                            }
-                            times.sort();
-                        }
+            for (const { pattern, name, icon, description } of schedulePatterns) {
+                const cronLines = crontab.split('\n').filter(line =>
+                    !line.trim().startsWith('#') &&
+                    line.trim().length > 0 &&
+                    pattern.test(line)
+                );
 
-                        // Check for StartInterval (seconds-based scheduling)
-                        const intervalMatch = plistContent.match(/<key>StartInterval<\/key>\s*<integer>(\d+)<\/integer>/);
-                        if (intervalMatch && times.length === 0) {
-                            const seconds = parseInt(intervalMatch[1]);
-                            const minutes = Math.floor(seconds / 60);
-                            if (minutes < 60) {
-                                interval = `Every ${minutes} minutes`;
-                                times = ['Continuous'];
+                if (cronLines.length > 0) {
+                    const times = [];
+                    let interval = '';
+
+                    for (const line of cronLines) {
+                        // Parse cron expression (minute hour * * *)
+                        const cronMatch = line.match(/^(\S+)\s+(\S+)\s+\S+\s+\S+\s+\S+/);
+                        if (cronMatch) {
+                            const [, minute, hour] = cronMatch;
+
+                            // Parse different cron patterns
+                            if (hour === '*' && minute === '*') {
+                                interval = 'Every minute';
+                            } else if (hour === '*' && minute.includes('/')) {
+                                const freq = minute.split('/')[1];
+                                interval = `Every ${freq} minutes`;
+                            } else if (hour === '*' && minute.includes(',')) {
+                                const mins = minute.split(',');
+                                interval = `${mins.length}x per hour`;
+                                times.push(...mins.map(m => `:${m.padStart(2, '0')}`));
+                            } else if (hour === '*') {
+                                interval = 'Hourly';
+                                times.push(`:${minute.padStart(2, '0')}`);
+                            } else if (hour.includes('/')) {
+                                const freq = hour.split('/')[1];
+                                interval = `Every ${freq} hours`;
+                                times.push(`${minute.padStart(2, '0')}:00`);
+                            } else if (hour.includes(',')) {
+                                const hours = hour.split(',');
+                                interval = `${hours.length}x daily`;
+                                times.push(...hours.map(h => `${h.padStart(2, '0')}:${minute.padStart(2, '0')}`));
                             } else {
-                                const hours = Math.floor(minutes / 60);
-                                interval = `Every ${hours} hour${hours > 1 ? 's' : ''}`;
-                                times = ['Continuous'];
+                                interval = 'Daily';
+                                times.push(`${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`);
                             }
                         }
-
-                        let name = '';
-                        let icon = '';
-                        let description = '';
-                        if (agent.includes('github-sync')) {
-                            name = 'GitHub Sync';
-                            icon = '🔄';
-                            description = 'Full repository sync';
-                        } else if (agent.includes('broadcast-create')) {
-                            name = 'Create Broadcasts';
-                            icon = '✨';
-                            description = 'Generate new broadcasts';
-                        } else if (agent.includes('broadcast-send')) {
-                            name = 'Send Broadcasts';
-                            icon = '📤';
-                            description = '1 broadcast per run';
-                        } else if (agent.includes('obsidian-update')) {
-                            name = 'Obsidian Import';
-                            icon = '🧠';
-                            description = 'Import from Obsidian vault';
-                        }
-
-                        // Use computed interval for StartInterval agents, otherwise calculate from times
-                        if (!interval) {
-                            interval = times.length > 1 ?
-                                `Every ${24 / times.length} hours` :
-                                'Daily';
-                        }
-
-                        schedule.push({
-                            name,
-                            icon,
-                            description,
-                            times,
-                            interval
-                        });
-                    } catch (err) {
-                        console.log(`Could not parse ${agent}:`, err.message);
                     }
+
+                    schedule.push({
+                        name,
+                        icon,
+                        description,
+                        times: times.length > 0 ? times : ['See cron'],
+                        interval
+                    });
                 }
             }
 
@@ -550,6 +630,149 @@ const server = http.createServer((req, res) => {
             console.error('Error fetching platform stats:', error);
             res.writeHead(500, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ error: 'Failed to fetch platform stats' }));
+        }
+    }
+    // Route: /api/system-status
+    else if (req.url === '/api/system-status' && req.method === 'GET') {
+        try {
+            // 1. Document Stats
+            const docStats = db.prepare(`
+                SELECT
+                    COUNT(*) as total,
+                    COUNT(CASE WHEN json_extract(content, '$.deleted') = 1 THEN 1 END) as tombstones,
+                    COUNT(CASE WHEN json_extract(content, '$.deleted') IS NULL OR json_extract(content, '$.deleted') = 0 THEN 1 END) as active,
+                    COUNT(CASE WHEN alignment_score IS NOT NULL THEN 1 END) as scored,
+                    COUNT(CASE WHEN alignment_score >= 0.12 AND (json_extract(content, '$.deleted') IS NULL OR json_extract(content, '$.deleted') = 0) THEN 1 END) as broadcast_ready,
+                    COUNT(CASE WHEN alignment_score >= 0.20 AND (json_extract(content, '$.deleted') IS NULL OR json_extract(content, '$.deleted') = 0) THEN 1 END) as wordpress_ready,
+                    COUNT(CASE WHEN json_extract(content, '$.source') = 'github' THEN 1 END) as github_total,
+                    COUNT(CASE WHEN json_extract(content, '$.source') = 'github' AND (json_extract(content, '$.deleted') IS NULL OR json_extract(content, '$.deleted') = 0) THEN 1 END) as github_active
+                FROM memories
+                WHERE type = 'documents'
+            `).get();
+
+            // 2. LLM Scoring Status
+            const llmStatus = {
+                inProgress: false,
+                checkpoint: null
+            };
+
+            // Check if LLM scoring is running
+            try {
+                const pidPath = path.join(process.cwd(), 'llm-scoring.pid');
+                if (fs.existsSync(pidPath)) {
+                    const pidContent = fs.readFileSync(pidPath, 'utf8').trim();
+                    const checkProcess = execSync(`ps -p ${pidContent} 2>/dev/null | grep -v PID | wc -l`).toString().trim();
+                    llmStatus.inProgress = checkProcess === '1';
+                }
+            } catch (e) {
+                llmStatus.inProgress = false;
+            }
+
+            // Check for checkpoint
+            try {
+                const checkpointPath = path.join(process.cwd(), 'llm-scoring-checkpoint.json');
+                if (fs.existsSync(checkpointPath)) {
+                    llmStatus.checkpoint = JSON.parse(fs.readFileSync(checkpointPath, 'utf8'));
+                }
+            } catch (e) {}
+
+            // 3. Cron Job Status
+            let cronJobs = [];
+            try {
+                const crontabOutput = execSync('crontab -l 2>/dev/null').toString();
+                const lines = crontabOutput.split('\n');
+
+                for (const line of lines) {
+                    if (line.trim() && !line.startsWith('#')) {
+                        const parts = line.split(/\s+/);
+                        if (parts.length >= 6) {
+                            const schedule = parts.slice(0, 5).join(' ');
+                            const command = parts.slice(5).join(' ');
+
+                            let name = 'Unknown Job';
+                            let logFile = null;
+
+                            if (command.includes('sync-github-local')) {
+                                name = 'GitHub Sync (Local)';
+                                logFile = 'logs/cron-github-sync.log';
+                            } else if (command.includes('IMPORT_OBSIDIAN')) {
+                                name = 'Obsidian Import';
+                                logFile = 'logs/cron-obsidian-import.log';
+                            } else if (command.includes('calculate-alignment-scores')) {
+                                name = 'Alignment Scores';
+                                logFile = 'logs/cron-alignment-scoring.log';
+                            } else if (command.includes('score-new-documents')) {
+                                name = 'LLM Scoring';
+                                logFile = 'logs/cron-llm-scoring.log';
+                            } else if (command.includes('cleanup-unaligned')) {
+                                name = 'Cleanup Unaligned';
+                                logFile = 'logs/cron-cleanup-unaligned.log';
+                            } else if (command.includes('process-unprocessed-docs')) {
+                                name = 'Create Broadcasts';
+                                logFile = 'logs/cron-broadcast-create.log';
+                            } else if (command.includes('send-pending-to-telegram')) {
+                                name = 'Send Telegram';
+                                logFile = 'logs/cron-telegram-send.log';
+                            } else if (command.includes('send-pending-to-bluesky')) {
+                                name = 'Send Bluesky';
+                                logFile = 'logs/cron-bluesky-send.log';
+                            } else if (command.includes('send-pending-to-wordpress')) {
+                                name = 'Send WordPress';
+                                logFile = 'logs/cron-wordpress-insights.log';
+                            } else {
+                                continue; // Skip unknown jobs
+                            }
+
+                            // Get last run time from log file
+                            let lastRun = null;
+                            if (logFile) {
+                                const logPath = path.join(process.cwd(), logFile);
+                                if (fs.existsSync(logPath)) {
+                                    try {
+                                        const stats = fs.statSync(logPath);
+                                        lastRun = stats.mtime.toISOString();
+                                    } catch (e) {}
+                                }
+                            }
+
+                            cronJobs.push({
+                                name,
+                                schedule,
+                                lastRun,
+                                logFile
+                            });
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Error reading crontab:', e.message);
+            }
+
+            // 4. Broadcast Pipeline Status
+            const broadcastStats = db.prepare(`
+                SELECT
+                    client,
+                    status,
+                    COUNT(*) as count,
+                    COUNT(CASE WHEN alignment_score >= 0.12 THEN 1 END) as sendable
+                FROM broadcasts
+                GROUP BY client, status
+            `).all();
+
+            const response = {
+                documents: docStats,
+                llmScoring: llmStatus,
+                cronJobs,
+                broadcasts: broadcastStats,
+                timestamp: new Date().toISOString()
+            };
+
+            res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+            res.end(JSON.stringify(response));
+        } catch (error) {
+            console.error('Error fetching system status:', error);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Failed to fetch system status', details: error.message }));
         }
     }
     // Default route
