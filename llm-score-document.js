@@ -14,30 +14,53 @@ const MODEL = 'qwen2.5:32b';
 
 const SCORING_PROMPT = `Rate this content's alignment with AI10BRO's mission on a 0-100 scale.
 
-AI10BRO Mission: Highlight COMMERCIAL innovations in these SPECIFIC domains:
+AI10BRO Mission: Highlight COMMERCIAL innovations that involve LIVING ORGANISMS, BIOLOGICAL PROCESSES, or BIO-ENGINEERING.
 
-INCLUDE these domains:
-✓ Synthetic biology (engineered organisms, genetic circuits, programmable cells)
-✓ Biotechnology (CRISPR, gene editing, protein engineering, bioinformatics)
-✓ Advanced biomaterials (bio-concrete, mycelium materials, bioplastics, living materials)
-✓ Bioprocessing & biomanufacturing (fermentation, cell factories, precision fermentation)
-✓ Agricultural biotech (engineered crops, vertical farming with biotech, cellular agriculture)
-✓ Bio-based production (proteins from fermentation, lab-grown materials, bio-based chemicals)
-✓ Biomedical products IF they involve novel bioengineering (not just traditional medicine)
+INCLUDE these domains (MUST involve biology):
+✓ Synthetic biology (engineered organisms, genetic circuits, programmable cells, metabolic engineering)
+✓ Biotechnology (CRISPR, gene editing, protein engineering, bioinformatics, computational biology)
+✓ Living biomaterials (mycelium composites, bacterial concrete, algae-based materials, self-healing bio-materials)
+✓ Bioprocessing & biomanufacturing (fermentation, cell factories, precision fermentation, enzyme production)
+✓ Agricultural biotech (gene-edited crops, cellular agriculture, precision farming with biotech sensors)
+✓ Bio-based production (microbial synthesis, lab-grown materials, enzymatic production, bio-based chemicals)
+✓ Biomedical engineering (tissue engineering, organoids, bio-robotics, living therapeutics, gene therapy)
 
-EXCLUDE these domains (even if commercial):
-✗ Traditional tech (data centers, cloud, AI/ML without bio component, software)
-✗ Traditional medicine, herbal remedies, dietary supplements, wellness products
-✗ Pure medical research without bioengineering innovation
-✗ Computer science, NLP, computer vision (unless bio-focused)
-✗ Clean energy/climate WITHOUT bio component (solar, batteries, etc.)
-✗ Traditional agriculture without genetic engineering
+CRITICAL: Biomaterials MUST involve living organisms, enzymes, or bio-based production processes. Traditional materials science does NOT qualify.
 
-Score HIGH (60-100) ONLY if BOTH conditions met:
-1. In the CORRECT domain (biotech/synthetic biology/biomaterials)
-2. AND commercial (products launching, companies, funding, FDA approvals, market entry)
+EXCLUDE these domains (even if sustainable/commercial):
+✗ Traditional materials science (concrete, ceramics, composites WITHOUT biological component)
+✗ Carbon accounting, emissions tracking, ESG metrics, climate reporting (no biology involved)
+✗ Pure AI/ML, computer vision, NLP, software (unless directly analyzing biological data)
+✗ Traditional medicine, supplements, herbal remedies, wellness products (no genetic engineering)
+✗ Epidemiology, disease tracking, public health (unless involving genetic analysis or bioengineering)
+✗ Clean energy WITHOUT bio component (solar panels, batteries, wind turbines, nuclear)
+✗ Traditional agriculture, organic farming (no genetic modification or biotech)
+✗ General sustainability, recycling, green building (no biological innovation)
+✗ Traditional manufacturing, even if sustainable (must involve biological processes)
 
-Respond with ONLY a number 0-100. Be VERY strict on domain - if it's not biotech/synthetic biology/biomaterials, score under 20 even if commercial.
+EXAMPLES TO SCORE LOW (under 20):
+- Roman concrete, traditional concrete (no living organisms)
+- Scope 3 emissions, carbon footprinting (accounting, not biology)
+- Disease spread modeling without genetic component
+- AI for business optimization (no biology)
+- Solar-powered buildings (clean energy but no bio)
+
+EXAMPLES TO SCORE HIGH (60-100):
+- Bacteria producing limestone to heal concrete cracks
+- CRISPR gene therapy entering clinical trials
+- Precision fermentation producing dairy proteins
+- Mycelium grown into leather alternatives
+- Engineered algae capturing CO2 for biofuel production
+
+Score HIGH (60-100) ONLY if ALL THREE conditions met:
+1. Involves living organisms, enzymes, or biological processes
+2. In biotech/synthetic biology/bio-engineering domain
+3. Commercial (products, companies, funding, FDA approvals, market entry)
+
+Score MEDIUM (20-59) if biological but early research or non-commercial.
+Score LOW (0-19) if no biological component, even if sustainable/commercial.
+
+Respond with ONLY a number 0-100. Be EXTREMELY strict - if there's no biology, score 0-10.
 
 Content:
 {CONTENT}`;
@@ -52,9 +75,9 @@ async function scoreDocument(text) {
         const tempFile = `/tmp/llm-score-${Date.now()}.txt`;
         fs.writeFileSync(tempFile, prompt);
 
-        // Call ollama
+        // Call ollama with 5 minute timeout
         const { stdout } = await execPromise(`ollama run ${MODEL} < ${tempFile}`, {
-            timeout: 30000 // 30 second timeout
+            timeout: 300000 // 5 minute timeout (never use default scores)
         });
 
         // Clean up
@@ -68,11 +91,11 @@ async function scoreDocument(text) {
             return Math.min(Math.max(score / 100, 0), 1);
         }
 
-        console.error(`⚠️  Could not parse score from: ${stdout.trim()}`);
-        return 0.05; // Default low score if parse fails
+        // NEVER return default score - throw error if parse fails
+        throw new Error(`Could not parse score from LLM output: ${stdout.trim().substring(0, 200)}`);
     } catch (error) {
-        console.error(`❌ Error scoring document:`, error.message);
-        return 0.05; // Default low score on error
+        // NEVER return default score - propagate error
+        throw error;
     }
 }
 

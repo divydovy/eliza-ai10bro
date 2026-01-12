@@ -232,6 +232,40 @@ async function sendPendingBroadcasts() {
             console.log(`   Bio theme: ${bioTheme}`);
             console.log(`   Source: ${sourceUrl || 'none'}`);
 
+            // Just-in-time image generation (if not already generated)
+            if (!broadcast.image_url && process.env.ENABLE_IMAGE_GENERATION === 'true' && process.env.GEMINI_API_KEY) {
+                try {
+                    console.log(`   🎨 Generating image on-the-fly...`);
+
+                    // Use article title + excerpt for image prompt
+                    const textForImage = `${article.title}. ${article.excerpt}`.substring(0, 500);
+
+                    // Generate image using Python script
+                    const { stdout } = await execPromise(
+                        `python3 generate-broadcast-image-v2.py "${broadcast.documentId}" "${textForImage.replace(/"/g, '\\"')}"`
+                    );
+
+                    // Extract image path from output
+                    const imageMatch = stdout.match(/Image saved to: (.+\.png)/);
+                    if (imageMatch) {
+                        const imageUrl = imageMatch[1];
+                        console.log(`   ✅ Image generated: ${imageUrl}`);
+
+                        // Update ALL broadcasts for this document with the image
+                        db.prepare(`
+                            UPDATE broadcasts
+                            SET image_url = ?
+                            WHERE documentId = ?
+                        `).run(imageUrl, broadcast.documentId);
+
+                        // Update local broadcast object
+                        broadcast.image_url = imageUrl;
+                    }
+                } catch (error) {
+                    console.log(`   ⚠️  Image generation failed (continuing without image): ${error.message}`);
+                }
+            }
+
             // Upload featured image if available
             let featuredMediaId = null;
             if (broadcast.image_url && fs.existsSync(broadcast.image_url)) {

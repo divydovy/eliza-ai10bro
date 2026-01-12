@@ -55,68 +55,22 @@ function levenshteinDistance(str1, str2) {
     return matrix[str2.length][str1.length];
 }
 
-// OpenRouter API integration for high-quality broadcast generation
+// Local ollama generation for high-quality broadcast creation
 async function generateBroadcastWithOpenRouter(prompt) {
-    const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-    const model = process.env.OPENROUTER_MODEL || 'nousresearch/hermes-3-llama-3.1-405b';
-
-    if (!OPENROUTER_API_KEY) {
-        console.log('⚠️  No OpenRouter API key found, falling back to local ollama');
-        // Fallback to ollama
-        const tempFile = `/tmp/broadcast-${Date.now()}.txt`;
-        require('fs').writeFileSync(tempFile, prompt);
-        const { stdout } = await execPromise(`ollama run qwen2.5:14b < ${tempFile}`);
-        require('fs').unlinkSync(tempFile);
-        return stdout.trim();
-    }
+    // Use ollama directly (qwen2.5:32b for consistency with scoring)
+    const tempFile = `/tmp/broadcast-${Date.now()}.txt`;
+    require('fs').writeFileSync(tempFile, prompt);
 
     try {
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-                'Content-Type': 'application/json',
-                'X-Title': 'Eliza AI10BRO Broadcast Generation'
-            },
-            body: JSON.stringify({
-                model: model,
-                messages: [
-                    {
-                        role: 'system',
-                        content: 'You are an expert content creator specializing in engaging, professional broadcasts about technology and sustainability. Create compelling content that connects academic findings to real-world impact and market trends.'
-                    },
-                    {
-                        role: 'user',
-                        content: prompt
-                    }
-                ],
-                max_tokens: 800,
-                temperature: 0.7
-            })
+        const { stdout } = await execPromise(`ollama run qwen2.5:32b < ${tempFile}`, {
+            timeout: 300000 // 5 minute timeout (never skip broadcasts due to timeouts)
         });
-
-        const data = await response.json();
-
-        if (data.choices && data.choices[0] && data.choices[0].message) {
-            return data.choices[0].message.content.trim();
-        } else {
-            console.log('⚠️  OpenRouter response error, falling back to ollama');
-            console.log('Response:', JSON.stringify(data, null, 2));
-            // Fallback to ollama
-            const tempFile = `/tmp/broadcast-${Date.now()}.txt`;
-            require('fs').writeFileSync(tempFile, prompt);
-            const { stdout } = await execPromise(`ollama run qwen2.5:14b < ${tempFile}`);
-            require('fs').unlinkSync(tempFile);
-            return stdout.trim();
-        }
-    } catch (error) {
-        console.log('⚠️  OpenRouter API error, falling back to ollama:', error.message);
-        // Fallback to ollama
-        const tempFile = `/tmp/broadcast-${Date.now()}.txt`;
-        require('fs').writeFileSync(tempFile, prompt);
-        const { stdout } = await execPromise(`ollama run qwen2.5:14b < ${tempFile}`);
         require('fs').unlinkSync(tempFile);
         return stdout.trim();
+    } catch (error) {
+        console.error('❌ Ollama generation error:', error.message);
+        require('fs').unlinkSync(tempFile);
+        throw error;
     }
 }
 
@@ -196,11 +150,15 @@ async function processUnprocessedDocuments(targetBroadcasts = 10) {
                     continue;
                 }
 
-                // Calculate alignment score based on content relevance
+                // Use pre-calculated alignment score from database (already calculated by calculate-alignment-scores.js)
+                let alignmentScore = doc.alignment_score || 0;
+
+                // Prepare content for analysis (needed for filtering and legacy calculation)
                 const contentLower = (title + ' ' + content.text?.substring(0, 2000)).toLowerCase();
 
-                // Calculate alignment score based on theme matches
-                let alignmentScore = 0;
+                // Calculate alignment score based on content relevance (LEGACY - keeping for fallback)
+                if (alignmentScore === 0) {
+                    // Calculate alignment score based on theme matches
                 let themeScores = {};
 
                 // Check each theme and apply weighted scoring
@@ -260,6 +218,7 @@ async function processUnprocessedDocuments(targetBroadcasts = 10) {
 
                 // Cap at 1.0
                 alignmentScore = Math.min(alignmentScore, 1.0);
+                } // End fallback calculation
 
                 // Skip if alignment too low (using refined threshold)
                 if (alignmentScore < alignmentConfig.scoring_recommendations.core_alignment_minimum) {
@@ -493,30 +452,10 @@ OUTPUT YOUR BROADCAST NOW (no labels, just the engaging text):`;
                     generated = `${generated}\n\n🔗 Source: ${sourceUrl}`;
                 }
 
-                // Generate image for broadcast (once, reused for all platforms)
+                // Image generation moved to just-in-time (JIT) in send scripts
+                // This ensures images are only generated for broadcasts that will actually be sent
+                // See send-pending-to-telegram.js and send-pending-to-bluesky.js for JIT implementation
                 let imageUrl = null;
-                if (process.env.GEMINI_API_KEY && process.env.ENABLE_IMAGE_GENERATION === 'true') {
-                    try {
-                        console.log(`🎨 Generating image for document ${doc.id}...`);
-
-                        // Extract broadcast text without source URL for image prompt
-                        const textForImage = generated.replace(/\n\n🔗 Source:.*$/, '').substring(0, 500);
-
-                        const { stdout } = await execPromise(
-                            `python3 generate-broadcast-image-v2.py "${doc.id}" "${textForImage.replace(/"/g, '\\"')}"`
-                        );
-
-                        // Extract image path from output
-                        const imageMatch = stdout.match(/Image saved to: (.+\.png)/);
-                        if (imageMatch) {
-                            imageUrl = imageMatch[1];
-                            console.log(`   ✅ Image generated: ${imageUrl}`);
-                        }
-                    } catch (error) {
-                        console.log(`   ⚠️  Image generation failed (continuing without image): ${error.message}`);
-                        // Continue without image - don't fail the broadcast
-                    }
-                }
 
                 // Load WordPress prompts for long-form content
                 const wpPrompts = require('./wordpress-prompts.json');
