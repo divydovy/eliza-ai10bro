@@ -29,6 +29,201 @@
 - **Model**: qwen2.5:32b (21GB, 128K context, GPT-4o equivalent)
 - **Major Systems**: LLM scoring, entity tracking, deal detection, quality checks, automated cleanup
 
+## Session: 2026-01-12 - LLM Scoring Quality & JIT Image Generation
+
+### Session Summary: ✅ COMPLETE - Scoring Improvements + API Conservation
+
+**Duration**: ~5 hours
+**Focus**: Fix off-topic broadcasts, eliminate default scores, optimize Gemini API usage
+
+### Major Accomplishments
+
+#### 1. Stricter LLM Scoring Prompt ✅
+**Problem**: Non-bio content scoring too high (Roman concrete: 30%, carbon accounting: 30%)
+**Root Cause**: Prompt mentioned "bio-concrete" without specifying living organisms requirement
+
+**Solution**: Complete prompt rewrite (llm-score-document.js:15-66)
+- Added explicit EXCLUDE list (traditional materials, carbon accounting, pure AI/ML)
+- Emphasis: "MUST involve LIVING ORGANISMS, BIOLOGICAL PROCESSES, or BIO-ENGINEERING"
+- Examples: LOW (Roman concrete, Scope 3 emissions) vs HIGH (bacterial concrete, CRISPR)
+- Scoring criteria: Requires ALL THREE (biology + domain + commercial)
+
+**Testing**: Created test-specific-docs.js
+- Roman concrete: 30% → 5% ✅
+- Supply chain emissions: 30% → 10% ✅
+- Bacterial concrete: 85% ✅ (correct)
+- CRISPR/fermentation: 85% ✅ (correct)
+
+#### 2. LLM Timeouts Increased - No More Default Scores ✅
+**Problem**: 1,866 timeout errors in 1 hour → scripts using default score (0.05)
+**User Requirement**: "Script should never use default scores"
+
+**Solution**:
+- Increased timeout: 30s → 5 minutes (llm-score-document.js:80)
+- Removed default score fallback → throw errors instead
+- Increased broadcast generation timeout: 60s → 5 minutes (process-unprocessed-docs.js:66)
+
+**Impact**: Scripts now fail loudly instead of silently degrading quality
+
+#### 3. Re-scoring Campaigns ✅
+**Found Issues**:
+- 342 documents with default score (0.05) - all from GitHub timeouts
+- 1,488 pending broadcasts needing re-evaluation with stricter prompt
+
+**Created Scripts**:
+- `rescore-default-scored-docs.js` - Fix 342 timeout-affected docs
+- `rescore-pending-broadcasts.js` - Re-score 1,488 pending, delete <10%
+
+**Status**: Both running in background
+- Pending broadcasts: 1,200/1,488 (81% complete) - ETA: 30 min
+- Default scores: 200/343 (58% complete) - ETA: 2 hours
+
+#### 4. Just-in-Time Image Generation ✅
+**Problem**: Generating images at broadcast creation wastes API calls
+- 68 images for docs <8% (never sent)
+- Images generated for broadcasts later deleted during re-scoring
+
+**Solution**: Moved to JIT generation in send scripts
+- Removed from `process-unprocessed-docs.js` (line 455-478)
+- Telegram: Already had JIT (lines 79-111) ✅
+- Bluesky: Already had JIT (lines 94-125) ✅
+- WordPress: Added JIT (lines 235-267) ✅
+
+**How It Works**:
+```javascript
+if (!broadcast.image_url && ENABLE_IMAGE_GENERATION === 'true') {
+    // Generate image on-the-fly
+    // Update ALL broadcasts for this documentId
+    // Continue without error if generation fails
+}
+```
+
+**Benefits**:
+- One image per document shared across platforms
+- Only generates for broadcasts that actually send
+- Eliminates ~68 unnecessary calls (11% reduction)
+- Zero wasted calls for re-scored/deleted broadcasts
+
+#### 5. LaunchD Services Fixed ✅
+**Found Errors**:
+- `com.eliza.github-sync`: Exit code 1 (schema mismatch - wrong script)
+- `com.eliza.broadcast-create`: Exit code 0 but failing (ollama not in PATH)
+- `com.eliza.broadcast-send`: Exit code 126 (permission denied)
+
+**Fixes**:
+- GitHub sync: Changed to `sync-github-local.js` (git clone approach)
+- Broadcast create: Added `/opt/homebrew/bin` to PATH for ollama
+- Broadcast send: Disabled (legacy service, replaced by individual send scripts)
+- Disabled broken `com.ai10bro.reddit-sync` (moved to ~/Library/LaunchAgents/disabled/)
+
+**Result**: All services exit 0 now
+
+#### 6. Cron Jobs - Node 23.3.0 Project-Specific ✅
+**Problem**: Global PATH would affect all projects (other projects need Node 20)
+**User Requirement**: "Only ai10bro needs node 23"
+
+**Solution**: Removed global PATH, each Eliza job uses explicit path
+```bash
+# Instead of: PATH=/...node/v23.3.0/bin:...
+# Each job: /Users/.../node/v23.3.0/bin/node script.js
+```
+
+**Fixed**:
+- WordPress: Now points to port 8080 (running instance, not 8885)
+- All 13 cron jobs use explicit Node 23 path
+- Other projects unaffected
+
+#### 7. Systematic Health Monitoring ✅
+**Created**: `check-automation-health.sh`
+
+**Checks**:
+- LaunchD services status (exit codes)
+- Cron job list
+- Recent log errors (last hour)
+- Background processes
+- Database health (docs, pending, sent)
+- Last run times from logs
+
+**Usage**: `./check-automation-health.sh`
+
+### API Usage Review
+
+#### OpenRouter ✅ Not Used
+- Found: API key in .env
+- Reality: NOT used in production
+- Broadcast generation: Uses Ollama (qwen2.5:32b)
+- LLM scoring: Uses Ollama
+- WordPress articles: Uses Ollama
+- **Recommendation**: Can remove key if not needed elsewhere
+
+#### Gemini (Images) ✅ Now Conservative
+- **Before**: Generated at broadcast creation (wasted calls)
+- **After**: JIT generation (only when sending)
+- **Savings**: 11% reduction + future re-scoring savings
+- **Reuse**: One image → 3 broadcasts (telegram + bluesky + wordpress)
+
+### Technical Decisions
+
+#### Cron vs LaunchD
+- **Cron**: Simpler, better for API calls, more reliable
+- **LaunchD**: macOS-native but permission issues, complex config
+- **Current Mix**: Using both, migrating more to cron where possible
+
+#### Node Version Strategy
+- Node 23.3.0 required for Eliza (better-sqlite3 native module)
+- Other projects need different versions
+- Solution: Explicit paths per-job, no global PATH changes
+
+### System Status
+
+**Database**: 37,077 documents
+**Broadcasts**: 1,452 pending, 919 sent
+**Re-scoring**: In progress (2 background processes)
+**Services**: All operational (launchd + cron)
+**Images**: JIT generation enabled
+
+### Files Created
+
+1. `check-automation-health.sh` - Systematic health monitoring
+2. `rescore-default-scored-docs.js` - Fix 342 timeout-affected docs
+3. `rescore-pending-broadcasts.js` - Re-score 1,488 pending broadcasts
+4. `test-specific-docs.js` - Validate scoring prompt
+5. `JIT_IMAGE_GENERATION_COMPLETE.md` - Implementation docs
+
+### Files Modified
+
+1. `llm-score-document.js` - Stricter prompt, 5min timeout, no defaults
+2. `process-unprocessed-docs.js` - Removed image gen, 5min timeout
+3. `send-pending-to-wordpress.js` - Added JIT image generation
+4. `~/Library/LaunchAgents/*.plist` - Fixed service configs
+5. `crontab` - Node 23 explicit paths, WordPress port 8080
+
+### Next Session Priorities
+
+1. ⏭️ Monitor re-scoring completion (both processes)
+2. ⏭️ Verify broadcast quality after stricter scoring
+3. ⏭️ Check JIT image generation in production
+4. ⏭️ Run health check regularly to catch issues early
+
+### Quick Commands
+
+```bash
+# Check system health
+./check-automation-health.sh
+
+# Monitor re-scoring
+tail -f logs/rescore-broadcasts-20260112.log
+tail -f logs/rescore-defaults-20260112.log
+
+# Check broadcast stats
+sqlite3 agent/data/db.sqlite "SELECT status, COUNT(*), AVG(alignment_score*100) FROM broadcasts GROUP BY status"
+
+# Git operations with 1Password SSH
+GIT_SSH_COMMAND="ssh -o IdentityAgent=~/.1password-agent.sock" git push origin main
+```
+
+---
+
 ## Session: 2026-01-07 - Dashboard Quality Fixes
 
 ### Session Summary: ✅ COMPLETE - All 6 Dashboard Issues Fixed
