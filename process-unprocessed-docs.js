@@ -56,7 +56,8 @@ function levenshteinDistance(str1, str2) {
 }
 
 // Local ollama generation for high-quality broadcast creation
-async function generateBroadcastWithOpenRouter(prompt) {
+// NOTE: OpenRouter previously burned through credits, now using ollama exclusively
+async function generateBroadcastWithOllama(prompt) {
     // Use ollama directly (qwen2.5:32b for consistency with scoring)
     const tempFile = `/tmp/broadcast-${Date.now()}.txt`;
     require('fs').writeFileSync(tempFile, prompt);
@@ -367,8 +368,8 @@ NOTE: Do NOT include source URLs, links, or "Details:" lines in your output. The
 
 OUTPUT YOUR BROADCAST NOW (no labels, just the engaging text):`;
 
-                // Use OpenRouter for high-quality broadcast generation
-                let generated = await generateBroadcastWithOpenRouter(prompt);
+                // Use Ollama for high-quality broadcast generation (free, local)
+                let generated = await generateBroadcastWithOllama(prompt);
 
                 // Remove quotes if the LLM wrapped the response in them
                 if (generated.startsWith('"') && generated.endsWith('"')) {
@@ -499,8 +500,8 @@ OUTPUT YOUR BROADCAST NOW (no labels, just the engaging text):`;
                             .replace('{document_content}', cleanContent)
                             .replace('{trend_context}', trendConnection || 'No specific trend context available.');
 
-                        // Generate WordPress article using LLM
-                        const wpArticleRaw = await generateBroadcastWithOpenRouter(wpPrompt);
+                        // Generate WordPress article using Ollama (free, local)
+                        const wpArticleRaw = await generateBroadcastWithOllama(wpPrompt);
 
                         // Try to parse as JSON (expected format from prompt)
                         let wpArticle;

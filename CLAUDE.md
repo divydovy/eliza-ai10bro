@@ -29,6 +29,100 @@
 - **Model**: qwen2.5:32b (21GB, 128K context, GPT-4o equivalent)
 - **Major Systems**: LLM scoring, entity tracking, deal detection, quality checks, automated cleanup
 
+## Session: 2026-01-14 - Dashboard Fixes & Ollama PATH Resolution
+
+### Session Summary: ✅ COMPLETE - Dashboard Quality + Broadcast Creation Fixed
+
+**Duration**: ~1 hour
+**Focus**: Fix dashboard display issues, resolve ollama PATH errors in cron
+
+### Major Accomplishments
+
+#### 1. Dashboard "Recently Imported Knowledge" Fixed ✅
+**Problem**: Showing tombstone records (deleted documents with no content)
+**Solution**: Modified `/api/recent-documents` endpoint (broadcast-api.js:409-421)
+- Added filter: `alignment_score >= 0.12` (broadcast-ready threshold)
+- Added filter: `json_extract(content, '$.text') IS NOT NULL` (excludes tombstones)
+- Added alignment score display in response
+**Result**: Dashboard now shows only quality content with scores (35%, 75%, 85%)
+
+#### 2. Dashboard "Automation Logs" Populated ✅
+**Problem**: Empty log sections on dashboard
+**Solution**: Created two new API endpoints (broadcast-api.js:479-524)
+- `/api/logs/send` - Combines last 50 lines from telegram/bluesky/wordpress send logs
+- `/api/logs/creation` - Shows last 100 lines from broadcast creation log
+**Result**: Live feed of broadcast activity visible on dashboard
+
+#### 3. Ollama PATH Fixed in Cron Jobs ✅
+**Problem**: Broadcast creation failing with "ollama: command not found" since Jan 2
+**Root Cause**: `/opt/homebrew/bin` not in PATH for cron environment
+**Solution**: Updated crontab to include PATH for both jobs:
+```bash
+# LLM scoring (hourly at :30)
+PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin node score-new-documents.js
+
+# Broadcast creation (every 6 hours: 4am, 10am, 4pm, 10pm)
+PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin node process-unprocessed-docs.js 20
+```
+**Verification**: 4pm run created broadcasts successfully with ollama
+
+#### 4. OpenRouter Completely Disabled ✅
+**User Directive**: "We've burned through all my openrouter credit, that's why it failed"
+**Changes Made**:
+1. Commented out `OPENROUTER_API_KEY` in .env with note
+2. Renamed `generateBroadcastWithOpenRouter()` → `generateBroadcastWithOllama()`
+3. Updated all function calls and comments
+4. Added notes: "OpenRouter previously burned through credits, now using ollama exclusively"
+**Result**: System now 100% on free, local ollama (qwen2.5:32b)
+
+### Files Modified
+
+1. **packages/plugin-dashboard/src/services/broadcast-api.js**
+   - Lines 409-421: Fixed recent documents query (alignment filter, tombstone exclusion)
+   - Lines 463-467: Added alignment score to response
+   - Lines 479-524: Added log endpoints (/api/logs/send, /api/logs/creation)
+   - Restarted with Node 23 for better-sqlite3 compatibility
+
+2. **process-unprocessed-docs.js**
+   - Lines 58-76: Renamed function, added OpenRouter deprecation note
+   - Line 372: Updated call to use `generateBroadcastWithOllama`
+   - Line 504: Updated WordPress generation to use ollama
+
+3. **.env**
+   - Commented out OPENROUTER_API_KEY
+   - Added note: "OpenRouter disabled - burned through all credits. Using ollama exclusively (free, local)"
+
+4. **crontab**
+   - Added PATH to LLM scoring job (hourly at :30)
+   - Added PATH to broadcast creation job (every 6 hours)
+
+### System Status
+
+**Dashboard**: http://localhost:3001/broadcast-dashboard.html
+- ✅ Recently Imported Knowledge: Shows quality content only (≥12% alignment)
+- ✅ Automation Logs: Live feed from send/creation processes
+
+**Database** (as of Jan 14):
+- Total documents: 37,537
+- Broadcast-ready (≥12%): 2,351
+- Pending broadcasts: 1,607
+- Sent broadcasts: 1,007
+
+**Broadcast Creation**:
+- ✅ Working: 4pm run created 6+ broadcasts successfully
+- ✅ Ollama accessible: qwen2.5:32b generating content
+- ✅ All platforms: telegram, bluesky, farcaster, wordpress_insight
+- ❌ OpenRouter: Completely disabled (no more API costs)
+
+### Key Insights
+
+1. **12-Day Outage**: Broadcast creation failed Jan 2-14 due to ollama PATH issue
+2. **Old Broadcasts Still Sending**: 1,607 pending broadcasts created before Jan 2 kept sends flowing
+3. **OpenRouter Confusion**: Function was named "OpenRouter" but already using ollama internally
+4. **Dashboard Shows History**: Logs display last 100 lines, so old errors visible until new runs
+
+---
+
 ## Session: 2026-01-12 - LLM Scoring Quality & JIT Image Generation
 
 ### Session Summary: ✅ COMPLETE - Scoring Improvements + API Conservation

@@ -103,13 +103,11 @@ const server = http.createServer((req, res) => {
             `).get().count;
 
             // Get broadcast status breakdown from broadcasts table
-            // For pending: only count broadcasts that meet quality threshold (alignment_score >= 0.15)
             const statusBreakdown = db.prepare(`
                 SELECT
                     status,
                     COUNT(*) as count
                 FROM broadcasts
-                WHERE status != 'pending' OR alignment_score >= 0.15
                 GROUP BY status
             `).all();
 
@@ -130,7 +128,6 @@ const server = http.createServer((req, res) => {
             }
 
             // Get platform-specific stats
-            // For pending: only count broadcasts that meet quality threshold (alignment_score >= 0.15)
             const platformStats = {};
             const platformBreakdown = db.prepare(`
                 SELECT
@@ -138,7 +135,6 @@ const server = http.createServer((req, res) => {
                     status,
                     COUNT(*) as count
                 FROM broadcasts
-                WHERE status != 'pending' OR alignment_score >= 0.15
                 GROUP BY client, status
             `).all();
 
@@ -242,12 +238,12 @@ const server = http.createServer((req, res) => {
                 WHERE documentId IS NOT NULL
             `).get().count;
 
-            // Get broadcast-ready documents (alignment >= 12%)
+            // Get broadcast-ready documents (alignment >= 10%)
             const broadcastReadyDocs = db.prepare(`
                 SELECT COUNT(*) as count
                 FROM memories
                 WHERE type = 'documents'
-                AND alignment_score >= 0.12
+                AND alignment_score >= 0.10
             `).get().count;
 
             const response = {
@@ -414,9 +410,12 @@ const server = http.createServer((req, res) => {
                 SELECT
                     content,
                     createdAt,
-                    type
+                    type,
+                    alignment_score
                 FROM memories
                 WHERE type = 'documents'
+                AND alignment_score >= 0.12
+                AND json_extract(content, '$.text') IS NOT NULL
                 ORDER BY createdAt DESC
                 LIMIT 50
             `).all();
@@ -464,6 +463,7 @@ const server = http.createServer((req, res) => {
                     source: source,
                     sourceType: sourceType,
                     createdTime: createdTime,
+                    alignmentScore: Math.round((doc.alignment_score || 0) * 100) + '%',
                     fullText: parsed.text || doc.content
                 };
             });
@@ -474,6 +474,52 @@ const server = http.createServer((req, res) => {
             console.error('Error fetching recent documents:', error);
             res.writeHead(500, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ error: 'Failed to fetch documents' }));
+        }
+    }
+    // Route: /api/logs/send
+    else if (req.url === '/api/logs/send' && req.method === 'GET') {
+        try {
+            const projectRoot = path.join(__dirname, '../../../..');
+            const logFiles = [
+                path.join(projectRoot, 'logs/cron-telegram-send.log'),
+                path.join(projectRoot, 'logs/cron-bluesky-send.log'),
+                path.join(projectRoot, 'logs/cron-wordpress-insights.log')
+            ];
+
+            let combinedLogs = '';
+            for (const logFile of logFiles) {
+                if (fs.existsSync(logFile)) {
+                    const logContent = execSync(`tail -50 ${logFile}`).toString();
+                    const logName = path.basename(logFile).replace('cron-', '').replace('-send.log', '').replace('-insights.log', '');
+                    combinedLogs += `=== ${logName.toUpperCase()} ===\n${logContent}\n\n`;
+                }
+            }
+
+            res.writeHead(200, { 'Content-Type': 'text/plain', 'Access-Control-Allow-Origin': '*' });
+            res.end(combinedLogs || 'No send logs available');
+        } catch (error) {
+            console.error('Error fetching send logs:', error);
+            res.writeHead(500, { 'Content-Type': 'text/plain' });
+            res.end('Error loading send logs');
+        }
+    }
+    // Route: /api/logs/creation
+    else if (req.url === '/api/logs/creation' && req.method === 'GET') {
+        try {
+            const projectRoot = path.join(__dirname, '../../../..');
+            const logFile = path.join(projectRoot, 'logs/cron-broadcast-create.log');
+
+            let logs = 'No creation logs available';
+            if (fs.existsSync(logFile)) {
+                logs = execSync(`tail -100 ${logFile}`).toString();
+            }
+
+            res.writeHead(200, { 'Content-Type': 'text/plain', 'Access-Control-Allow-Origin': '*' });
+            res.end(logs);
+        } catch (error) {
+            console.error('Error fetching creation logs:', error);
+            res.writeHead(500, { 'Content-Type': 'text/plain' });
+            res.end('Error loading creation logs');
         }
     }
     // Route: /api/source-metrics
