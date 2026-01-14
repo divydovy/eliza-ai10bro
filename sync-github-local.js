@@ -78,7 +78,9 @@ const files = glob.sync(pattern, {
         '**/node_modules/**',
         '**/.git/**',
         '**/dist/**',
-        '**/build/**'
+        '**/build/**',
+        '**/index.md',           // Exclude catalog index files
+        '**/index_*.md'          // Exclude topic index files
     ],
     nodir: true
 });

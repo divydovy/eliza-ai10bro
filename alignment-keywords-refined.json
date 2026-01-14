@@ -225,8 +225,8 @@
   },
 
   "scoring_recommendations": {
-    "core_alignment_minimum": 0.08,
-    "quality_threshold": 0.12,
+    "core_alignment_minimum": 0.10,
+    "quality_threshold": 0.10,
     "preferred_themes": ["biomimicry_nature", "biology_biotech", "environmental_conservation"],
     "boost_for_multiple_themes": true,
     "source_quality_multiplier": {

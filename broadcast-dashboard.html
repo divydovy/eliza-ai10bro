@@ -129,6 +129,130 @@
             gap: 20px;
             margin-bottom: 30px;
         }
+
+        .system-status-section {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .system-status-header {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .llm-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            font-weight: 600;
+            margin-left: auto;
+        }
+
+        .llm-status-badge.active {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .llm-status-badge.idle {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .system-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .mini-stat {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .mini-stat-label {
+            font-size: 0.85em;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .mini-stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #2d3748;
+        }
+
+        .cron-jobs-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .cron-jobs-table th {
+            background: #f7fafc;
+            padding: 12px;
+            text-align: left;
+            font-size: 0.9em;
+            color: #4a5568;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .cron-jobs-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9em;
+        }
+
+        .cron-jobs-table tbody tr:hover {
+            background: #f7fafc;
+        }
+
+        .cron-schedule {
+            font-family: monospace;
+            background: #edf2f7;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+
+        .cron-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .cron-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .cron-status-dot.healthy {
+            background: #10b981;
+        }
+
+        .cron-status-dot.stale {
+            background: #f59e0b;
+        }
+
+        .cron-status-dot.unknown {
+            background: #9ca3af;
+        }
         
         .stat-card {
             background: white;
@@ -633,7 +757,62 @@
         <h1>🤖 AI10bro Broadcast Dashboard</h1>
         
         <div id="status-message" class="status-message"></div>
-        
+
+        <!-- System Status Section -->
+        <div class="system-status-section">
+            <div class="system-status-header">
+                🔧 System Status
+                <div class="llm-status-badge idle" id="llm-status-badge">
+                    <span>⚪</span>
+                    <span id="llm-status-text">LLM Scoring: Idle</span>
+                </div>
+            </div>
+
+            <div class="system-stats-grid">
+                <div class="mini-stat">
+                    <div class="mini-stat-label">Total Docs</div>
+                    <div class="mini-stat-value" id="sys-total-docs">-</div>
+                </div>
+                <div class="mini-stat">
+                    <div class="mini-stat-label">Active Docs</div>
+                    <div class="mini-stat-value" id="sys-active-docs">-</div>
+                </div>
+                <div class="mini-stat">
+                    <div class="mini-stat-label">Tombstones</div>
+                    <div class="mini-stat-value" id="sys-tombstones">-</div>
+                </div>
+                <div class="mini-stat">
+                    <div class="mini-stat-label">Broadcast Ready</div>
+                    <div class="mini-stat-value" id="sys-broadcast-ready">-</div>
+                </div>
+                <div class="mini-stat">
+                    <div class="mini-stat-label">WordPress Ready</div>
+                    <div class="mini-stat-value" id="sys-wordpress-ready">-</div>
+                </div>
+                <div class="mini-stat">
+                    <div class="mini-stat-label">GitHub Docs</div>
+                    <div class="mini-stat-value" id="sys-github-docs">-</div>
+                </div>
+            </div>
+
+            <h3 style="margin: 20px 0 10px 0; color: #4a5568;">📅 Scheduled Jobs</h3>
+            <table class="cron-jobs-table">
+                <thead>
+                    <tr>
+                        <th>Job Name</th>
+                        <th>Schedule</th>
+                        <th>Last Run</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="cron-jobs-tbody">
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: #9ca3af;">Loading job status...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
         <div class="action-buttons">
             <button class="action-btn" onclick="triggerAction('SYNC_GITHUB')" id="sync-github-btn" title="Sync documents from GitHub repositories">
                 📚 Sync GitHub
@@ -779,6 +958,105 @@
             }
         }
         
+        // Fetch system status
+        async function fetchSystemStatus() {
+            try {
+                const statusUrl = `http://${window.location.hostname}:3001/api/system-status`;
+                const response = await fetch(statusUrl);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    updateSystemStatus(data);
+                } else {
+                    console.warn('System status endpoint not available');
+                }
+            } catch (error) {
+                console.warn('Could not fetch system status:', error);
+            }
+        }
+
+        function updateSystemStatus(data) {
+            // Update document stats
+            if (data.documents) {
+                document.getElementById('sys-total-docs').textContent = data.documents.total.toLocaleString();
+                document.getElementById('sys-active-docs').textContent = data.documents.active.toLocaleString();
+                document.getElementById('sys-tombstones').textContent = data.documents.tombstones.toLocaleString();
+                document.getElementById('sys-broadcast-ready').textContent = data.documents.broadcast_ready.toLocaleString();
+                document.getElementById('sys-wordpress-ready').textContent = data.documents.wordpress_ready.toLocaleString();
+                document.getElementById('sys-github-docs').textContent = data.documents.github_active.toLocaleString();
+            }
+
+            // Update LLM scoring status
+            if (data.llmScoring) {
+                const badge = document.getElementById('llm-status-badge');
+                const text = document.getElementById('llm-status-text');
+
+                if (data.llmScoring.inProgress) {
+                    badge.className = 'llm-status-badge active';
+                    let statusText = 'LLM Scoring: Active';
+                    if (data.llmScoring.checkpoint) {
+                        const progress = Math.round((data.llmScoring.checkpoint.processed / data.llmScoring.checkpoint.total) * 100);
+                        statusText += ` (${progress}%)`;
+                    }
+                    text.textContent = statusText;
+                    badge.querySelector('span:first-child').textContent = '🟡';
+                } else {
+                    badge.className = 'llm-status-badge idle';
+                    text.textContent = 'LLM Scoring: Idle';
+                    badge.querySelector('span:first-child').textContent = '🟢';
+                }
+            }
+
+            // Update cron jobs table
+            if (data.cronJobs && data.cronJobs.length > 0) {
+                const tbody = document.getElementById('cron-jobs-tbody');
+                tbody.innerHTML = data.cronJobs.map(job => {
+                    // Calculate status based on last run
+                    let status = 'unknown';
+                    let statusText = 'Unknown';
+                    if (job.lastRun) {
+                        const lastRunTime = new Date(job.lastRun);
+                        const now = new Date();
+                        const hoursSinceRun = (now - lastRunTime) / (1000 * 60 * 60);
+
+                        if (hoursSinceRun < 2) {
+                            status = 'healthy';
+                            statusText = 'Healthy';
+                        } else if (hoursSinceRun < 24) {
+                            status = 'healthy';
+                            statusText = 'Running';
+                        } else {
+                            status = 'stale';
+                            statusText = 'Stale';
+                        }
+                    }
+
+                    const lastRunFormatted = job.lastRun ?
+                        new Date(job.lastRun).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        }) :
+                        'Never';
+
+                    return `
+                        <tr>
+                            <td><strong>${job.name}</strong></td>
+                            <td><code class="cron-schedule">${job.schedule}</code></td>
+                            <td>${lastRunFormatted}</td>
+                            <td>
+                                <span class="cron-status">
+                                    <span class="cron-status-dot ${status}"></span>
+                                    ${statusText}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
         // Fetch real data from API
         async function fetchData() {
             try {
@@ -1275,10 +1553,12 @@
         // Initial load - fetch config first, then data
         fetchConfig().then(() => {
             fetchData();
+            fetchSystemStatus();
             fetchSourceMetrics();
             refreshLogs();
             // Auto-refresh data (not config) every 30 seconds
             setInterval(fetchData, appConfig.refreshInterval || 30000);
+            setInterval(fetchSystemStatus, 30000); // Refresh system status every 30 seconds
             setInterval(fetchSourceMetrics, 60000); // Refresh source metrics every minute
             setInterval(refreshLogs, 60000); // Refresh logs every minute
         });
