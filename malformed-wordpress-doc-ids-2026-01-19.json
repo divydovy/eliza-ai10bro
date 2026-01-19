@@ -1,0 +1,1356 @@
+{
+  "generated_at": "2026-01-19T16:32:01.166Z",
+  "total_documents": 224,
+  "description": "Document IDs from malformed WordPress broadcasts. Use these to regenerate WordPress broadcasts after generator fix.",
+  "alignment_stats": {
+    "avg": "26.3",
+    "min": "10.0",
+    "max": "92.0"
+  },
+  "documents": [
+    {
+      "documentId": "2f2b8741-869a-91bc-42d3-fbfbe42c635e",
+      "alignment_score": "92.0",
+      "source": "github",
+      "preview": "---\ntitle: \"CRISPR fungus: Protein-packed, sustainable, and tastes like meat\"\nsource: https://www.is"
+    },
+    {
+      "documentId": "63094a8e-3b95-2f46-ecd9-4c3cc6c3714d",
+      "alignment_score": "85.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Launch HN: BlankBio (YC S25) - Making RNA Programmable\"\nsource: https://news.ycombinator"
+    },
+    {
+      "documentId": "0dafec9f-74ab-922e-266d-d8642cac79d0",
+      "alignment_score": "85.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Synthetic Control of Implanted Engineered Liver Tissue Growth.\"\nsource: \"https://pubmed."
+    },
+    {
+      "documentId": "024fac1a-c1a8-2930-b8fb-4dc737223b1c",
+      "alignment_score": "85.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Comprehensive Review on DNA Hydrogels and DNA Origami-Enabled Wearable and Implantable B"
+    },
+    {
+      "documentId": "705d10f0-c3d7-33fa-81f2-a1392c555f14",
+      "alignment_score": "85.0",
+      "source": "github",
+      "preview": "# Turning Methane into Plastic: The Newlight Technologies Revolution\n\n**Topic:** #Bioplastics\n\n_Gene"
+    },
+    {
+      "documentId": "abd9c524-2ec0-a5cc-0880-07f96620fa3b",
+      "alignment_score": "85.0",
+      "source": "github",
+      "preview": "# 59. Cementing Change: How Ginger Dosier's Biomason is Paving a Greener Path\n\n_Generated on 2025-02"
+    },
+    {
+      "documentId": "dfb0f9da-fc3f-63c9-fc95-742f78db2148",
+      "alignment_score": "85.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Extracellular vesicles in osteoimmunomodulation: Orchestrating immune-driven bone regene"
+    },
+    {
+      "documentId": "2ed79370-26e2-e533-5cd4-af476cc47eda",
+      "alignment_score": "85.0",
+      "source": "github",
+      "preview": "# These cement-making bacteria could build the cities of the future\n\n**Topic:** #Sustainable Materia"
+    },
+    {
+      "documentId": "34087d84-d3f4-15a3-b02c-aaf806545073",
+      "alignment_score": "85.0",
+      "source": "github",
+      "preview": "---\ntitle: \"A stable and antibiotic-free plasmid expression system for \"\nsource: \"https://pubmed.ncb"
+    },
+    {
+      "documentId": "c941b234-bc7a-d769-8401-5204586db1e4",
+      "alignment_score": "75.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Red blood cell-derived extracellular vesicles as biomaterials: the opportunity of freezi"
+    },
+    {
+      "documentId": "290c53e0-44da-0d59-05eb-584d901ca238",
+      "alignment_score": "75.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Self-assembling protein cages: from coiled-coil module to machine learning-driven \"\nsour"
+    },
+    {
+      "documentId": "6419c9e5-5e25-6790-5699-a98972f21838",
+      "alignment_score": "75.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Experimental Study of the Effect of Corneal Bio-Coating Based on the Original Hydrogel B"
+    },
+    {
+      "documentId": "82363550-675b-7373-c412-b7d176d97c7f",
+      "alignment_score": "75.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Researchers Find Microbe Capable of Producing Oxygen from Martian Soil\"\nsource: https://"
+    },
+    {
+      "documentId": "36288dfc-e633-5cf6-eaed-af46292581e9",
+      "alignment_score": "65.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Hungry Fat Cells Could Someday Starve Cancer\"\nsource: https://www.ucsf.edu/news/2025/01/"
+    },
+    {
+      "documentId": "9a8809f9-601d-162d-d372-0de1e998a2ac",
+      "alignment_score": "55.0",
+      "source": "github",
+      "preview": "---\ntitle: \"GLP-1 therapeutics: Their emerging role in alcohol and substance use disorders\"\nsource: "
+    },
+    {
+      "documentId": "ee28f23a-2021-a2bd-6147-db9b9d3ca181",
+      "alignment_score": "50.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Eutectogels: Recent Advances, Design Strategies, and Emerging Applications in Biotechnol"
+    },
+    {
+      "documentId": "9a4636c8-648c-79ab-06b3-d14e6eeb112d",
+      "alignment_score": "50.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Protein-Flavor Interactions in Plant Protein Food Matrix: Molecular Binding Mechanisms, "
+    },
+    {
+      "documentId": "2fb5a0f6-95cc-14d9-e5cd-972006b459a8",
+      "alignment_score": "50.0",
+      "source": "github",
+      "preview": "# Making Materials That Heal Themselves\n\n**Topic:** #Bio-concrete\n\n_Generated on 2025-02-27 00:59:23"
+    },
+    {
+      "documentId": "bc7107a1-2d89-a2b9-776b-b7d0c72a0dc9",
+      "alignment_score": "50.0",
+      "source": "github",
+      "preview": "# SafeProtein: Red-Teaming Framework and Benchmark for Protein Foundation\n  Models\n\n**Published:** 2"
+    },
+    {
+      "documentId": "4271a94a-40b5-b1ca-8999-e773367727d7",
+      "alignment_score": "45.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Parkinson's disease and multiple system atrophy are gateways to RFC1-related disorders\"\n"
+    },
+    {
+      "documentId": "f92465f6-3e0a-9d35-36fa-b6302348db6e",
+      "alignment_score": "45.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Ioannis Yannas invented artificial skin for treatment of burns–dies at 90\"\nsource: https"
+    },
+    {
+      "documentId": "1a1de307-5d28-3103-db68-3162442be599",
+      "alignment_score": "45.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Why Nigeria Accepted GMOs\"\nsource: https://www.asimov.press/p/nigeria-crops\nhn_link: htt"
+    },
+    {
+      "documentId": "355c9c94-b2e8-7065-6442-5faef7f2bd2d",
+      "alignment_score": "45.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Stinkbug Leg Organ Hosts Symbiotic Fungi That Protect Eggs from Parasitic Wasps\"\nsource:"
+    },
+    {
+      "documentId": "7dbb8294-8606-0cea-22fe-48b2d68cd225",
+      "alignment_score": "45.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Rapid amyloid-β clearance and cognitive recovery by modulating BBB transport\"\nsource: ht"
+    },
+    {
+      "documentId": "ff2351a1-efeb-e6d9-df2c-c6d6bf9eca1d",
+      "alignment_score": "45.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Novo Nordisk's Canadian Mistake\"\nsource: https://www.science.org/content/blog-post/novo-"
+    },
+    {
+      "documentId": "10571ef5-d253-c7e7-da23-d3c2c8ac9599",
+      "alignment_score": "40.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Assessment of the stentless mitral valve and operation using bioengineering method.\"\nsou"
+    },
+    {
+      "documentId": "b011676c-0992-8823-13db-1591730d5be6",
+      "alignment_score": "40.0",
+      "source": "github",
+      "preview": "# Evolution in Action, Belated Seasonal Horror Flick Speculation\n\n**Topic:** #Sustainable Materials\n"
+    },
+    {
+      "documentId": "3fb75549-6436-8f57-b952-70e9e70527d9",
+      "alignment_score": "40.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Predicting Early Diabetic Kidney Disease Using a 3D Mesangial Model and Bayesian Mechano"
+    },
+    {
+      "documentId": "7b126805-d668-1e57-136c-46564ed7513e",
+      "alignment_score": "40.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Deep learning-based precision phenotyping of spine curvature identifies novel genetic ri"
+    },
+    {
+      "documentId": "411fd65b-2faf-05dd-d349-2677a2565c96",
+      "alignment_score": "35.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Targeted metagenomics using probe capture detect a larger diversity of nitrogen and meth"
+    },
+    {
+      "documentId": "1741226b-1a60-4112-1f28-920403715b96",
+      "alignment_score": "35.0",
+      "source": "github",
+      "preview": "---\ntitle: \"The blobulator: a toolkit for identification and visual exploration of hydrophobic modul"
+    },
+    {
+      "documentId": "8de795f5-e4ed-3893-27ff-d48213c467b2",
+      "alignment_score": "35.0",
+      "source": "github",
+      "preview": "# Flexural Strength\n\n_Generated on 2025-02-14 15:33:13_\n\n## Video Information\n- **Channel:** Anastas"
+    },
+    {
+      "documentId": "13e4e618-722f-558c-336e-0fb9399d1a96",
+      "alignment_score": "35.0",
+      "source": "github",
+      "preview": "---\ntitle: \"scELMo: Embeddings from Language Models are Good Learners for Single-cell Data Analysis\""
+    },
+    {
+      "documentId": "e3ee1e10-4bf8-2cff-a8e6-1c59a9298426",
+      "alignment_score": "35.0",
+      "source": "github",
+      "preview": "# Characterizing control between interacting subsystems with deep Jacobian\n  estimation\n\n**Published"
+    },
+    {
+      "documentId": "e962fef7-22a5-164c-59b2-da55e7439695",
+      "alignment_score": "35.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Cross-Ancestry Polygenic Risk Scores Enhance Alzheimer's Disease Risk Prediction in Mult"
+    },
+    {
+      "documentId": "3e93d63c-69b4-0371-389a-2921c40fb2c8",
+      "alignment_score": "35.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Surface-guided computing to quantify dynamic interactions between cell morphology and mo"
+    },
+    {
+      "documentId": "7c143b2c-4cba-f17f-1034-b22623f4a1cc",
+      "alignment_score": "35.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Genetic contribution to asthma informs acute chest syndrome pathophysiology and risk str"
+    },
+    {
+      "documentId": "c10225e7-7f6b-7635-26f5-13ca3a693ffa",
+      "alignment_score": "35.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Unravelling Sex Differences in the Genetic Architecture of Anxiety\"\nauthors: \"Hu, J.; Lu"
+    },
+    {
+      "documentId": "bc22f63d-c7c3-e96e-985c-e162ac754553",
+      "alignment_score": "35.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Integration of Digital Histology and Gene Expression to Predict Treatment-Specific Respo"
+    },
+    {
+      "documentId": "b002e246-9779-b8a6-c413-3cb0e85d30a1",
+      "alignment_score": "35.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Gene mutant dosage determines prognosis and metastatic tropism in 60,000 clinical cancer"
+    },
+    {
+      "documentId": "f6028bd8-08d2-0d51-3f66-2694388a0a53",
+      "alignment_score": "35.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Toxic Salton Sea dust triggers changes in lung microbiome after just one week\"\nsource: h"
+    },
+    {
+      "documentId": "83971130-7c37-ef28-ba83-c0db5cecd39c",
+      "alignment_score": "30.0",
+      "source": "github",
+      "preview": "---\ntitle: \"MiniFAST: A sensitive and fast miniaturized microscope for in vivo neural recording\"\naut"
+    },
+    {
+      "documentId": "54358867-9c80-7aa4-6142-3985605bd91c",
+      "alignment_score": "30.0",
+      "source": "github",
+      "preview": "# Bioplastic records could help decarbonize music scene\n\n**Topic:** #Sustainable Materials\n\n_Generat"
+    },
+    {
+      "documentId": "c05bb674-b5ee-181b-12ae-e669ceed9323",
+      "alignment_score": "30.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Ÿnsect, a French insect farming startup, has been been placed into liquidation\"\nsource: "
+    },
+    {
+      "documentId": "6de848a9-4de5-8f6c-100d-bb019227985a",
+      "alignment_score": "30.0",
+      "source": "github",
+      "preview": "# Self Healing Materials I Materials that repair themselves\n\n**Topic:** #Bio-concrete\n\n_Generated on"
+    },
+    {
+      "documentId": "c91aa1de-f3e7-0a03-f827-5411508c37e9",
+      "alignment_score": "30.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Faster reaction times in Alpha-Synuclein Seed Amplification Assay on CSF predict the Dif"
+    },
+    {
+      "documentId": "ccc9161b-d712-72bb-9a47-08dd66b082e1",
+      "alignment_score": "30.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Plasma brain-derived tau: analytical and clinical validation of the first commercial imm"
+    },
+    {
+      "documentId": "b2c6b415-fc7a-a524-a8d6-ca122f9923e7",
+      "alignment_score": "30.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Endoscopic liquid biopsies of gastric fluid in a large patient cohort reveal DNA content"
+    },
+    {
+      "documentId": "895f1474-5518-f55e-cbd0-afe0773487a3",
+      "alignment_score": "30.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Uumarrty and the Nash Score: a Game-theoretic, Agent-based Framework for Understanding E"
+    },
+    {
+      "documentId": "2c38d090-3e04-c156-b4cb-334a59fa8c5f",
+      "alignment_score": "30.0",
+      "source": "github",
+      "preview": "---\ntitle: \"High-resolution characterization of nasal microbial dynamics in young children\"\nauthors:"
+    },
+    {
+      "documentId": "05394ca2-ca8c-58ea-47a4-11cae6f16a4d",
+      "alignment_score": "30.0",
+      "source": "github",
+      "preview": "---\ntitle: \"DNA Learning Center: Mechanism of Replication 3D Animation\"\nsource: https://dnalc.cshl.e"
+    },
+    {
+      "documentId": "f6bb7121-39c1-7e6e-bc0e-f72623397420",
+      "alignment_score": "30.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Adenosine on the common path of rapid antidepressant action: The coffee paradox\"\nsource:"
+    },
+    {
+      "documentId": "30ecae9e-0356-b244-8fa7-197f247f60e4",
+      "alignment_score": "30.0",
+      "source": "github",
+      "preview": "---\ntitle: \"From blood sugar to brain relief: GLP-1 therapy slashes migraine frequency\"\nsource: http"
+    },
+    {
+      "documentId": "80c01108-5d68-5da1-43b0-f17ed3f41ba3",
+      "alignment_score": "30.0",
+      "source": "github",
+      "preview": "---\ntitle: \"GLP-1 drugs linked to lower death rates in colon cancer patients\"\nsource: https://today."
+    },
+    {
+      "documentId": "70afbd88-88f1-1edf-5c35-9fe9e0ec78d9",
+      "alignment_score": "30.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Eye prosthesis is the first to restore sight lost to macular degeneration\"\nsource: https"
+    },
+    {
+      "documentId": "71a01ec8-342b-8dd3-d0d5-d0b205961288",
+      "alignment_score": "30.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Computer Assisted Biologically Augmented Lifeform\"\nsource: https://cnc.fandom.com/wiki/C"
+    },
+    {
+      "documentId": "fe689bad-b9c8-b490-d609-4babc00d0fbb",
+      "alignment_score": "30.0",
+      "source": "github",
+      "preview": "---\ntitle: \"A built-in 'off switch' to stop persistent pain\"\nsource: https://penntoday.upenn.edu/new"
+    },
+    {
+      "documentId": "3ae79530-cc0d-e242-f511-24faf6e8b105",
+      "alignment_score": "30.0",
+      "source": "github",
+      "preview": "---\ntitle: \"New nanotherapy clears amyloid-β, reversing symptoms of Alzheimer's in mice\"\nsource: htt"
+    },
+    {
+      "documentId": "1c5290ea-4a7b-e3ff-a417-85ede2413226",
+      "alignment_score": "30.0",
+      "source": "github",
+      "preview": "---\ntitle: \"A 4k-year-old spatial pattern of termite mounds\"\nsource: https://www.cell.com/current-bi"
+    },
+    {
+      "documentId": "a0371681-cb0d-d976-678a-97db607ddf41",
+      "alignment_score": "25.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Early transcriptional changes in neutrophil-mediated processes following recanalization "
+    },
+    {
+      "documentId": "c60e8ea6-4e80-dbc0-2917-11099af829da",
+      "alignment_score": "25.0",
+      "source": "github",
+      "preview": "# NPX Bioplastics in Action\n\n**Topic:** #Sustainable Materials\n\n_Generated on 2025-02-27 01:01:28_\n\n"
+    },
+    {
+      "documentId": "9e148586-5de1-e113-7948-91344f552a35",
+      "alignment_score": "25.0",
+      "source": "github",
+      "preview": "# Newlight: Mark Herrema aboard the Alguita, discussing solutions to climate change\n\n_Generated on 2"
+    },
+    {
+      "documentId": "857863db-e90e-c928-75df-879016b09625",
+      "alignment_score": "25.0",
+      "source": "github",
+      "preview": "# Disentangled representations of microscopy images\n\n**Published:** 2025-06-25T17:44:37Z\n**Authors:*"
+    },
+    {
+      "documentId": "78d0ed96-41f4-54d3-71d5-a947cd6ffa47",
+      "alignment_score": "25.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Reconstructing Circuit Connectivity from in vivo Spike Trains Using Deep Domain-Adaptive"
+    },
+    {
+      "documentId": "1d8beeae-8427-739e-0ccb-65c49ea1a6f7",
+      "alignment_score": "25.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Deep learning aging marker from retinal images unveils sex-specific clinical and genetic"
+    },
+    {
+      "documentId": "f38168f2-83ff-4fe5-a278-9af3272c7875",
+      "alignment_score": "25.0",
+      "source": "github",
+      "preview": "---\ntitle: \"A single-cell transcriptomic atlas reveals resident dendritic-like cells in the zebrafis"
+    },
+    {
+      "documentId": "ed83ea69-7efb-99cd-af17-9d795c061832",
+      "alignment_score": "25.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Automated Deep Learning-Based Detection of Early Atherosclerotic Plaques in Carotid Ultr"
+    },
+    {
+      "documentId": "c7c1bb0f-f4f9-2fb7-d80a-594430a405c0",
+      "alignment_score": "25.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Slice-PASEF: Maximising Ion Utilisation in LC-MS Proteomics\"\nauthors: \"Sinn, L. R.; Szyr"
+    },
+    {
+      "documentId": "01e30fa8-4c4d-100d-af3a-f5d09a392862",
+      "alignment_score": "25.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Genome-wide association study meta-analysis brings monogenic hearing loss genes into the"
+    },
+    {
+      "documentId": "8122939a-d2af-1625-bae5-5489af09eea4",
+      "alignment_score": "25.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Bird flu viruses are resistant to fever, making them a major threat to humans\"\nsource: h"
+    },
+    {
+      "documentId": "64d6c40a-cc71-7da0-adb6-e1e28bb90caa",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Clemson University breakthrough in self-healing materials detailed in journal Science\n\n**Topic:** "
+    },
+    {
+      "documentId": "2892c96c-4588-ba48-698c-ac0db7d45b47",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# What Is Supply Chain Sustainability?\n\n**Topic:** #Sustainable Supply Chain\n\n_Generated on 2025-02-"
+    },
+    {
+      "documentId": "2c5cc070-3ef8-cb3f-9e5b-b17f5ae50ec4",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Sustainable Concrete: Green Alternatives & Best Practices\n\n_Generated on 2025-02-14 15:29:45_\n\n## "
+    },
+    {
+      "documentId": "274466c0-8cc3-6517-a442-dcb2b1efe0ea",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Understanding Permanent Carbon Removal | Carbon Engineering\n\n_Generated on 2025-02-14 15:26:40_\n\n#"
+    },
+    {
+      "documentId": "d0f4dd57-2237-1a8d-a199-12d6f52124bd",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Evolution Music x Blood Records\n\n**Topic:** #Sustainable Materials\n\n_Generated on 2025-02-27 01:01"
+    },
+    {
+      "documentId": "b66a9355-8f1d-bf64-a038-111f95afbcd5",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# A surprising step towards carbon neutral cities | Emma Bacon | TEDxSydney\n\n**Topic:** #Renewable E"
+    },
+    {
+      "documentId": "8369a1b8-16d4-f6af-b21a-1dcc512460d8",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Embodied Carbon Emissions in Construction Materials: the Last Mile to Decarbonization\n\n_Generated "
+    },
+    {
+      "documentId": "0da78e7e-d4aa-2419-aa9a-6cd38e7a5d8c",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# What Is the Circular Economy?\n\n**Topic:** #Renewable Energy & Sustainability\n\n_Generated on 2025-0"
+    },
+    {
+      "documentId": "8e86fca6-6098-d089-5cd8-ecadaf9a2a60",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# OffsetGo: Carbon Trading Platform\n\n**Topic:** #Carbon Technology\n\n_Generated on 2025-02-27 00:55:3"
+    },
+    {
+      "documentId": "3d87fe5c-ead6-ffe0-1acf-11b695df877b",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Solar Power Bank\n\n**Topic:** #Renewable Energy & Sustainability\n\n_Generated on 2025-02-27 01:05:35"
+    },
+    {
+      "documentId": "ac61879a-4e17-0c41-98ac-cd0f0c3d8d6d",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# ESG Explained in 53 Seconds\n\n**Topic:** #Sustainable Supply Chain\n\n_Generated on 2025-02-27 01:14:"
+    },
+    {
+      "documentId": "61fc0cca-54ea-17ba-a10f-0bc0c834a098",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Lecture 4: The Built Environment, Land Use, and Decarbonization\n\n**Topic:** #Renewable Energy & Su"
+    },
+    {
+      "documentId": "9bcb0e4a-6be9-40e8-0c2b-e6df2ef67a81",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Eco-Friendly Alternatives to Single Use Items #sustainability #sustainabilitymatters #ecofriendly\n"
+    },
+    {
+      "documentId": "6ee629fa-7ab3-0147-ffc4-c8828a52631d",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Climeworks: Removing CO₂ from the air\n\n_Generated on 2025-02-14 15:25:16_\n\n## Video Information\n- "
+    },
+    {
+      "documentId": "f2b14d48-6fd4-a4c6-d57b-eb0603e7b94a",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Affective Computing in Artificial Intelligence: Unveiling the Emotional Frontier\n\n**Topic:** #AI T"
+    },
+    {
+      "documentId": "6e364f59-6e29-7eb6-4818-5272b8e1b07b",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Self-Healing Concrete | The Henry Ford’s Innovation Nation\n\n_Generated on 2025-02-14 15:31:01_\n\n##"
+    },
+    {
+      "documentId": "2b784ae1-1d15-9e44-5f5b-be6333c65691",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# An insane AI that interprets human emotion | Hume AI\n\n**Topic:** #AI Technology\n\n_Generated on 202"
+    },
+    {
+      "documentId": "41ab2877-cfb0-7f42-0410-a4c9ff40a4f5",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# The largest direct air capture plant: Mammoth\n\n**Topic:** #Carbon Capture\n\n_Generated on 2025-02-2"
+    },
+    {
+      "documentId": "1468e717-1cdc-e2a9-0237-2d5532930f44",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# What Is AI Ethics | AI Ethics Foundation | How to Implement AI Ethics | Edureka\n\n**Topic:** #AI Te"
+    },
+    {
+      "documentId": "21864cd4-1239-b16d-fbbd-6642d8e0bab6",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Experts rank worlds Top 10 Energy Storage Companies - Tesla first\n\n**Topic:** #Renewable Energy & "
+    },
+    {
+      "documentId": "6ee3d8cb-4a30-2c1c-f880-f0a337154166",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# How AI Can Play a Role in Environmental Monitoring | ManMadeMachine\n\n**Topic:** #AI Technology\n\n_G"
+    },
+    {
+      "documentId": "5d77c4e7-34d4-c92f-0a33-f5f951891727",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# The next generation of direct air capture technology | Climeworks\n\n_Generated on 2025-02-14 15:25:"
+    },
+    {
+      "documentId": "3e98a54a-52d3-1ec6-40dd-4d1fd043afe2",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# More Plastic Out of the Ocean\n\n**Topic:** #Bioplastics\n\n_Generated on 2025-02-20 00:54:09_\n\n## Vid"
+    },
+    {
+      "documentId": "28035a3b-f685-22fa-8cd1-bb4ad57cd2ee",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# The Carbon Offset Problem: Can Technology Save a Flawed System? | Documentary\n\n**Topic:** #Carbon "
+    },
+    {
+      "documentId": "18104331-44d8-9e1b-549f-f624a9f1befb",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# OpenAI CEO Sam Altman on AI governance, ethics, and innovation | A conversation with BiGS\n\n**Topic"
+    },
+    {
+      "documentId": "82483e95-5d2f-426e-9cac-d0f19bed1fc9",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Eco Track – Carbon Footprint Monitoring\n\n**Topic:** #Sustainable Supply Chain\n\n_Generated on 2025-"
+    },
+    {
+      "documentId": "974effd5-f274-95ce-440a-aebfaccd5e3b",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# The Role of Blockchain in Supply Chain Transparency\n\n**Topic:** #Sustainable Supply Chain\n\n_Genera"
+    },
+    {
+      "documentId": "a81d51b8-5d94-c510-dbeb-9e56d50847c5",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Samsung Galaxy A16 5G Outlook\n\n**Topic:** #Bioplastics\n\n_Generated on 2025-02-20 00:54:34_\n\n## Vid"
+    },
+    {
+      "documentId": "985a7d6b-6509-13dd-df7d-844383029b50",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Bruce E. Logan: Communicating Energy Use & Carbon Emissions to Experts & the Public\n\n**Topic:** #C"
+    },
+    {
+      "documentId": "324e72e1-9204-4c9d-73a1-1f1d48ebacc7",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Climate Tech Convening India 2025 _ Episode 3 | N18M\n\n**Topic:** #Carbon Capture\n\n_Generated on 20"
+    },
+    {
+      "documentId": "dda591c6-79b1-6b74-6876-954a22e6dc09",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Coming Soon! Optima Mcdowell Mountain Village! Fabulous luxury living opportunity in Scottsdale, A"
+    },
+    {
+      "documentId": "1a626cd1-d346-6a8d-fe70-d8e3a0eb7406",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# D.C.C.E.E.W. | Reduce AU Greenhouse Gas Emmissions: PART 2  | ESTIMATES\n\n**Topic:** #Carbon Captur"
+    },
+    {
+      "documentId": "006dd0d3-d9d2-90cb-897b-a3d157dc5bbc",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# ASCE presents Best Visualization of a Smart, Sustainable City #FutureCity\n\n**Topic:** #Renewable E"
+    },
+    {
+      "documentId": "f6f201fd-6498-086e-ffa6-a36a2f51f816",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"AI evolution: Bring biomimicry to language models.\"\nsource: \"https://pubmed.ncbi.nlm.nih"
+    },
+    {
+      "documentId": "84154e77-74aa-289a-0992-f727170670fb",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"[Modern approach in management of patients with lower third face lacerated wounds].\"\nsou"
+    },
+    {
+      "documentId": "3882beec-1a15-a130-1c0c-0aa2eb52948d",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Marimo for monitoring and filtering of aquatic environments.\"\nsource: \"https://pubmed.nc"
+    },
+    {
+      "documentId": "85623329-5f3d-3a53-fcd9-159d3dccaf37",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Stiffness Enhanced Reconfigurable Soft Hand for Versatile Stable Grasps and In-hand Mani"
+    },
+    {
+      "documentId": "95671250-d1a5-d5dd-8786-cf6349660bac",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# I have a little orchard of around 50 fruit trees, and thought I would post here too for anyone pla"
+    },
+    {
+      "documentId": "139413d3-5ffb-451a-f99b-323ff03d59ea",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# TNO:Real-world data confirms potential of vehicle-integrated solar panels\n\n**Source:** Reddit r/Re"
+    },
+    {
+      "documentId": "38d67439-83cb-f764-fb88-8dca4027144d",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# The Doctor Trying to Cure Medicine’s Addiction to Disposables\n\n**Source:** Reddit r/sustainability"
+    },
+    {
+      "documentId": "d6e7bd10-6ed1-6e5d-5a8d-faab0edb5385",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Show HN: Semantic grep for Claude Code (local embeddings)\"\nsource: https://github.com/Be"
+    },
+    {
+      "documentId": "37aef6a9-01d2-1433-574c-7500d3cc1012",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"GigaByte CXL memory expansion card with up to 512GB DRAM\"\nsource: https://www.gigabyte.c"
+    },
+    {
+      "documentId": "1fb04b5f-8eb1-5c90-80b7-5e1b904564e6",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Morse Code Translator\"\nsource: https://morse-coder.com/\nhn_link: https://news.ycombinato"
+    },
+    {
+      "documentId": "0aae4ced-0c1b-5b2f-7e72-47d6cea7f928",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"ml-explore/mlx-lm\"\ntype: github_repo\nowner: \"ml-explore\"\nname: \"mlx-lm\"\ndescription: \"Ru"
+    },
+    {
+      "documentId": "07f34de2-8f79-8926-5516-9434865a5a41",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"NVIDIA/garak\"\ntype: github_repo\nowner: \"NVIDIA\"\nname: \"garak\"\ndescription: \"the LLM vuln"
+    },
+    {
+      "documentId": "68d0b548-8af9-13ba-d175-1a8bf1581ea4",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"commaai/opendbc\"\ntype: github_repo\nowner: \"commaai\"\nname: \"opendbc\"\ndescription: \"a Pyth"
+    },
+    {
+      "documentId": "7593eafc-321d-dff8-872b-833171c24fad",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"modelcontextprotocol/registry\"\ntype: github_repo\nowner: \"modelcontextprotocol\"\nname: \"re"
+    },
+    {
+      "documentId": "efb174d9-1933-833c-7fc3-dc4ae433edf2",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"asgeirtj/system_prompts_leaks\"\ntype: github_repo\nowner: \"asgeirtj\"\nname: \"system_prompts"
+    },
+    {
+      "documentId": "738c6452-1e78-1389-86fe-9f6c5141bab1",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"GraphiteEditor/Graphite\"\ntype: github_repo\nowner: \"GraphiteEditor\"\nname: \"Graphite\"\ndesc"
+    },
+    {
+      "documentId": "3ff266c2-47cf-ad51-cd79-fa6b2947a2e1",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"NVIDIA-NeMo/RL\"\ntype: github_repo\nowner: \"NVIDIA-NeMo\"\nname: \"RL\"\ndescription: \"Scalable"
+    },
+    {
+      "documentId": "6938897a-de18-5d57-7811-130f558eddfe",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"HKUDS/DeepCode\"\ntype: github_repo\nowner: \"HKUDS\"\nname: \"DeepCode\"\ndescription: \"\"DeepCod"
+    },
+    {
+      "documentId": "11e27598-0bb3-5594-7f40-b9e0cde9e9fb",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Differences in body temperature drive sex-specific immune responses\"\nauthors: \"Maloney, "
+    },
+    {
+      "documentId": "87639cd8-0e8e-ced6-84df-ecd61f851d5d",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Comparing Five Generative AI Chatbots' Answers to LLM-Generated Clinical Questions with "
+    },
+    {
+      "documentId": "524c16e5-02f3-0f78-3e9e-963a486156dd",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Tract-based Lesion Metrics for Resolving the Clinico-Radiological Paradox in Multiple Sc"
+    },
+    {
+      "documentId": "4d86f4b7-1f37-bf43-62a9-6263b2d8ffef",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Ly6G+Granulocytes-derived IL-17 limits protective host responses and promotes tuberculos"
+    },
+    {
+      "documentId": "0924a2ef-58ab-97c1-c93e-4f5c4e5e49d5",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Intravenous Thrombolysis for Acute Central Retinal Artery Occlusion: Protocol For a Syst"
+    },
+    {
+      "documentId": "ef0acf6e-7eff-0025-804f-c381047e1fb0",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Dual Targeting of DNA and EGFR by ZYH005 Induces DNA Damage and Mitotic Catastrophe in G"
+    },
+    {
+      "documentId": "6bfa83c5-6157-622c-fc83-3271435a3513",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Deep brain stimulation-responsive subthalamo-cortical coupling in obsessive-compulsive d"
+    },
+    {
+      "documentId": "270b71c3-6023-9a6e-17f6-c60f3ee41648",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Clinical, neuropathological, and biochemical characterization of ALS in a large CHCHD10 "
+    },
+    {
+      "documentId": "3bc629ca-0d59-1d96-3ed7-3036507609e2",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Biophysical modeling identifies an optimal hybrid amoeboid-mesenchymal mechanism for max"
+    },
+    {
+      "documentId": "c4d9629b-6e5b-082a-bc6b-15717d058dac",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Baseline nowcasting methods for handling delays in epidemiological data\"\nauthors: \"Johns"
+    },
+    {
+      "documentId": "f4826a82-56f0-cd7c-e311-859c0a9738a8",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Assessment of a zero-shot large language model in measuring documented goals-of-care dis"
+    },
+    {
+      "documentId": "63dbe86e-6e33-b1c3-8119-1b56f3e45939",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Motor Cortex Coverage Predicts Signal Strength of a Stentrode Endovascular Brain-Compute"
+    },
+    {
+      "documentId": "bf90e952-23b8-713f-a271-893d8c64e0cc",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"HGACL-DRP: Heterogeneous Graph Attention Dual-Perturbation Contrastive Learning Network "
+    },
+    {
+      "documentId": "4701c170-c54b-5747-bb6e-4d84c1c795a1",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Development, System Design, Safety, and Performance Metrics of a Conversational Agent fo"
+    },
+    {
+      "documentId": "c6fe845c-2a8d-45e9-8ef6-e99da0293993",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Response of circulating miRNAs to acute exercise: A systematic Review and Meta-Analysis\""
+    },
+    {
+      "documentId": "e0475913-b01e-8572-129b-286cd36fd543",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Factors associated with influenza vaccination among urban community-dwelling Chinese eld"
+    },
+    {
+      "documentId": "e3a3fac5-7f4d-1bc9-9fe0-5cbea7ffe8f2",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Uncovering splicing-mediated disease associations in the UK Biobank and All of Us using "
+    },
+    {
+      "documentId": "7bf54a9b-440b-c03f-1f23-c94bc87d4c4d",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Impact of alternative splicing on Arabidopsis proteome\"\nauthors: \"Reyes, A. V.; Zhang, C"
+    },
+    {
+      "documentId": "1a976ed8-9855-def7-1f01-a2bf85396cda",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Improving rice drought tolerance through host-mediated microbiome selection\"\nauthors: \"S"
+    },
+    {
+      "documentId": "1cfed1ab-668d-a537-dcd0-8e8908b8992b",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"First recording of a dying human brain shows waves similar to memory flashbacks\"\nsource:"
+    },
+    {
+      "documentId": "1dc6bf56-a39e-0bcd-5ed0-6f233279a1ac",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Donor-Derived Cell-Free DNA Stratifies Risk of Mortality and Graft Dysfunction in Severe"
+    },
+    {
+      "documentId": "bf29850e-f67a-923e-ee2a-7346d3599682",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Poor dream recall associates with Alzheimer's disease biomarkers and dementia risk\"\nauth"
+    },
+    {
+      "documentId": "be4ed82b-fef7-bbb6-064b-1883faed265d",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Effects of Working from Home on Musculoskeletal Pain and Coronaphobia during the COVID-1"
+    },
+    {
+      "documentId": "ea2fbe22-834c-2cb1-af70-390781393009",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"ViraLite: An Ultracompact HIV Viral Load Self-Testing System with Internal Quality Contr"
+    },
+    {
+      "documentId": "1c9cff1b-c7ee-82c1-3feb-840a5af052d0",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Re-analyzed APOL1 kidney data support new ethics of 'race'\"\nauthors: \"Burke, C. O.; Tanz"
+    },
+    {
+      "documentId": "6f0ef85d-a389-ce37-c026-a95ded61ef8b",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"How long does it take to cue a Pseudomonas aeruginosa chronic infection phenotype in the"
+    },
+    {
+      "documentId": "9db0a34f-aa0a-31b0-217a-efc06f1989b9",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Estimating Excess Mortality Among People Living with HIV/AIDS During the COVID-19 Pandem"
+    },
+    {
+      "documentId": "daf0681c-28fc-04b6-5b9d-24bd1fc03651",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Multidisciplinary clinician perspectives on reducing avoidable inflammatory bowel diseas"
+    },
+    {
+      "documentId": "e6f56298-0622-e90e-306b-0e3df3032afe",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Atypical Cell Cycle Regulation over Neural Stem Cell Expansion\"\nauthors: \"Lubanska, D.; "
+    },
+    {
+      "documentId": "20217eb1-a560-c4ec-9062-379dbf17d059",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Evaluating Traditional, Machine Learning, and Deep Learning Models for Predicting Outpat"
+    },
+    {
+      "documentId": "ba19712b-37c5-6162-f041-3e3514724a9a",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Artificial Intelligence in Early Detection of Autism Spectrum Disorder for Preschool age"
+    },
+    {
+      "documentId": "98c33a0e-50e8-f0b9-8bf3-3a36fbcbd267",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"The NLRP3 inflammasome as a key pathway in the affective and chronic fatigue symptoms of"
+    },
+    {
+      "documentId": "48f8c450-77aa-597e-3d8b-592aa23fc88b",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Reporting of pre-analytical Processes in Biobanked Biomaterials: A Missed Opportunity to"
+    },
+    {
+      "documentId": "c4b2f378-6869-333e-aa96-1f8b3f997011",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Dissociating instructive from permissive roles of brain circuits with reversible neural "
+    },
+    {
+      "documentId": "2a70f7cf-88c1-8b5e-c012-03557d3a431f",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"A Blood Based Mitochondrial Functional Index Biomarker for Alzheimers Disease\"\nauthors: "
+    },
+    {
+      "documentId": "063f73d9-be40-4443-c9fb-cdb931499f48",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Discerning Social Determinants of Health Associated with Blood Pressure Control of Hyper"
+    },
+    {
+      "documentId": "e8cb0ee4-535a-aefa-cd52-83239c72fa10",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Digital Divide or Educational Divide? The Impact of Social Media on COVID-19 Vaccination"
+    },
+    {
+      "documentId": "2ec9b661-d781-7879-2e56-5644180cd1e5",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Stay clear and dry! How microstructure diversity can offset the hydrophobicity costs of "
+    },
+    {
+      "documentId": "aa8383df-ce98-98d1-4d87-9c289150b1c3",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Pivotal role of Disrupted-in-Schizophrenia 1 (DISC1) in cardiac resilience to ischemic s"
+    },
+    {
+      "documentId": "6ecd9aa2-358c-1060-a916-d4beed624a6c",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Evaluation of clinical scales among populations diagnosed with atopic dermatitis: A scop"
+    },
+    {
+      "documentId": "b9126a8d-cd90-5ace-c54d-7d7419db5a94",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Poultry slaughter and carcass disposal practices in Bangladesh: Piloting the use of kill"
+    },
+    {
+      "documentId": "0334ad2a-e0ca-a494-28c3-7d692b22aec4",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Quantitative Analysis of Breast Nuclei Morphology for Cancer Diagnosis Using Supervised "
+    },
+    {
+      "documentId": "8bc32d95-b04b-aebc-ffcd-13c64fcb4a9b",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Multipair phase-modulated temporal interference electrical stimulation combined with fMR"
+    },
+    {
+      "documentId": "ae1e6178-7694-c0f2-9416-9d2a9814d528",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"A HIV-1 Gp41 Peptide-Liposome Vaccine Elicits Neutralizing Epitope-Targeted Antibody Res"
+    },
+    {
+      "documentId": "257ef6a1-a07e-e449-670c-88c2f20329ed",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Post-Licensure Safety of Nirsevimab from the Canadian National Vaccine Safety (CANVAS) N"
+    },
+    {
+      "documentId": "92bfd830-d9c6-309d-c0d4-5b633043d9aa",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Lanthanide-dependent isolation of phyllosphere methylotrophs selects for a phylogenetica"
+    },
+    {
+      "documentId": "8433cbff-941a-2ee8-310f-2caa0490317c",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Inhibition of BIRC5 and MCL1 as a potential treatment strategy to overcome drug resistan"
+    },
+    {
+      "documentId": "40dd5292-0334-4544-cad1-b90a987f3e90",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Changes in Pediatric RSV Hospitalizations after the COVID-19 Pandemic, 2022-2023, Canada"
+    },
+    {
+      "documentId": "b17c08dd-2e4a-12e9-5b1e-c60a439f7caa",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"COGNET-STROKE: A NOVEL BRAIN DYSCONNECTIVITY TOOL FOR PREDICTION OF COGNITIVE DEFICITS A"
+    },
+    {
+      "documentId": "8868c72c-f91f-aaa2-9104-114f3fac2bff",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"The association between low-grade proteinuria and adverse kidney outcomes in IgA nephrop"
+    },
+    {
+      "documentId": "819165fe-b1c7-c145-ace0-766ba962aab1",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# How Data Mixing Shapes In-Context Learning: Asymptotic Equivalence for\n  Transformers with MLPs\n\n*"
+    },
+    {
+      "documentId": "5f93766c-afc1-8d6a-d9ec-fb84388ab633",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Visual Diffusion Models are Geometric Solvers\n\n**Published:** 2025-10-24T17:57:31Z\n**Authors:** Ni"
+    },
+    {
+      "documentId": "ffbebcf6-b7a6-a894-47d0-8fbb62ebc9ba",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Scaf-GRPO: Scaffolded Group Relative Policy Optimization for Enhancing\n  LLM Reasoning\n\n**Publishe"
+    },
+    {
+      "documentId": "65b3b7e2-2059-f316-5ea4-6b170defdd00",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# StreamingVLM: Real-Time Understanding for Infinite Video Streams\n\n**Published:** 2025-10-10T17:59:"
+    },
+    {
+      "documentId": "8d2005cf-9cde-5e76-4ef8-525fe5c76aa4",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# BaNEL: Exploration Posteriors for Generative Modeling Using Only\n  Negative Rewards\n\n**Published:*"
+    },
+    {
+      "documentId": "d95d1016-f27b-f198-5639-a726b7162edb",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# SciVideoBench: Benchmarking Scientific Video Reasoning in Large\n  Multimodal Models\n\n**Published:*"
+    },
+    {
+      "documentId": "89f6318a-55cb-49eb-6d49-7e4fee0929cb",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# StarEmbed: Benchmarking Time Series Foundation Models on Astronomical\n  Observations of Variable S"
+    },
+    {
+      "documentId": "e7d538ea-2f01-c99e-e2a6-2657bab957d5",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# From Noisy Traces to Stable Gradients: Bias-Variance Optimized\n  Preference Optimization for Align"
+    },
+    {
+      "documentId": "30373df0-bb79-9e68-f2a6-b28597f5f235",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# The role of synthetic data in Multilingual, Multi-cultural AI systems:\n  Lessons from Indic Langua"
+    },
+    {
+      "documentId": "7642ac81-6ea1-680b-bfdb-77f194476ae3",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Spatio-Temporal Directed Graph Learning for Account Takeover Fraud\n  Detection\n\n**Published:** 202"
+    },
+    {
+      "documentId": "16a78e63-f153-4200-6f7d-4f06a87d0fd9",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# UniPixel: Unified Object Referring and Segmentation for Pixel-Level\n  Visual Reasoning\n\n**Publishe"
+    },
+    {
+      "documentId": "7eb09337-97fb-cb5d-2b7f-8ea29a944485",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# FocalCodec-Stream: Streaming Low-Bitrate Speech Coding via Causal\n  Distillation\n\n**Published:** 2"
+    },
+    {
+      "documentId": "f8573025-a1e1-6a2e-c084-2cc8de1ad4c6",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# ReSum: Unlocking Long-Horizon Search Intelligence via Context\n  Summarization\n\n**Published:** 2025"
+    },
+    {
+      "documentId": "b03f7287-694a-0268-ead3-ad142900ab88",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Constrained free energy minimization for the design of thermal states\n  and stabilizer thermodynam"
+    },
+    {
+      "documentId": "d21ccbbc-8110-4153-482d-62669f8cb2db",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# WGAST: Weakly-Supervised Generative Network for Daily 10 m Land Surface\n  Temperature Estimation v"
+    },
+    {
+      "documentId": "2379d13d-ff58-b4fe-d7ad-9b342cf22f16",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Intuition emerges in Maximum Caliber models at criticality\n\n**Published:** 2025-08-08T17:27:41Z\n**"
+    },
+    {
+      "documentId": "4a3c06b5-d8df-7720-6543-8e87aaf9b847",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Automatically discovering heuristics in a complex SAT solver with large\n  language models\n\n**Publi"
+    },
+    {
+      "documentId": "22c3b160-9ceb-a32d-3b28-669c99b96e14",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "---\ntitle: \"The neurons that let us see what isn't there\"\nsource: https://arstechnica.com/science/20"
+    },
+    {
+      "documentId": "9520f0ef-91bc-667f-1959-792f4ac1f2ce",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# MegaScience: Pushing the Frontiers of Post-Training Datasets for Science\n  Reasoning\n\n**Published:"
+    },
+    {
+      "documentId": "1373f9b7-ef14-3cb6-cef8-e6ef363e7348",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# SeC: Advancing Complex Video Object Segmentation via Progressive Concept\n  Construction\n\n**Publish"
+    },
+    {
+      "documentId": "b925c70a-6a48-a559-eb7f-f8d2137d7d69",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Quantum Boltzmann Machines using Parallel Annealing for Medical Image\n  Classification\n\n**Publishe"
+    },
+    {
+      "documentId": "848de64c-3229-e5a3-5ba3-f65e1391ad58",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Kolmogorov Arnold Networks (KANs) for Imbalanced Data -- An Empirical\n  Perspective\n\n**Published:*"
+    },
+    {
+      "documentId": "8a094e3b-666a-83f3-e15e-260288a2abfc",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Hierarchical Rectified Flow Matching with Mini-Batch Couplings\n\n**Published:** 2025-07-17T17:59:56"
+    },
+    {
+      "documentId": "ee10be44-a479-3a68-458f-e5dadb9ae43b",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Addressing Imbalanced Domain-Incremental Learning through Dual-Balance\n  Collaborative Experts\n\n**"
+    },
+    {
+      "documentId": "c032ae03-7d17-bfb4-c405-031a8ba77537",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Training-Free Text-Guided Color Editing with Multi-Modal Diffusion\n  Transformer\n\n**Published:** 2"
+    },
+    {
+      "documentId": "4b3dc784-09fb-71c6-1f2f-db54fe7d76c7",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Open Vision Reasoner: Transferring Linguistic Cognitive Behavior for\n  Visual Reasoning\n\n**Publish"
+    },
+    {
+      "documentId": "0ad94a66-ffa9-4a6d-b3fe-1cd7ba6bb355",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# Multi-Disease Deep Learning Framework for GWAS: Beyond Feature Selection\n  Constraints\n\n**Publishe"
+    },
+    {
+      "documentId": "4d6b7fa2-d905-f1a1-6776-e06b95e27eea",
+      "alignment_score": "20.0",
+      "source": "github",
+      "preview": "# MvHo-IB: Multi-View Higher-Order Information Bottleneck for Brain\n  Disorder Diagnosis\n\n**Publishe"
+    },
+    {
+      "documentId": "8b2fcfef-5ad8-35c2-f52f-a2d2b22a0ffe",
+      "alignment_score": "15.0",
+      "source": "github",
+      "preview": "# Machine Learning with Privacy for Protected Attributes\n\n**Published:** 2025-06-24T17:53:28Z\n**Auth"
+    },
+    {
+      "documentId": "5131894b-4dd6-4155-6c10-657d1deb15bd",
+      "alignment_score": "15.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Dharma: A novel machine learning framework for pediatric appendicitis--diagnosis, severi"
+    },
+    {
+      "documentId": "d2c9d0b4-eb70-dc96-da25-e65fef2d9000",
+      "alignment_score": "15.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Temperature dominates dengue transmission in Thailand: Machine learning reveals critical"
+    },
+    {
+      "documentId": "b0b1ec60-738e-6b44-e62a-26579564a0d2",
+      "alignment_score": "10.0",
+      "source": "github",
+      "preview": "# Agent-X: Evaluating Deep Multimodal Reasoning in Vision-Centric Agentic\n  Tasks\n\n**Published:** 20"
+    },
+    {
+      "documentId": "b19b641d-70b8-a3c8-37e4-90456a319f52",
+      "alignment_score": "10.0",
+      "source": "github",
+      "preview": "# Diagnosing and Improving Diffusion Models by Estimating the Optimal Loss\n  Value\n\n**Published:** 2"
+    },
+    {
+      "documentId": "e1a95554-0fd2-c92b-740e-99bb73328b6d",
+      "alignment_score": "10.0",
+      "source": "github",
+      "preview": "# OmniAvatar: Efficient Audio-Driven Avatar Video Generation with Adaptive\n  Body Animation\n\n**Publi"
+    },
+    {
+      "documentId": "805960cc-51c5-b683-65c8-1f35bd2e7f6b",
+      "alignment_score": "10.0",
+      "source": "github",
+      "preview": "# Data Uniformity Improves Training Efficiency and More, with a\n  Convergence Framework Beyond the N"
+    },
+    {
+      "documentId": "8195cccf-673e-99a3-3d8c-b44b971d8986",
+      "alignment_score": "10.0",
+      "source": "github",
+      "preview": "# A Bayesian Incentive Mechanism for Poison-Resilient Federated Learning\n\n**Published:** 2025-07-16T"
+    },
+    {
+      "documentId": "d3a8e6f4-4e1a-1317-f703-4bb8c112c368",
+      "alignment_score": "10.0",
+      "source": "github",
+      "preview": "# Elk: Exploring the Efficiency of Inter-core Connected AI Chips with Deep\n  Learning Compiler Techn"
+    },
+    {
+      "documentId": "78bf8396-0268-8758-db65-cdac69d8fb4d",
+      "alignment_score": "10.0",
+      "source": "github",
+      "preview": "# Empirical Investigation into Configuring Echo State Networks for\n  Representative Benchmark Proble"
+    },
+    {
+      "documentId": "833c34d5-8688-4686-8872-531ee30882c4",
+      "alignment_score": "10.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Aligning Computational Pathology with Clinical Practice: A Systematic Review of AI Tools"
+    },
+    {
+      "documentId": "d7d9fde5-028c-d9a8-b306-86d71e563cd7",
+      "alignment_score": "10.0",
+      "source": "github",
+      "preview": "---\ntitle: \"slint-ui/slint\"\ntype: github_repo\nowner: \"slint-ui\"\nname: \"slint\"\ndescription: \"Slint is"
+    },
+    {
+      "documentId": "d433b12d-40a5-fa4b-9d5a-e7b3b0b4ee83",
+      "alignment_score": "10.0",
+      "source": "github",
+      "preview": "---\ntitle: \"crewAIInc/crewAI\"\ntype: github_repo\nowner: \"crewAIInc\"\nname: \"crewAI\"\ndescription: \"Fram"
+    },
+    {
+      "documentId": "9916c914-57e9-6f12-7bca-d6e4c3ec3234",
+      "alignment_score": "10.0",
+      "source": "github",
+      "preview": "---\ntitle: \"resemble-ai/chatterbox\"\ntype: github_repo\nowner: \"resemble-ai\"\nname: \"chatterbox\"\ndescri"
+    },
+    {
+      "documentId": "3c0de4e8-a150-62c4-62ba-c7199a58621d",
+      "alignment_score": "10.0",
+      "source": "github",
+      "preview": "---\ntitle: \"inventree/InvenTree\"\ntype: github_repo\nowner: \"inventree\"\nname: \"InvenTree\"\ndescription:"
+    },
+    {
+      "documentId": "f1cfda36-7227-9e4b-c0b4-8e7f62d1cfa3",
+      "alignment_score": "10.0",
+      "source": "github",
+      "preview": "---\ntitle: \"pathwaycom/pathway\"\ntype: github_repo\nowner: \"pathwaycom\"\nname: \"pathway\"\ndescription: \""
+    },
+    {
+      "documentId": "1a9d951d-5f23-1d50-65cd-1cd5a68f6fb5",
+      "alignment_score": "10.0",
+      "source": "github",
+      "preview": "---\ntitle: \"emcie-co/parlant\"\ntype: github_repo\nowner: \"emcie-co\"\nname: \"parlant\"\ndescription: \"LLM "
+    },
+    {
+      "documentId": "3bc7f198-0d92-605f-b293-fc4193ea7337",
+      "alignment_score": "10.0",
+      "source": "github",
+      "preview": "---\ntitle: \"envoyproxy/gateway\"\ntype: github_repo\nowner: \"envoyproxy\"\nname: \"gateway\"\ndescription: \""
+    },
+    {
+      "documentId": "9a0fdc01-78bf-683c-a120-fa2cd78945de",
+      "alignment_score": "10.0",
+      "source": "github",
+      "preview": "---\ntitle: \"ruvnet/claude-flow\"\ntype: github_repo\nowner: \"ruvnet\"\nname: \"claude-flow\"\ndescription: \""
+    },
+    {
+      "documentId": "5aa07de5-20e7-3b99-dd10-ff0f815a761d",
+      "alignment_score": "10.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Done-0/fuck-u-code\"\ntype: github_repo\nowner: \"Done-0\"\nname: \"fuck-u-code\"\ndescription: \""
+    },
+    {
+      "documentId": "b95b92ba-5f9c-289c-f2b1-f8c83bdc5e65",
+      "alignment_score": "10.0",
+      "source": "github",
+      "preview": "---\ntitle: \"francoismichel/ssh3\"\ntype: github_repo\nowner: \"francoismichel\"\nname: \"ssh3\"\ndescription:"
+    },
+    {
+      "documentId": "7d5ed968-fad0-9e79-9b51-d7409dd950a4",
+      "alignment_score": "10.0",
+      "source": "github",
+      "preview": "---\ntitle: \"wanglin2/mind-map\"\ntype: github_repo\nowner: \"wanglin2\"\nname: \"mind-map\"\ndescription: \"Si"
+    },
+    {
+      "documentId": "81067678-16be-19ba-02e3-851f1eea8b0f",
+      "alignment_score": "10.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Show HN: Turn Markdown into React/Svelte/Vue UI at runtime, zero build step\"\nsource: htt"
+    },
+    {
+      "documentId": "aa230c1c-9cf6-45b0-a865-9ef455492045",
+      "alignment_score": "10.0",
+      "source": "github",
+      "preview": "---\ntitle: \"Clarity or accuracy – what makes a good scientific image?\"\nsource: https://www.nature.co"
+    },
+    {
+      "documentId": "9d2f2275-6b5d-7a3b-87de-1c04592a0ed8",
+      "alignment_score": "10.0",
+      "source": "github",
+      "preview": "# Scientists Finally Know How Roman Concrete Was Made\n\n**Topic:** #Bio-concrete\n\n_Generated on 2025-"
+    }
+  ]
+}

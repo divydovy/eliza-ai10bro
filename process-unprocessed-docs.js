@@ -501,7 +501,16 @@ OUTPUT YOUR BROADCAST NOW (no labels, just the engaging text):`;
                             .replace('{trend_context}', trendConnection || 'No specific trend context available.');
 
                         // Generate WordPress article using Ollama (free, local)
-                        const wpArticleRaw = await generateBroadcastWithOllama(wpPrompt);
+                        let wpArticleRaw = await generateBroadcastWithOllama(wpPrompt);
+
+                        // Clean LLM markdown wrappers before parsing JSON
+                        // Remove common LLM preambles
+                        wpArticleRaw = wpArticleRaw.replace(/^Here is the article in the requested JSON format:\s*/i, '');
+                        wpArticleRaw = wpArticleRaw.replace(/^Here is the article:\s*/i, '');
+                        wpArticleRaw = wpArticleRaw.replace(/^Here's the article:\s*/i, '');
+                        // Remove markdown code fences
+                        wpArticleRaw = wpArticleRaw.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+                        wpArticleRaw = wpArticleRaw.trim();
 
                         // Try to parse as JSON (expected format from prompt)
                         let wpArticle;
