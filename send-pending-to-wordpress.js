@@ -186,13 +186,14 @@ async function sendPendingBroadcasts() {
             AND client LIKE 'wordpress_%'
         `).all(process.env.BROADCAST_ID);
     } else {
+        // Publish 9 articles per run (6 runs/day * 9 = 54 articles/day)
         pendingBroadcasts = db.prepare(`
             SELECT id, documentId, content, image_url, alignment_score, client
             FROM broadcasts
             WHERE status = 'pending'
             AND client = ?
             ORDER BY alignment_score DESC, createdAt ASC
-            LIMIT 1
+            LIMIT 9
         `).all(CLIENT_FILTER);
     }
 
