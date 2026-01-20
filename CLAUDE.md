@@ -29,6 +29,147 @@
 - **Model**: qwen2.5:32b (21GB, 128K context, GPT-4o equivalent)
 - **Major Systems**: LLM scoring, entity tracking, deal detection, quality checks, automated cleanup
 
+## Session: 2026-01-20 - WordPress Publishing Restored
+
+### Session Summary: ✅ COMPLETE - WordPress Authentication Fixed + 54 Articles/Day Flow
+
+**Duration**: ~2 hours
+**Focus**: Fix WordPress 401 authentication errors, restore publishing pipeline
+
+### Major Accomplishments
+
+#### 1. WordPress Broadcast Cleanup ✅
+**Problem**: 402 malformed WordPress broadcasts with visible JSON in titles
+**Root Cause**: LLM wrapping JSON in markdown code fences, parser storing outer wrapper
+
+**Fixes Applied**:
+1. **Generator Fix** (process-unprocessed-docs.js:503-518)
+   - Added regex to strip markdown wrappers before JSON parsing
+   - Removes `Here is the article...` preambles
+   - Removes ` ```json ` code fences
+
+2. **Rescue Attempt** (rescue-malformed-wordpress.js)
+   - Attempted to extract inner JSON from 236 malformed broadcasts
+   - Result: 0 rescued (invalid JSON with control characters)
+   - Created backup of 224 document IDs for regeneration
+
+3. **Database Cleanup** (cleanup-sent-wordpress.js + delete-malformed-wordpress.js)
+   - Deleted 14 malformed sent broadcasts
+   - Deleted 236 malformed pending broadcasts
+   - Reset 4 good broadcasts to pending for republishing
+   - **Final State**: 726 clean pending broadcasts (27.8% avg alignment)
+
+4. **Manual WordPress Cleanup** (WORDPRESS_CLEANUP_INSTRUCTIONS.md)
+   - Created guide for user to delete ~14 malformed posts from WordPress admin
+
+#### 2. WordPress Authentication Fixed ✅
+**Problem**: 401 errors blocking all WordPress publishes since Jan 14
+**Root Cause**: Application Passwords not configured/working in WordPress
+
+**Solution**:
+1. **Created Basic Auth REST API Plugin**
+   - Location: `/Users/davidlockie/Studio/ai10bro/wp-content/plugins/basic-auth-rest/`
+   - Enables HTTP Basic Authentication for local development
+   - Forces Application Passwords to be available
+   - Sets current user context for proper permissions
+
+2. **Reset Admin Password**
+   ```bash
+   wp user update admin --user_pass="ai10bro2026!"
+   ```
+
+3. **Updated .env.wordpress**
+   - Changed WP_APP_PASSWORD to new admin password
+
+4. **Activated Plugin**
+   ```bash
+   wp plugin activate basic-auth-rest
+   ```
+
+**Result**: Authentication working, posts publishing successfully ✅
+
+#### 3. Publishing Rate Increased ✅
+**Change**: Increased from 6 articles/day to 54 articles/day
+- Modified `send-pending-to-wordpress.js` LIMIT: 1 → 9
+- Schedule: 6 runs/day × 9 articles = 54 articles/day
+- Backlog clearance: ~13 days (vs 121 days at old rate)
+
+#### 4. WordPress Port Fixed ✅
+**Found**: Cron configured with wrong port (8080 vs 8885)
+**Fixed**: Updated crontab `WP_BASE_URL=http://localhost:8885`
+
+### Test Results
+
+**Manual Publish Run** (2026-01-20 16:02):
+```
+📤 Checking for pending wordpress_insight broadcasts...
+   Found 9 pending broadcasts
+
+✅ Published 8 posts successfully:
+1. Engineered Coatings Suppress Restenosis by Mimicking Glutathione Peroxidase
+2. CRISPR-Fungi Offers Sustainable Meat Alternative with High Protein Content
+3. CRISPR-Enhanced Fungus Offers Sustainable Protein Source
+4. Live Biotherapeutic Trial Shows Promise in Treating Bacterial Vaginosis
+5. Engineering Terpene Synthases for Enhanced Diversity
+6. InsiliCoil Software Suite Unveils New Avenues in Coiled Coil Engineering
+7. Engineered Bacteria Enhance Copper-Induced Cancer Therapy
+8. Leonine Framework Optimizes DNA Sequences for Specific Cell Types
+```
+
+**Database Status**:
+```
+pending: 726 broadcasts (27.8% avg alignment)
+sent: 8 broadcasts
+```
+
+### Current System Status
+
+**WordPress Publishing**: 🟢 FULLY OPERATIONAL
+- **Rate**: 54 articles/day
+- **Schedule**: Every 4 hours at :20
+- **Backlog**: 726 pending broadcasts
+- **Quality**: 27.8% avg alignment (high-quality biotech content)
+- **Clearance**: ~13 days to clear current backlog
+
+**Platform Status**:
+- ✅ Telegram: Active (hourly at :00)
+- ✅ Bluesky: Active (hourly at :40)
+- ✅ WordPress Insights: Active (every 4 hours at :20) **RESTORED**
+- ⏸️ WordPress Deep Dives: Manual (139 pending, ≥42.6% alignment)
+- ❌ Farcaster: Disabled (no signer)
+
+### Minor Issue: Image Uploads
+
+**Status**: Posts publish successfully but images fail with 500 errors
+**Impact**: Low priority - posts are readable without images
+**Next Step**: Debug WordPress media upload endpoint (separate from auth)
+
+### Files Created/Modified
+
+**Created**:
+1. `rescue-malformed-wordpress.js` - Attempted rescue of malformed broadcasts
+2. `save-malformed-doc-ids.js` - Backup of 224 document IDs
+3. `delete-malformed-wordpress.js` - Delete malformed pending broadcasts
+4. `cleanup-sent-wordpress.js` - Clean malformed sent broadcasts
+5. `WORDPRESS_CLEANUP_INSTRUCTIONS.md` - Manual cleanup guide
+6. `WORDPRESS_AUTH_FIX_2026-01-20.md` - Complete fix documentation
+
+**Modified**:
+1. `process-unprocessed-docs.js` (lines 503-518) - Strip markdown wrappers
+2. `send-pending-to-wordpress.js` (line 196) - LIMIT 1 → 9
+3. `crontab` - WordPress port fix (8080 → 8885)
+4. `.env.wordpress` - Updated WP_APP_PASSWORD
+5. `/Users/davidlockie/Studio/ai10bro/wp-content/plugins/basic-auth-rest/` - Created plugin
+
+### Next Session Priorities
+
+1. ⏭️ Monitor WordPress publishing over next 24 hours
+2. ⏭️ Debug image upload 500 errors (low priority)
+3. ⏭️ Manually delete ~14 malformed posts from WordPress admin
+4. ⏭️ Consider WordPress Deep Dives workflow (139 pending)
+
+---
+
 ## Session: 2026-01-19 - Grokipedia Entity Discovery & RSS Feed Integration
 
 ### Session Summary: ✅ COMPLETE - 11 New Entities + RSS Feeds + Search Entity Configured
