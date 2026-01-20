@@ -98,6 +98,17 @@
 **Found**: Cron configured with wrong port (8080 vs 8885)
 **Fixed**: Updated crontab `WP_BASE_URL=http://localhost:8885`
 
+#### 5. Image Upload Fixed ✅
+**Problem**: Images failing with 500 errors (exceeded 2MB upload limit)
+**Solution**: Restarted WordPress server with 10MB limits + Application Password
+
+**Implementation**:
+- PHP server: `php -S localhost:8885 -d upload_max_filesize=10M -d post_max_size=10M -d memory_limit=256M -t .`
+- Created Application Password: `wp user application-password create admin "Eliza Publishing"`
+- Updated `.env.wordpress` with new password
+
+**Result**: All posts now include featured images (tested: Media ID 99, 100, 102, 104)
+
 ### Test Results
 
 **Manual Publish Run** (2026-01-20 16:02):
@@ -138,11 +149,22 @@ sent: 8 broadcasts
 - ⏸️ WordPress Deep Dives: Manual (139 pending, ≥42.6% alignment)
 - ❌ Farcaster: Disabled (no signer)
 
-### Minor Issue: Image Uploads
+### Image Upload Issue - FIXED ✅
 
-**Status**: Posts publish successfully but images fail with 500 errors
-**Impact**: Low priority - posts are readable without images
-**Next Step**: Debug WordPress media upload endpoint (separate from auth)
+**Problem**: Posts publishing but images failing with 500 errors
+**Root Cause**: Images (2.8MB) exceeded PHP upload limit (2MB)
+
+**Solution**:
+1. Restarted WordPress server with increased limits (10MB)
+2. Created WordPress Application Password (native support)
+3. Updated `.env.wordpress` with new password
+
+**Command**:
+```bash
+php -S localhost:8885 -d upload_max_filesize=10M -d post_max_size=10M -d memory_limit=256M -t .
+```
+
+**Result**: All posts now include featured images ✅
 
 ### Files Created/Modified
 
@@ -152,21 +174,24 @@ sent: 8 broadcasts
 3. `delete-malformed-wordpress.js` - Delete malformed pending broadcasts
 4. `cleanup-sent-wordpress.js` - Clean malformed sent broadcasts
 5. `WORDPRESS_CLEANUP_INSTRUCTIONS.md` - Manual cleanup guide
-6. `WORDPRESS_AUTH_FIX_2026-01-20.md` - Complete fix documentation
+6. `WORDPRESS_AUTH_FIX_2026-01-20.md` - Authentication fix documentation
+7. `WORDPRESS_IMAGE_UPLOAD_FIX_2026-01-20.md` - Image upload fix documentation
 
 **Modified**:
 1. `process-unprocessed-docs.js` (lines 503-518) - Strip markdown wrappers
 2. `send-pending-to-wordpress.js` (line 196) - LIMIT 1 → 9
 3. `crontab` - WordPress port fix (8080 → 8885)
-4. `.env.wordpress` - Updated WP_APP_PASSWORD
-5. `/Users/davidlockie/Studio/ai10bro/wp-content/plugins/basic-auth-rest/` - Created plugin
+4. `.env.wordpress` - Updated WP_APP_PASSWORD (twice: Basic Auth, then App Password)
+5. WordPress server - Restarted with 10MB upload limits
+6. `/Users/davidlockie/Studio/ai10bro/wp-content/plugins/basic-auth-rest/` - Created plugin
+7. `/Users/davidlockie/Studio/ai10bro/.user.ini` - PHP config (unused with built-in server)
 
 ### Next Session Priorities
 
-1. ⏭️ Monitor WordPress publishing over next 24 hours
-2. ⏭️ Debug image upload 500 errors (low priority)
-3. ⏭️ Manually delete ~14 malformed posts from WordPress admin
-4. ⏭️ Consider WordPress Deep Dives workflow (139 pending)
+1. ⏭️ Monitor WordPress publishing over next 24 hours (verify images flowing)
+2. ⏭️ Manually delete ~14 malformed posts from WordPress admin
+3. ⏭️ Consider WordPress Deep Dives workflow (139 pending, ≥42.6% alignment)
+4. ⏭️ Monitor broadcast creation runs (ensure quality maintained)
 
 ---
 
