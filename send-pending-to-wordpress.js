@@ -122,7 +122,7 @@ async function uploadImage(imagePath, title, auth, baseUrl) {
 /**
  * Create WordPress post
  */
-async function createPost(article, bioTheme, alignmentScore, sourceUrl, featuredMediaId, auth, baseUrl, publishStatus = 'publish') {
+async function createPost(article, bioTheme, alignmentScore, sourceUrl, featuredMediaId, auth, baseUrl, publishStatus = 'publish', clientType = 'wordpress_insight') {
     const postData = {
         title: article.title,
         content: article.content,
@@ -137,7 +137,10 @@ async function createPost(article, bioTheme, alignmentScore, sourceUrl, featured
         }
     };
 
-    const response = await fetch(`${baseUrl}/wp-json/wp/v2/insight`, {
+    // Choose endpoint based on client type
+    const endpoint = clientType === 'wordpress_deepdive' ? 'analysis' : 'insight';
+
+    const response = await fetch(`${baseUrl}/wp-json/wp/v2/${endpoint}`, {
         method: 'POST',
         headers: {
             'Authorization': `Basic ${auth}`,
@@ -186,15 +189,19 @@ async function sendPendingBroadcasts() {
             AND client LIKE 'wordpress_%'
         `).all(process.env.BROADCAST_ID);
     } else {
-        // Publish 9 articles per run (6 runs/day * 9 = 54 articles/day)
+        // Set limit based on content type
+        // Insights: 9 articles per run (6 runs/day * 9 = 54 articles/day)
+        // Deep Dives: 2 articles per run (1 run/day * 2 = 2 analyses/day)
+        const limit = CLIENT_FILTER === 'wordpress_deepdive' ? 2 : 9;
+
         pendingBroadcasts = db.prepare(`
             SELECT id, documentId, content, image_url, alignment_score, client
             FROM broadcasts
             WHERE status = 'pending'
             AND client = ?
             ORDER BY alignment_score DESC, createdAt ASC
-            LIMIT 9
-        `).all(CLIENT_FILTER);
+            LIMIT ?
+        `).all(CLIENT_FILTER, limit);
     }
 
     console.log(`   Found ${pendingBroadcasts.length} pending broadcasts`);
@@ -297,7 +304,8 @@ async function sendPendingBroadcasts() {
                 featuredMediaId,
                 auth,
                 WP_BASE_URL,
-                publishStatus
+                publishStatus,
+                broadcast.client
             );
 
             console.log(`   ✅ Post ${publishStatus === 'publish' ? 'published' : 'created as draft'}: ${post.link}`);
