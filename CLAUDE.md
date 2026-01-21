@@ -195,6 +195,166 @@ php -S localhost:8885 -d upload_max_filesize=10M -d post_max_size=10M -d memory_
 
 ---
 
+## Session: 2026-01-21 - Gemini Image Generation for Missing WordPress Posts
+
+### Session Summary: ✅ COMPLETE - 28 Missing Images Generated + 100% WordPress Coverage
+
+**Duration**: ~15 minutes
+**Focus**: Generate professional featured images for WordPress posts missing images using Google Gemini API
+
+### Major Accomplishments
+
+#### 1. Gemini Image Generation - 28 Images Created ✅
+**Tool**: Google Gemini 2.5 Flash Image ("Nano Banana")
+**API**: Free tier (1,500 images/day)
+**Resolution**: 1024px PNG
+**Style**: Scientific illustration with biotechnology theme
+
+**Posts Requiring Images**:
+- 28 WordPress posts published without featured images
+- Mix of topics: gene editing, biomaterials, medical devices, synthetic biology, data science
+
+**Prompt Strategy**:
+- Scientific illustration style with molecular/cellular detail
+- Biotechnology theme with glowing effects for biological processes
+- Topic-specific keywords: CRISPR, mitochondria, bio-concrete, mycelium, etc.
+- Anatomical cross-sections and laboratory contexts
+
+**Results**:
+- 28/28 images generated successfully
+- 1 retry needed (prompt variation resolved)
+- Generation time: ~5-7 minutes total
+- Output: `/Users/davidlockie/Documents/Projects/Eliza/broadcast-images/post-[ID].png`
+
+#### 2. Batch Generation Script ✅
+**File**: `generate-missing-images.js` (515 lines total across all new files)
+
+**Features**:
+- 28 custom prompts tailored to biotechnology topics
+- Automated batch processing using Python Gemini scripts
+- Error handling with progress reporting
+- Integration with Gemini skill plugin
+
+**Example Prompts**:
+```
+"CRISPR-like tools editing mitochondrial DNA in a cell, showing genetic therapy breakthrough with glowing DNA strands and molecular editing tools, scientific illustration style, biotechnology theme"
+
+"Self-healing concrete with fungal mycelium repairing cracks, showing microscopic view of fungi growing through concrete structure, sustainable construction biomaterial"
+
+"3D-printed carotid artery-on-chip showing blood vessel model for thrombosis research, microfluidic device with cellular detail, bioengineering visualization"
+```
+
+#### 3. WordPress Upload & Linking ✅
+**File**: `upload-generated-images.js`
+
+**Process**:
+1. Upload each generated image to WordPress media library
+2. Update post with `featured_media` field (Media IDs: 167-194)
+3. Maintain alt text and titles for SEO
+
+**Results**:
+- 28/28 posts updated successfully
+- 0 failures
+- Upload time: ~2-3 minutes
+
+#### 4. 100% WordPress Image Coverage Achieved ✅
+**Before**: 45/73 posts with images (62%)
+**After**: 73/73 posts with images (100%)
+
+**Posts Backfilled**:
+- Post 142: CRISPR mitochondrial DNA editing
+- Post 141: Algae-based bio-altimeter
+- Post 140: Corneal coating innovation
+- Post 127: Injectable GelMA hydrogel
+- Post 126: DIAL protein expression framework
+- Post 125: Living microbial cement supercapacitors
+- Post 124: Pig kidney xenotransplantation
+- Post 123: Huntington's disease gene therapy
+- Post 122: Extracellular vesicles bone repair
+- Post 121: Lab-grown embryo model
+- Posts 120, 119: Personal genome sequencing
+- Posts 118, 117: Biological color production
+- Post 116: Shiitake mycelium memristors
+- Post 115: 3D-printed artery-on-chip
+- Posts 98, 97, 96: Self-healing bio-concrete
+- Posts 90, 88: Living architecture, MIT concrete
+- Posts 83, 82, 81: Biosensors, microspheres, engineered bacteria
+- Posts 60, 45: Data-driven omics, synthetic microbes
+- Posts 41, 40: Bioplastics, high-strength bio-concrete
+
+### Technical Implementation
+
+**Gemini API Configuration**:
+- Model: `gemini-2.5-flash-image` (Nano Banana)
+- Resolution: 1024px (default)
+- Aspect Ratio: 1:1 (default)
+- Response Modalities: `["TEXT", "IMAGE"]`
+
+**Python Script Integration**:
+```bash
+cd /Users/davidlockie/.claude/plugins/cache/every-marketplace/compounding-engineering/2.8.1/skills/gemini-imagegen
+python3 scripts/generate_image.py "[prompt]" "[output_path]"
+```
+
+**WordPress REST API**:
+- Upload: `POST /wp-json/wp/v2/media` with FormData
+- Link: `POST /wp-json/wp/v2/insight/[post_id]` with `featured_media` field
+
+### API Costs
+
+**Gemini Image Generation**:
+- Free Tier: 1,500 images/day
+- Used: 28 images
+- Cost: $0.00 ✅
+
+### Files Created
+
+1. `generate-missing-images.js` - Batch image generation script (202 lines)
+2. `upload-generated-images.js` - WordPress upload script (156 lines)
+3. `GEMINI_IMAGE_GENERATION_2026-01-21.md` - Complete documentation (157 lines)
+4. `broadcast-images/post-[ID].png` - 28 generated images (not committed, in .gitignore)
+
+### Current System Status
+
+**WordPress**: 🟢 100% IMAGE COVERAGE
+- Total posts: 73
+- Posts with images: 73 (100%)
+- Posts missing images: 0 (0%)
+- Media IDs: 10-194 (185 total media items)
+
+**Platform Status**:
+- ✅ Telegram: Active, hourly sends
+- ✅ Bluesky: Active, hourly sends
+- ✅ WordPress Insights: Active, 54 articles/day, 100% images
+- ⏸️ WordPress Deep Dives: Manual (139 pending)
+- ❌ Farcaster: Disabled
+
+### Next Session Priorities
+
+1. ✅ WordPress image coverage complete (100%)
+2. ⏭️ Monitor automated publishing with images
+3. ⏭️ Consider regenerating images for older posts if quality improvements needed
+4. ⏭️ Establish Gemini workflow for future broadcasts (generate at creation time)
+
+### Quick Commands
+
+```bash
+# Generate single image
+cd /Users/davidlockie/.claude/plugins/cache/every-marketplace/compounding-engineering/2.8.1/skills/gemini-imagegen
+python3 scripts/generate_image.py "prompt" "output.png"
+
+# Batch generate for missing posts
+node generate-missing-images.js
+
+# Upload generated images to WordPress
+node upload-generated-images.js
+
+# Check WordPress image coverage
+curl -s 'http://localhost:8885/wp-json/wp/v2/insight?per_page=100&_fields=id,featured_media' | jq '[.[] | select(.featured_media > 0)] | length'
+```
+
+---
+
 ## Session: 2026-01-19 - Grokipedia Entity Discovery & RSS Feed Integration
 
 ### Session Summary: ✅ COMPLETE - 11 New Entities + RSS Feeds + Search Entity Configured
