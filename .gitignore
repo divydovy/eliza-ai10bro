@@ -112,3 +112,17 @@ docker-compose.override.yml
 
 # Broadcast images
 broadcast-images/
+
+# Test scripts and temporary files
+test-*.js
+test-*.sh
+*TESTING_COMPLETE.md
+
+# Generated databases
+*.db
+
+# Generated trend analysis
+trends/*.json
+
+# Backup files
+*-backup-*.txt
