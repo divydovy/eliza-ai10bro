@@ -8,15 +8,40 @@ const db = new Database('./agent/data/db.sqlite');
 console.log('🔍 Entity Mention Detection System\n');
 
 // Get all tracked entities
-const entities = db.prepare('SELECT id, name, type FROM tracked_entities').all();
+const entities = db.prepare('SELECT id, name, type, focus_area FROM tracked_entities').all();
 console.log(`📊 Loaded ${entities.length} entities to track\n`);
+
+// Context filters for ambiguous entity names
+const CONTEXT_FILTERS = {
+    'Extracellular': {
+        // STRICT: Only match if company explicitly mentioned
+        // Require specific company identifiers (never match bare "extracellular")
+        requiredContext: [
+            /Extracellular\s+(Inc|Company|Ltd|LLC)/gi,
+            /extracellular\.com/gi,
+            /Extracellular.*?(raised|raises|funding|round|Series\s+[A-D])/gi,
+            /Extracellular.*?(startup|biotech\s+company|cellular\s+agriculture\s+company)/gi
+        ],
+        // If ANY scientific usage appears, reject completely
+        negative: [
+            /extracellular\s+(matrix|matrices|vesicles?|space|domain|environment|medium|fluid|compartment|milieu|region|fraction|components?|proteins?|markers?|signals?|secretion|molecules?|factors?|polymeric|electrons?|lncRNA|recordings?)/gi,
+            /\b(ECM|EV|EVs)\b/g,
+            /\bthe\s+extracellular/gi,
+            /\bof\s+extracellular/gi,
+            /\bthrough\s+extracellular/gi
+        ],
+        positive: null  // Not used when requiredContext is set
+    }
+    // Add more ambiguous entities here as needed
+};
 
 // Create case-insensitive regex patterns for each entity
 const entityPatterns = entities.map(entity => ({
     ...entity,
     // Create pattern that matches entity name with word boundaries
     // Also handle variations like possessive ('s) and plural (s)
-    pattern: new RegExp(`\\b${entity.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}('s|s)?\\b`, 'gi')
+    pattern: new RegExp(`\\b${entity.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}('s|s)?\\b`, 'gi'),
+    contextFilter: CONTEXT_FILTERS[entity.name] || null
 }));
 
 function generateId() {
@@ -64,6 +89,45 @@ function detectEntitiesInDocument(docId, text) {
         const matches = [...text.matchAll(entity.pattern)];
 
         if (matches.length > 0) {
+            // Apply context filters for ambiguous entities
+            if (entity.contextFilter) {
+                // Check for required context (strict mode)
+                if (entity.contextFilter.requiredContext) {
+                    const hasRequiredContext = entity.contextFilter.requiredContext.some(pattern =>
+                        pattern.test(text)
+                    );
+
+                    if (!hasRequiredContext) {
+                        // Required context not found - skip this entity
+                        continue;
+                    }
+                }
+
+                // Check negative patterns (exclude if found)
+                if (entity.contextFilter.negative) {
+                    const hasNegativeMatch = entity.contextFilter.negative.some(pattern =>
+                        pattern.test(text)
+                    );
+
+                    if (hasNegativeMatch) {
+                        // Negative scientific terms found - skip even if required context present
+                        continue;
+                    }
+                }
+
+                // Check positive patterns if defined (legacy mode)
+                if (entity.contextFilter.positive && !entity.contextFilter.requiredContext) {
+                    const hasPositiveMatch = entity.contextFilter.positive.some(pattern =>
+                        pattern.test(text)
+                    );
+
+                    if (!hasPositiveMatch) {
+                        // Positive context required but not found - skip this entity
+                        continue;
+                    }
+                }
+            }
+
             // Get contexts for first 3 mentions
             const contexts = matches.slice(0, 3).map(m => extractContext(text, m));
 
