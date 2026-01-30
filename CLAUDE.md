@@ -20,6 +20,15 @@
 - Temporary working context between sessions
 - Gets merged into Obsidian project file at end of major sessions
 
+## Backlog Location
+
+**Active tasks are tracked in the Obsidian project note:**
+[AI10bro - Agent.md](file:///Users/davidlockie/vaults/Personal/1.%20Projects/ai10bro/AI10bro%20-%20Agent.md)
+
+Look for the "## Backlog" section in the Obsidian project note for current priorities.
+
+⚠️ **Note**: If you find a `BACKLOG.md` file in this directory, it is deprecated - always use the Obsidian project note instead.
+
 **Latest Status from Obsidian** (as of 2025-12-31):
 - **Phase**: Production - Quality Perfection Phase Complete
 - **System Health**: 🟢 GREEN (Perfect Quality Achieved!)
@@ -28,6 +37,324 @@
 - **Broadcasts Ready**: 51 sendable (25 Telegram + 26 Bluesky, 100% images + sources)
 - **Model**: qwen2.5:32b (21GB, 128K context, GPT-4o equivalent)
 - **Major Systems**: LLM scoring, entity tracking, deal detection, quality checks, automated cleanup
+
+## Session: 2026-01-30 - LaunchD Migration + BiologyInvestor Deep Dives
+
+### Session Summary: ✅ COMPLETE - All Automation Migrated to LaunchD + Deep Dive Channels Added
+
+**Duration**: ~2 hours
+**Focus**: Migrate cron to LaunchD, add missing Deep Dive broadcast types, fix dashboard
+
+### Major Accomplishments
+
+#### 1. Cron to LaunchD Migration - COMPLETE ✅
+**Problem**: Deep Dive publishing stopped working for 9 days with cron (last success: Jan 19)
+**User Discovery**: "LaunchD is reliable" - github-sync and broadcast-create working perfectly
+**Decision**: Migrate ALL automation from cron to LaunchD
+
+**Services Migrated**: 15 total LaunchD services
+1. `com.eliza.github-sync` - Daily at 2:00am
+2. `com.eliza.obsidian-import` - Daily at 2:30am
+3. `com.eliza.alignment-scoring` - Daily at 3:00am
+4. `com.eliza.llm-scoring` - Hourly
+5. `com.eliza.github-content-sync` - Twice daily (3:30am, 3:30pm)
+6. `com.eliza.cleanup-unaligned` - Daily at 3:50am
+7. `com.eliza.broadcast-create` - 4x daily (4am, 10am, 4pm, 10pm) - Increased LIMIT from 5 to 20
+8. `com.eliza.telegram-send` - Hourly
+9. `com.eliza.bluesky-send` - Hourly
+10. `com.eliza.wordpress-insights` - 6x daily (every 4 hours at :20)
+11. `com.eliza.wordpress-deepdives` - Daily at 10:00am
+12. `com.eliza.biologyinvestor` - 3x daily (4:30am, 12:30pm, 8:30pm)
+13. `com.eliza.biologyinvestor-deepdive` - Twice weekly (Monday & Thursday at 11am) ⭐ NEW
+14. `com.eliza.quality-checks` - Daily at 8:00am
+15. `com.eliza.score-sync` - Every 30 minutes
+
+**Verification**: All services loaded with exit code 0 ✅
+**Old Crontab**: Backed up and cleared
+
+#### 2. BiologyInvestor Deep Dives Added ✅
+**User Question**: "Don't we have 2x types of content for both ai10bro and bioinvestor?"
+**Finding**: Missing `biologyinvestor_deepdive` completely!
+
+**Implementation**:
+1. **Broadcast Generation** (`process-unprocessed-docs.js`):
+   - Added `biologyinvestor_deepdive` to platforms array (line 540)
+   - Configured 40,000 character limit (2000-3000 word analysis)
+   - Uses `weekly_deepdive` prompt from `biologyinvestor-prompts.json`
+   - Generates for documents with investor signals ≥30%
+
+2. **LaunchD Service** (`com.eliza.biologyinvestor-deepdive.plist`):
+   - Schedule: Monday & Thursday at 11:00am
+   - Uses existing `send-pending-to-biologyinvestor.js` script
+   - Publishes to http://localhost:8886 (BiologyInvestor WordPress)
+   - Limit: 2 deep dives per run
+
+3. **Dashboard Updates**:
+   - Added to service map in `broadcast-api.js`
+   - Added to platform status panel in `broadcast-dashboard.html`
+   - Shows 📊 icon with proper schedule display
+
+**Content Types Now Complete**:
+- ✅ **AI10BRO** (ai10bro.com): wordpress_insight + wordpress_deepdive
+- ✅ **BiologyInvestor** (biologyinvestor.com): biologyinvestor_insight + biologyinvestor_deepdive
+
+#### 3. Dashboard LaunchD Integration ✅
+**Fixed ES Module Issues**:
+- Added `import os from 'os';` at top (was using `require('os')`)
+- Removed inline `require()` calls that caused "require is not defined" error
+
+**Fixed Plist Parsing**:
+- Original regex used non-greedy matching, stopped at first `</dict>` tag
+- Split into two patterns: array format and single dict format
+- Now correctly captures all scheduled times (e.g., 4x daily shows: 04:00, 10:00, 16:00, 22:00)
+
+**Platform Status Panel**:
+- Added all 7 broadcast platforms with proper icons
+- Shows pending/sent/failed counts for each
+- Displays enabled (✅) vs paused (⏸️) status
+- Includes both Insights and Deep Dive variants
+
+#### 4. WordPress Post Fix ✅
+**Problem**: Malformed Deep Dive post published Jan 22 (title: "{")
+**Cause**: Double-nested JSON from LLM generation bug
+**Fix**:
+- Deleted malformed broadcast from database
+- Created `fix-wordpress-post-583.js` to update live post
+- Successfully updated post with correct content via WordPress.com REST API
+
+#### 5. Verification Script Created ✅
+**File**: `verify-launchd-cycle.sh`
+
+**Purpose**: Run after 10am tomorrow to verify full automation cycle (2am-10am)
+**Checks**:
+- LaunchD service statuses (exit codes)
+- Log file analysis for errors
+- Database statistics
+- Broadcast counts by platform
+- Recent broadcasts created
+- Summary report
+
+### Technical Decisions
+
+#### Why LaunchD Over Cron?
+**Evidence**:
+- Cron: Deep Dives down 9 days (Jan 19-28)
+- LaunchD: Worked immediately on first scheduled run (10am)
+- LaunchD: Better process management, logging, macOS native
+- LaunchD: No permission issues unlike previous concerns
+
+#### Broadcast Creation Changes
+- Increased target: 5 → 20 broadcasts per run
+- Schedule: Every 6 hours (4am, 10am, 4pm, 10pm)
+- Reasoning: Match previous cron behavior, ensure sufficient pipeline
+
+### Files Created/Modified
+
+**Created**:
+1. `~/Library/LaunchAgents/com.eliza.obsidian-import.plist`
+2. `~/Library/LaunchAgents/com.eliza.alignment-scoring.plist`
+3. `~/Library/LaunchAgents/com.eliza.llm-scoring.plist`
+4. `~/Library/LaunchAgents/com.eliza.github-content-sync.plist`
+5. `~/Library/LaunchAgents/com.eliza.cleanup-unaligned.plist`
+6. `~/Library/LaunchAgents/com.eliza.telegram-send.plist`
+7. `~/Library/LaunchAgents/com.eliza.bluesky-send.plist`
+8. `~/Library/LaunchAgents/com.eliza.wordpress-insights.plist`
+9. `~/Library/LaunchAgents/com.eliza.wordpress-deepdives.plist`
+10. `~/Library/LaunchAgents/com.eliza.biologyinvestor.plist`
+11. `~/Library/LaunchAgents/com.eliza.biologyinvestor-deepdive.plist` ⭐ NEW
+12. `~/Library/LaunchAgents/com.eliza.quality-checks.plist`
+13. `~/Library/LaunchAgents/com.eliza.score-sync.plist`
+14. `verify-launchd-cycle.sh` - Verification script
+15. `fix-wordpress-post-583.js` - WordPress post fix script
+16. `LAUNCHD_MIGRATION_COMPLETE.md` - Migration documentation
+17. `BIOLOGYINVESTOR_WEBSITE_BRIEF.md` - BiologyInvestor documentation
+
+**Modified**:
+1. `~/Library/LaunchAgents/com.eliza.broadcast-create.plist` - Increased LIMIT to 20, schedule to every 6 hours
+2. `process-unprocessed-docs.js` - Added biologyinvestor_deepdive platform
+3. `packages/plugin-dashboard/src/services/broadcast-api.js` - Fixed ES module imports, added service
+4. `packages/plugin-dashboard/src/services/broadcast-dashboard.html` - Updated platform panel
+5. Crontab - Backed up and cleared
+
+### System Status
+
+**Database** (as of Jan 30):
+- Total documents: 37,537
+- Broadcast-ready (≥12%): 241
+- Pending broadcasts: 145 (74 Telegram, 71 Bluesky, 0 WordPress)
+- Sent broadcasts: 881 (443 Telegram, 428 Bluesky, 4 WordPress Insights, 6 BiologyInvestor)
+
+**LaunchD Services**: 15 active
+- All loaded with exit code 0
+- All logs clean, no errors
+- Dashboard showing all services with correct schedules
+
+**Broadcast Platforms**: 7 configured
+- ✅ Telegram (hourly)
+- ✅ Bluesky (hourly)
+- ⏸️ Farcaster (disabled - no signer)
+- ✅ WordPress Insights (6x daily)
+- ✅ WordPress Deep Dives (daily at 10am)
+- ✅ BiologyInvestor (3x daily)
+- ✅ BiologyInvestor Deep Dives (Mon/Thu at 11am) ⭐ NEW
+
+### Next Session Priorities
+
+1. ⏭️ Run `./verify-launchd-cycle.sh` after 10am tomorrow (Jan 31)
+2. ⏭️ Verify broadcasts start flowing to all platforms
+3. ⏭️ Monitor BiologyInvestor Deep Dive generation at next broadcast run
+4. ⏭️ Check dashboard metrics update correctly
+
+### Quick Commands
+
+```bash
+# Check LaunchD service statuses
+launchctl list | grep "com.eliza"
+
+# View service logs
+tail -f logs/wordpress-deepdives.log
+tail -f logs/biologyinvestor-deepdive.log
+
+# Verify tomorrow's cycle
+./verify-launchd-cycle.sh
+
+# Check database stats
+sqlite3 agent/data/db.sqlite "SELECT client, status, COUNT(*) FROM broadcasts GROUP BY client, status"
+
+# Dashboard
+open http://localhost:3001/broadcast-dashboard.html
+
+# Git operations with 1Password SSH
+GIT_SSH_COMMAND="ssh -o IdentityAgent=~/.1password-agent.sock" git push origin main
+```
+
+---
+
+## Session: 2026-01-23 - WordPress.com OAuth API Migration
+
+### Session Summary: ✅ COMPLETE - WordPress Publishing Restored with WordPress.com API
+
+**Duration**: ~1 hour
+**Focus**: Fix 504 timeout errors, migrate to WordPress.com OAuth API
+
+### Major Accomplishments
+
+#### 1. WordPress.com OAuth API Verified ✅
+**User Report**: "API access should be working"
+**Verification**: Tested WordPress.com OAuth API after support ticket resolution
+- ✅ Site info endpoint working
+- ✅ Posts API working
+- ✅ Stats API working
+- **Status**: OAuth token fully operational!
+
+#### 2. Identified Self-Hosted API Timeout Issue ✅
+**Problem**: All WordPress publishes failing with 504 Gateway Timeout
+**Root Cause**: Self-hosted WordPress REST API (`https://ai10bro.com/wp-json/wp/v2/posts`) timing out on authenticated requests
+- Base endpoint (`/wp-json/`) responds fine (200 OK in 0.34s)
+- Authenticated endpoints timeout after 30 seconds
+- App password authentication failing or extremely slow
+
+#### 3. Created WordPress.com API Publishing Script ✅
+**File**: `send-pending-to-wordpress-wpcom.js` (214 lines)
+
+**Key Changes from Self-Hosted Version**:
+1. **Authentication**: Basic auth → OAuth bearer token
+2. **Endpoints**:
+   - Media: `https://public-api.wordpress.com/rest/v1.1/sites/{id}/media/new`
+   - Posts: `https://public-api.wordpress.com/rest/v1.1/sites/{id}/posts/new`
+3. **Database Columns**: Fixed to match actual schema
+   - `platform_url` → `message_id` (stores post URL)
+   - `sentAt` → `sent_at` (timestamp)
+   - `error` → `wordpress_error` (error messages)
+4. **Post ID**: `wordpress_post_id` now stores WordPress post ID
+
+#### 4. Publishing Test - 100% Success Rate ✅
+**Test Run**: Published 6 articles successfully
+
+**Results**:
+- **Before**: 0 posts on site, all publishes failing with 504
+- **After**: 8 posts on site (6 new + 2 existing), 100% success
+- **Performance**: 4-5 seconds per article (vs 30s timeout before)
+
+**Sample Publications**:
+1. "CRISPR Offers Potential Cure for Diabetes, Eliminating Daily Injections"
+   - URL: https://ai10bro.com/crispr-offers-potential-cure-for-diabetes-eliminating-daily-injections-2/
+   - Image: ✅ Uploaded (ID: 244)
+
+2. "Newlight Technology Transforms Carbon Dioxide into Sustainable Plastic"
+   - URL: https://ai10bro.com/newlight-technology-transforms-carbon-dioxide-into-sustainable-plastic/
+   - Image: ✅ Uploaded (ID: 246)
+
+3. "UCSD Researchers Synthesize Key Pigment for Octopus Camouflage"
+   - URL: https://ai10bro.com/ucsd-researchers-synthesize-key-pigment-for-octopus-camouflage/
+   - Image: ✅ Uploaded (ID: 248)
+
+#### 5. Updated Cron Schedule ✅
+**Changed**: `send-pending-to-wordpress.js` → `send-pending-to-wordpress-wpcom.js`
+
+**Current Schedule**:
+```bash
+# WordPress Daily Insights (every 4 hours at :20)
+20 */4 * * * CLIENT=wordpress_insight node send-pending-to-wordpress-wpcom.js
+
+# WordPress Deep Dives (daily at 10am)
+0 10 * * * CLIENT=wordpress_deepdive node send-pending-to-wordpress-wpcom.js
+```
+
+### System Status
+
+**WordPress Publishing**: ✅ FULLY OPERATIONAL
+- **Database**: 73 sent, 677 pending wordpress_insight broadcasts
+- **Success Rate**: 100% (6/6 published successfully)
+- **Performance**: 4-5 seconds per article
+- **Cron**: Updated to use WordPress.com API script
+
+**Platform Status**:
+| Platform | Status | Schedule | Publishing Method |
+|----------|--------|----------|-------------------|
+| Telegram | ✅ Active | Hourly at :00 | Integrated + Standalone |
+| Bluesky | ✅ Active | Hourly at :40 | Standalone script |
+| WordPress Insights | ✅ Active | Every 4 hours at :20 | WordPress.com OAuth API |
+| WordPress Deep Dives | ✅ Active | Daily at 10am | WordPress.com OAuth API |
+| Farcaster | ❌ Disabled | N/A | No active signer |
+
+### Files Created/Modified
+
+**Created**:
+1. `send-pending-to-wordpress-wpcom.js` - WordPress.com OAuth API publishing script
+2. `test-wpcom-oauth.sh` - OAuth token verification script
+3. `WORDPRESS_COM_API_FIX.md` - Complete technical documentation
+
+**Modified**:
+1. `crontab` - Updated to use WordPress.com API script for both insights and deep dives
+
+**Deprecated**:
+1. `send-pending-to-wordpress.js` - Self-hosted REST API version (still functional but not used for ai10bro.com due to timeouts)
+
+### Technical Insights
+
+**WordPress.com API vs Self-Hosted**:
+| Feature | Self-Hosted | WordPress.com |
+|---------|-------------|---------------|
+| Auth | Basic (app password) | Bearer (OAuth token) |
+| Posts | `/wp-json/wp/v2/posts` | `/rest/v1.1/sites/{id}/posts/new` |
+| Media | `/wp-json/wp/v2/media` | `/rest/v1.1/sites/{id}/media/new` |
+| Response | `{id, link}` | `{ID, URL}` |
+| Custom Fields | `meta: {}` | `metadata: [{key, value}]` |
+
+**Performance Improvement**:
+- **Before**: 504 timeout after 30 seconds (100% failure)
+- **After**: 4-5 seconds per article (100% success)
+- **Improvement**: 6-7x faster + 100% reliability
+
+### Next Session Priorities
+
+1. ⏭️ Monitor WordPress publishing in production (next 4-hour cycle)
+2. ⏭️ Generate more broadcasts to fill 677 pending pipeline
+3. ⏭️ Begin BiologyInvestor pilot preparation (test signal detection on bycatch docs)
+4. ⏭️ Multi-site content strategy implementation
+
+---
 
 ## Session: 2026-01-20 - WordPress Publishing Restored
 

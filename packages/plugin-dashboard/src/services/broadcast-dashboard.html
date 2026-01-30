@@ -859,27 +859,46 @@
                 let totalPlatformSent = 0;
                 let totalPlatformPending = 0;
                 let platformDetails = [];
-                
-                // Define which platforms are currently enabled
-                const enabledPlatforms = ['telegram']; // Only Telegram is enabled now
-                
-                for (const [platform, stats] of Object.entries(data.platformStats)) {
+
+                // Define platform icons and names
+                const platformConfig = {
+                    'telegram': { icon: '✈️', name: 'Telegram', enabled: true },
+                    'bluesky': { icon: '🦋', name: 'Bluesky', enabled: true },
+                    'farcaster': { icon: '📡', name: 'Farcaster', enabled: false },
+                    'wordpress_insight': { icon: '📝', name: 'WordPress Insights', enabled: true },
+                    'wordpress_deepdive': { icon: '📚', name: 'WordPress Deep Dives', enabled: true },
+                    'biologyinvestor_insight': { icon: '💰', name: 'BiologyInvestor', enabled: true },
+                    'biologyinvestor_deepdive': { icon: '📊', name: 'BiologyInvestor Deep Dives', enabled: true }
+                };
+
+                // Merge existing stats with all configured platforms (show 0 if not in DB yet)
+                const allPlatforms = { ...data.platformStats };
+                for (const platform of Object.keys(platformConfig)) {
+                    if (!allPlatforms[platform]) {
+                        allPlatforms[platform] = { sent: 0, pending: 0, failed: 0 };
+                    }
+                }
+
+                for (const [platform, stats] of Object.entries(allPlatforms)) {
+                    const config = platformConfig[platform] || { icon: '📡', name: platform, enabled: false };
+
                     totalPlatformSent += stats.sent || 0;
                     totalPlatformPending += stats.pending || 0;
-                    
-                    const icon = platform === 'telegram' ? '📱' : platform === 'twitter' ? '🐦' : '📡';
-                    const isEnabled = enabledPlatforms.includes(platform);
-                    const statusIcon = isEnabled ? '✅' : '⏸️';
-                    
-                    let detail = `${icon} ${platform}: ${stats.sent || 0} sent`;
+
+                    const statusIcon = config.enabled ? '✅' : '⏸️';
+
+                    let detail = `${config.icon} ${config.name}: ${stats.sent || 0} sent`;
                     if (stats.pending > 0) {
                         detail += `, ${stats.pending} pending`;
                     }
+                    if (stats.failed > 0) {
+                        detail += `, ${stats.failed} failed`;
+                    }
                     detail += ` ${statusIcon}`;
-                    
+
                     platformDetails.push(detail);
                 }
-                
+
                 document.getElementById('platform-stats').textContent = `${totalPlatformSent} sent, ${totalPlatformPending} pending`;
                 document.getElementById('platform-detail').innerHTML = platformDetails.join('<br>') || 'No active platforms';
             } else {

@@ -3,6 +3,7 @@
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import Database from 'better-sqlite3';
@@ -273,9 +274,10 @@ const server = http.createServer((req, res) => {
     else if (req.url === '/broadcast-dashboard.html' && req.method === 'GET') {
         // Try multiple possible locations for the dashboard HTML
         const possiblePaths = [
-            path.join(__dirname, '../public/broadcast-dashboard.html'),
             path.join(__dirname, 'broadcast-dashboard.html'),
+            path.join(__dirname, '../public/broadcast-dashboard.html'),
             path.join(process.cwd(), 'broadcast-dashboard.html'),
+            path.join(process.cwd(), 'packages/plugin-dashboard/src/services/broadcast-dashboard.html'),
             path.join(process.cwd(), 'packages/plugin-dashboard/src/public/broadcast-dashboard.html')
         ];
 
@@ -567,75 +569,104 @@ const server = http.createServer((req, res) => {
         try {
             const schedule = [];
 
-            // Parse actual crontab instead of LaunchAgents
-            const { execSync } = require('child_process');
-            const crontab = execSync('crontab -l 2>/dev/null || echo ""', { encoding: 'utf-8' });
+            // Read LaunchD services from ~/Library/LaunchAgents
+            const launchdPath = path.join(os.homedir(), 'Library', 'LaunchAgents');
 
-            // Define schedule patterns to look for
-            const schedulePatterns = [
-                { pattern: /sync-github-local\.js/, name: 'GitHub Sync', icon: '🔄', description: 'Clone-based repository sync' },
-                { pattern: /IMPORT_OBSIDIAN/, name: 'Obsidian Import', icon: '🧠', description: 'Import notes from vault' },
-                { pattern: /calculate-alignment-scores\.js/, name: 'Alignment Scoring', icon: '📊', description: 'Score all documents' },
-                { pattern: /score-new-documents\.js/, name: 'LLM Scoring', icon: '🤖', description: 'Score new documents (Ollama)' },
-                { pattern: /cleanup-unaligned-documents\.js/, name: 'Database Cleanup', icon: '🧹', description: 'Remove low-quality docs' },
-                { pattern: /process-unprocessed-docs\.js/, name: 'Create Broadcasts', icon: '✨', description: 'Generate broadcasts' },
-                { pattern: /send-pending-to-telegram\.js/, name: 'Send to Telegram', icon: '✈️', description: 'Post to Telegram' },
-                { pattern: /send-pending-to-bluesky\.js/, name: 'Send to Bluesky', icon: '🦋', description: 'Post to Bluesky' },
-                { pattern: /send-pending-to-wordpress\.js/, name: 'Publish to WordPress', icon: '📝', description: 'Publish insights' }
-            ];
+            // Define service mappings
+            const serviceMap = {
+                'com.eliza.github-sync': { name: 'GitHub Sync', icon: '🔄', description: 'Clone-based repository sync' },
+                'com.eliza.obsidian-import': { name: 'Obsidian Import', icon: '🧠', description: 'Import notes from vault' },
+                'com.eliza.alignment-scoring': { name: 'Alignment Scoring', icon: '📊', description: 'Score all documents' },
+                'com.eliza.llm-scoring': { name: 'LLM Scoring', icon: '🤖', description: 'Score new documents (Ollama)' },
+                'com.eliza.github-content-sync': { name: 'GitHub Content Sync', icon: '📥', description: 'Import GitHub scrapers' },
+                'com.eliza.cleanup-unaligned': { name: 'Database Cleanup', icon: '🧹', description: 'Remove low-quality docs' },
+                'com.eliza.broadcast-create': { name: 'Create Broadcasts', icon: '✨', description: 'Generate broadcasts' },
+                'com.eliza.telegram-send': { name: 'Send to Telegram', icon: '✈️', description: 'Post to Telegram' },
+                'com.eliza.bluesky-send': { name: 'Send to Bluesky', icon: '🦋', description: 'Post to Bluesky' },
+                'com.eliza.wordpress-insights': { name: 'Publish WordPress Insights', icon: '📝', description: 'Daily Insights' },
+                'com.eliza.wordpress-deepdives': { name: 'Publish WordPress Deep Dives', icon: '📚', description: 'Deep Dives' },
+                'com.eliza.biologyinvestor': { name: 'Publish BiologyInvestor', icon: '💰', description: 'Investment Insights' },
+                'com.eliza.biologyinvestor-deepdive': { name: 'Publish BiologyInvestor Deep Dives', icon: '📊', description: 'Investment Analysis Deep Dives' },
+                'com.eliza.quality-checks': { name: 'Quality Checks', icon: '✓', description: 'Automated quality checks' },
+                'com.eliza.score-sync': { name: 'Score Sync', icon: '🔄', description: 'Sync alignment scores' }
+            };
 
-            for (const { pattern, name, icon, description } of schedulePatterns) {
-                const cronLines = crontab.split('\n').filter(line =>
-                    !line.trim().startsWith('#') &&
-                    line.trim().length > 0 &&
-                    pattern.test(line)
-                );
+            for (const [serviceName, serviceInfo] of Object.entries(serviceMap)) {
+                const plistPath = path.join(launchdPath, `${serviceName}.plist`);
 
-                if (cronLines.length > 0) {
-                    const times = [];
-                    let interval = '';
+                if (fs.existsSync(plistPath)) {
+                    try {
+                        const plistContent = fs.readFileSync(plistPath, 'utf8');
+                        const times = [];
+                        let interval = '';
 
-                    for (const line of cronLines) {
-                        // Parse cron expression (minute hour * * *)
-                        const cronMatch = line.match(/^(\S+)\s+(\S+)\s+\S+\s+\S+\s+\S+/);
-                        if (cronMatch) {
-                            const [, minute, hour] = cronMatch;
+                        // Parse StartCalendarInterval (specific times)
+                        // Try array format first
+                        const arrayMatch = plistContent.match(/<key>StartCalendarInterval<\/key>\s*<array>([\s\S]*?)<\/array>/);
+                        if (arrayMatch) {
+                            const arrayContent = arrayMatch[1];
+                            const dictMatches = arrayContent.match(/<dict>([\s\S]*?)<\/dict>/g) || [];
 
-                            // Parse different cron patterns
-                            if (hour === '*' && minute === '*') {
-                                interval = 'Every minute';
-                            } else if (hour === '*' && minute.includes('/')) {
-                                const freq = minute.split('/')[1];
-                                interval = `Every ${freq} minutes`;
-                            } else if (hour === '*' && minute.includes(',')) {
-                                const mins = minute.split(',');
-                                interval = `${mins.length}x per hour`;
-                                times.push(...mins.map(m => `:${m.padStart(2, '0')}`));
-                            } else if (hour === '*') {
-                                interval = 'Hourly';
-                                times.push(`:${minute.padStart(2, '0')}`);
-                            } else if (hour.includes('/')) {
-                                const freq = hour.split('/')[1];
-                                interval = `Every ${freq} hours`;
-                                times.push(`${minute.padStart(2, '0')}:00`);
-                            } else if (hour.includes(',')) {
-                                const hours = hour.split(',');
-                                interval = `${hours.length}x daily`;
-                                times.push(...hours.map(h => `${h.padStart(2, '0')}:${minute.padStart(2, '0')}`));
-                            } else {
+                            for (const dictMatch of dictMatches) {
+                                const hourMatch = dictMatch.match(/<key>Hour<\/key>\s*<integer>(\d+)<\/integer>/);
+                                const minuteMatch = dictMatch.match(/<key>Minute<\/key>\s*<integer>(\d+)<\/integer>/);
+
+                                if (hourMatch && minuteMatch) {
+                                    const hour = hourMatch[1].padStart(2, '0');
+                                    const minute = minuteMatch[1].padStart(2, '0');
+                                    times.push(`${hour}:${minute}`);
+                                }
+                            }
+
+                            if (times.length > 1) {
+                                interval = `${times.length}x daily`;
+                            } else if (times.length === 1) {
                                 interval = 'Daily';
-                                times.push(`${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`);
+                            }
+                        } else {
+                            // Try single dict format
+                            const dictMatch = plistContent.match(/<key>StartCalendarInterval<\/key>\s*<dict>([\s\S]*?)<\/dict>/);
+                            if (dictMatch) {
+                                const dictContent = dictMatch[1];
+                                const hourMatch = dictContent.match(/<key>Hour<\/key>\s*<integer>(\d+)<\/integer>/);
+                                const minuteMatch = dictContent.match(/<key>Minute<\/key>\s*<integer>(\d+)<\/integer>/);
+
+                                if (hourMatch && minuteMatch) {
+                                    const hour = hourMatch[1].padStart(2, '0');
+                                    const minute = minuteMatch[1].padStart(2, '0');
+                                    times.push(`${hour}:${minute}`);
+                                    interval = 'Daily';
+                                }
                             }
                         }
-                    }
 
-                    schedule.push({
-                        name,
-                        icon,
-                        description,
-                        times: times.length > 0 ? times : ['See cron'],
-                        interval
-                    });
+                        // Parse StartInterval (periodic in seconds)
+                        const startIntervalMatch = plistContent.match(/<key>StartInterval<\/key>\s*<integer>(\d+)<\/integer>/);
+                        if (startIntervalMatch) {
+                            const seconds = parseInt(startIntervalMatch[1]);
+                            if (seconds === 3600) {
+                                interval = 'Hourly';
+                            } else if (seconds === 1800) {
+                                interval = 'Every 30 minutes';
+                            } else if (seconds % 3600 === 0) {
+                                interval = `Every ${seconds / 3600} hours`;
+                            } else if (seconds % 60 === 0) {
+                                interval = `Every ${seconds / 60} minutes`;
+                            } else {
+                                interval = `Every ${seconds} seconds`;
+                            }
+                        }
+
+                        schedule.push({
+                            name: serviceInfo.name,
+                            icon: serviceInfo.icon,
+                            description: serviceInfo.description,
+                            times: times.length > 0 ? times : [interval || 'On demand'],
+                            interval: interval || 'Periodic'
+                        });
+                    } catch (err) {
+                        console.error(`Error parsing ${serviceName}:`, err.message);
+                    }
                 }
             }
 

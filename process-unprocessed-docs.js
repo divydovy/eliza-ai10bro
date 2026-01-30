@@ -253,6 +253,52 @@ async function processUnprocessedDocuments(targetBroadcasts = 10) {
                     continue;
                 }
 
+                // Check if we've already covered this story from a different source
+                // (cross-document duplicate detection across ALL clients)
+                const contentPreview = (content.text || '').substring(0, 300).trim().toLowerCase()
+                    .replace(/\s+/g, ' ')
+                    .replace(/[^\w\s]/g, '');
+
+                const recentBroadcasts = db.prepare(`
+                    SELECT id, documentId, client, content
+                    FROM broadcasts
+                    WHERE (status = 'pending' OR status = 'sent')
+                    AND createdAt > ?
+                    ORDER BY createdAt DESC
+                    LIMIT 100
+                `).all(Date.now() - (7 * 24 * 60 * 60 * 1000)); // Last 7 days
+
+                let alreadyCovered = false;
+                for (const existing of recentBroadcasts) {
+                    // Skip if same document (per-client duplicates handled later)
+                    if (existing.documentId === doc.id) {
+                        continue;
+                    }
+
+                    try {
+                        const existingParsed = JSON.parse(existing.content);
+                        const existingText = existingParsed.text || existingParsed.content || (existingParsed.title + ' ' + existingParsed.excerpt) || '';
+                        const existingPreview = existingText.substring(0, 300).trim().toLowerCase()
+                            .replace(/\s+/g, ' ')
+                            .replace(/[^\w\s]/g, '');
+
+                        const similarity = stringSimilarity(contentPreview, existingPreview);
+
+                        if (similarity > 0.75) {
+                            console.log(`   ⏭️  Skipped (story already covered from different source: ${(similarity * 100).toFixed(0)}% similar to ${existing.client} broadcast ${existing.id.slice(0, 8)}... from doc ${existing.documentId.slice(0, 8)}...)`);
+                            alreadyCovered = true;
+                            break;
+                        }
+                    } catch (e) {
+                        continue;
+                    }
+                }
+
+                if (alreadyCovered) {
+                    failed++;
+                    continue;
+                }
+
                 // Clean content before generating broadcast
                 let cleanContent = content.text || '';
                 // Remove metadata lines that shouldn't be in broadcasts
@@ -461,22 +507,88 @@ OUTPUT YOUR BROADCAST NOW (no labels, just the engaging text):`;
                 // Load WordPress prompts for long-form content
                 const wpPrompts = require('./wordpress-prompts.json');
 
+                // Load BiologyInvestor prompts for investor-focused content
+                const investorPrompts = require('./biologyinvestor-prompts.json');
+
+                // Check if document qualifies for BiologyInvestor (bycatch monetization)
+                const { checkInvestorSignals } = require('./content-routing-signals');
+                let investorSignalScore = 0;
+                let investorSignalReason = '';
+
+                // BiologyInvestor targets bycatch documents (8-12% alignment) with investor signals
+                if (alignmentScore >= 0.08 && alignmentScore < 0.12) {
+                    const investorSignals = await checkInvestorSignals({
+                        id: doc.id,
+                        content: JSON.stringify(content),
+                        alignment_score: alignmentScore
+                    });
+                    investorSignalScore = investorSignals.score;
+                    investorSignalReason = investorSignals.reason;
+
+                    if (investorSignalScore >= 0.30) {
+                        console.log(`   💰 BiologyInvestor candidate: ${(investorSignalScore * 100).toFixed(0)}% investor signal`);
+                        console.log(`   📊 Signals: ${investorSignalReason}`);
+                    }
+                }
+
                 // Create broadcasts for all platforms
                 const platforms = ['telegram', 'farcaster', 'bluesky', 'wordpress_insight', 'wordpress_deepdive'];
+
+                // Add BiologyInvestor if document has strong investor signals
+                if (investorSignalScore >= 0.30) {
+                    platforms.push('biologyinvestor_insight');
+                    platforms.push('biologyinvestor_deepdive');
+                }
                 const platformLimits = {
                     telegram: 4096,
                     farcaster: 320,
                     bluesky: 300,
-                    wordpress_insight: 20000,  // Daily Insights
-                    wordpress_deepdive: 40000   // Deep Dives
+                    wordpress_insight: 20000,      // Daily Insights
+                    wordpress_deepdive: 40000,     // Deep Dives
+                    biologyinvestor_insight: 15000, // Investment Analysis (800-1200 words)
+                    biologyinvestor_deepdive: 40000 // Deep Dive Analysis (2000-3000 words)
                 };
 
                 for (const platform of platforms) {
                     let platformContent;
                     const maxLength = platformLimits[platform];
 
+                    // Handle BiologyInvestor platforms - generate investor-focused analysis
+                    if (platform === 'biologyinvestor_insight' || platform === 'biologyinvestor_deepdive') {
+                        const promptConfig = platform === 'biologyinvestor_insight'
+                            ? investorPrompts.daily_insight
+                            : investorPrompts.weekly_deepdive;
+
+                        console.log(`   💰 Generating BiologyInvestor ${platform === 'biologyinvestor_deepdive' ? 'deep dive' : 'investment analysis'}...`);
+
+                        // Prepare investor analysis prompt
+                        const userPrompt = promptConfig.user_prompt
+                            .replace('{document_text}', cleanContent);
+
+                        // Generate investment analysis using Ollama
+                        const fullPrompt = `${promptConfig.system}\n\n${userPrompt}`;
+                        const escapedPrompt = fullPrompt.replace(/'/g, "'\\''");
+                        const { stdout } = await execPromise(`echo '${escapedPrompt}' | ollama run qwen2.5:32b`, {
+                            timeout: 300000,
+                            maxBuffer: 10 * 1024 * 1024,
+                            shell: '/bin/bash'
+                        });
+
+                        let investorArticleRaw = stdout.trim();
+                        investorArticleRaw = investorArticleRaw.replace(/^Here is the .*?:\s*/i, '');
+                        investorArticleRaw = investorArticleRaw.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+
+                        try {
+                            const investorArticle = JSON.parse(investorArticleRaw);
+                            platformContent = JSON.stringify(investorArticle);
+                            console.log(`   ✅ Generated investor analysis: "${investorArticle.title}"`);
+                        } catch (e) {
+                            console.log(`   ❌ Failed to parse BiologyInvestor JSON: ${e.message}`);
+                            continue;
+                        }
+                    }
                     // Handle WordPress platforms differently - generate long-form content
-                    if (platform === 'wordpress_insight' || platform === 'wordpress_deepdive') {
+                    else if (platform === 'wordpress_insight' || platform === 'wordpress_deepdive') {
                         const promptConfig = platform === 'wordpress_insight'
                             ? wpPrompts.daily_insight
                             : wpPrompts.deep_dive;
@@ -543,8 +655,9 @@ OUTPUT YOUR BROADCAST NOW (no labels, just the engaging text):`;
                         platformContent = generated;
                     }
 
-                    // Adjust content for platform limits (only for non-WordPress platforms)
-                    if (!platform.startsWith('wordpress_') && platformContent.length > maxLength) {
+                    // Adjust content for platform limits (only for short-form platforms)
+                    // Skip truncation for WordPress and BiologyInvestor (JSON content)
+                    if (!platform.startsWith('wordpress_') && !platform.startsWith('biologyinvestor_') && platformContent.length > maxLength) {
                         // Check if content has source URL
                         const sourceMatch = platformContent.match(/🔗 Source: (https?:\/\/[^\s]+)/);
 
