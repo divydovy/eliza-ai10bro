@@ -38,6 +38,100 @@ Look for the "## Backlog" section in the Obsidian project note for current prior
 - **Model**: qwen2.5:32b (21GB, 128K context, GPT-4o equivalent)
 - **Major Systems**: LLM scoring, entity tracking, deal detection, quality checks, automated cleanup
 
+## Session: 2026-02-02 - Image Generation Cost Optimization
+
+### Session Summary: ✅ COMPLETE - Qwen Prompt Generation Saves £122/Year
+
+**Duration**: ~1 hour
+**Focus**: Reduce image generation costs while maintaining quality
+
+### Major Accomplishments
+
+#### 1. Cost Analysis & Decision ✅
+**Initial Goal**: Reduce £58/month Google Cloud costs (actual: £31/month for images)
+**User Requirement**: "I WANT commercial" - quality over cost for biotech diagrams with text labels
+
+**Current Costs**:
+- Gemini 3 Pro Image: £0.15/image
+- Claude Sonnet 4 prompts: £0.07/image
+- **Total**: £0.22/image × 145/month = £31.90/month
+
+**Alternatives Tested**:
+1. ❌ Gemini 2.5 Flash (FREE) - API errors
+2. ❌ GPT Image 1.5 (£0.045) - "rubbish" quality
+3. ❌ Imagen 3 (£0.023) - "no good at text"
+4. ❌ Stable Diffusion XL (FREE) - "hopeless"
+5. ⏭️ Ideogram 3.0 (£0.045) - Not tested ($40 deposit required)
+6. ✅ **Qwen + Gemini Pro** - User decision: "let's stick with qwen and nbpro"
+
+#### 2. Qwen Prompt Generation Implementation ✅
+**File Modified**: `generate-broadcast-image-v2.py`
+
+**Changes**:
+- Added `import subprocess` for Ollama execution
+- Rewrote `create_image_prompt_with_llm()` function
+- Replaced Claude API with `subprocess.run(['ollama', 'run', 'qwen2.5:32b', prompt])`
+- Increased timeout: 60s → 120s
+- Proper error handling with fallback prompt
+
+**Results**:
+- Qwen generates 2000-2750 char prompts (vs Claude's 500-800)
+- More technical details and visual suggestions
+- Zero API costs (local model)
+- Annual savings: **£121.80/year**
+
+#### 3. Production Testing ✅
+**Test Command**:
+```bash
+python3 generate-broadcast-image-v2.py "02f6cbbb-08d6-f6a7-c8c5-c3ebae6c5741" "CRISPR-based techniques..."
+```
+
+**Results**:
+- ✅ Qwen prompt: 2750 chars in 120 seconds
+- ✅ Gemini Pro image: Excellent quality
+- ✅ Clear text labels on all concepts
+- ✅ Modern tech aesthetic with depth
+- ✅ Professional scientific diagram
+- ✅ © ai10bro watermark present
+- ✅ Cost: £0.15 (vs previous £0.22)
+
+### Cost Savings Summary
+
+| Metric | Before | After | Savings |
+|--------|--------|-------|---------|
+| Per Image | £0.22 | £0.15 | £0.07 (32%) |
+| Monthly (145 images) | £31.90 | £21.75 | £10.15 |
+| Annual | £382.80 | £261.00 | **£121.80** |
+
+### System Status
+
+**Image Generation**: 🟢 PRODUCTION READY
+- Prompt generation: Qwen 2.5 32B (local, free)
+- Image generation: Gemini 3 Pro (£0.15/image)
+- Quality: User-approved for biotech scientific diagrams
+- Reliability: No API rate limits for prompts
+
+### Files Created/Modified
+
+**Created**:
+1. `test-image-alternatives.py` - OpenRouter test (failed)
+2. `test-working-alternatives.py` - Gemini variants test
+3. `test-premium-alternatives.py` - Premium services test
+4. `API_KEYS_SETUP.md` - Setup documentation
+5. `QWEN_PROMPT_OPTIMIZATION_COMPLETE.md` - Implementation summary
+
+**Modified**:
+1. `generate-broadcast-image-v2.py` - Qwen integration (production)
+2. `.env` - Added REPLICATE_API_TOKEN for testing
+
+### Next Session Priorities
+
+1. ⏭️ Monitor production image generation over next week
+2. ⏭️ Verify cost reduction in Google Cloud billing
+3. ⏭️ Consider regenerating old images if quality improvements desired
+
+---
+
 ## Session: 2026-01-30 - LaunchD Migration + BiologyInvestor Deep Dives
 
 ### Session Summary: ✅ COMPLETE - All Automation Migrated to LaunchD + Deep Dive Channels Added

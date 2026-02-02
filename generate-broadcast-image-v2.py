@@ -9,6 +9,7 @@ import os
 import sys
 import json
 import sqlite3
+import subprocess
 from pathlib import Path
 from google import genai
 from google.genai import types
@@ -53,24 +54,17 @@ def get_document_content(document_id, db_path="agent/data/db.sqlite"):
 
 def create_image_prompt_with_llm(document_text, broadcast_summary):
     """
-    Use Claude (via OpenRouter or Anthropic) to analyze the full document and create an optimal Gemini image prompt.
+    Use Qwen 2.5 32B (local via Ollama) to analyze the full document and create an optimal Gemini image prompt.
 
     This produces much better results than using just the broadcast summary because:
-    - Claude can identify the most visualizable concepts
+    - Qwen can identify the most visualizable concepts
     - It can extract technical details for accuracy
     - It can suggest better metaphors and visual compositions
+    - It's FREE (local model, no API costs)
 
-    Supports:
-    - OPENROUTER_API_KEY (preferred): Access Claude via OpenRouter
-    - ANTHROPIC_API_KEY (alternative): Direct Anthropic API access
+    Previously used Claude Sonnet 4 (£0.07/image), now uses Qwen 2.5 32B (£0.00/image).
+    Annual savings: £122/year for 145 images/month.
     """
-
-    openrouter_key = os.environ.get("OPENROUTER_API_KEY")
-    anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
-
-    if not openrouter_key and not anthropic_key:
-        print("⚠️  No LLM API key found (OPENROUTER_API_KEY or ANTHROPIC_API_KEY), falling back to basic prompt", file=sys.stderr)
-        return create_fallback_prompt(broadcast_summary)
 
     prompt = f"""You are an expert at creating prompts for AI image generation.
 
@@ -87,7 +81,7 @@ STYLE REQUIREMENTS:
 - Use gradients, subtle shadows, and layering for visual interest
 - Bold, vibrant color palette (3-4 colors) - avoid pastels
 - Isometric or 3D perspective where appropriate
-- Include clear text labels and annotations
+- Include clear text labels and annotations for key concepts
 - Professional but eye-catching - think tech conference slides
 - Add "© ai10bro" watermark in bottom right corner
 - White or light gradient background
@@ -95,55 +89,36 @@ STYLE REQUIREMENTS:
 
 Your prompt should:
 1. Identify the key technical concept to visualize
-2. Suggest specific visual elements (icons, diagrams, flows)
+2. Suggest specific visual elements (icons, diagrams, flows, molecular structures)
 3. Describe the composition and layout
 4. Specify colors and visual style
-5. Include relevant text labels or callouts
+5. Include relevant text labels or callouts for scientific accuracy
 
 Generate ONLY the image prompt, no explanation. Make it detailed and specific for best results."""
 
-    # Try OpenRouter first (preferred)
-    if openrouter_key and HAS_OPENAI:
-        try:
-            client = OpenAI(
-                api_key=openrouter_key,
-                base_url="https://openrouter.ai/api/v1"
-            )
+    try:
+        # Use Qwen 2.5 32B via Ollama (local, free)
+        result = subprocess.run(
+            ['ollama', 'run', 'qwen2.5:32b', prompt],
+            capture_output=True,
+            text=True,
+            timeout=120  # 2 minute timeout
+        )
 
-            response = client.chat.completions.create(
-                model="anthropic/claude-3.5-sonnet",  # OpenRouter model ID
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=500
-            )
-
-            generated_prompt = response.choices[0].message.content.strip()
-            print(f"   🤖 Generated prompt using Claude via OpenRouter ({len(generated_prompt)} chars)")
+        if result.returncode == 0:
+            generated_prompt = result.stdout.strip()
+            print(f"   🤖 Generated prompt using Qwen 2.5 32B (local, free) ({len(generated_prompt)} chars)")
             return generated_prompt
+        else:
+            print(f"⚠️  Qwen failed: {result.stderr}", file=sys.stderr)
+            return create_fallback_prompt(broadcast_summary)
 
-        except Exception as e:
-            print(f"⚠️  OpenRouter prompt generation failed: {e}", file=sys.stderr)
-            # Fall through to try Anthropic or fallback
-
-    # Try direct Anthropic API
-    if anthropic_key and HAS_ANTHROPIC:
-        try:
-            client = Anthropic(api_key=anthropic_key)
-
-            response = client.messages.create(
-                model="claude-sonnet-4-20250514",
-                max_tokens=500,
-                messages=[{"role": "user", "content": prompt}]
-            )
-
-            generated_prompt = response.content[0].text.strip()
-            print(f"   🤖 Generated prompt using Claude via Anthropic API ({len(generated_prompt)} chars)")
-            return generated_prompt
-
-        except Exception as e:
-            print(f"⚠️  Anthropic prompt generation failed: {e}", file=sys.stderr)
-
-    # Fallback to improved baseline prompt
-    return create_fallback_prompt(broadcast_summary)
+    except subprocess.TimeoutExpired:
+        print(f"⚠️  Qwen timed out after 120 seconds, using fallback", file=sys.stderr)
+        return create_fallback_prompt(broadcast_summary)
+    except Exception as e:
+        print(f"⚠️  Qwen error: {e}, using fallback", file=sys.stderr)
+        return create_fallback_prompt(broadcast_summary)
 
 
 def create_fallback_prompt(broadcast_text):

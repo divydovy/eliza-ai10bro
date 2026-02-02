@@ -116,7 +116,11 @@ broadcast-images/
 # Test scripts and temporary files
 test-*.js
 test-*.sh
+test-*.py
 *TESTING_COMPLETE.md
+*PROGRESS.md
+comparison-test/
+sdxl-test/
 
 # Generated databases
 *.db
