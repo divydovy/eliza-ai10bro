@@ -33,10 +33,168 @@ Look for the "## Backlog" section in the Obsidian project note for current prior
 - **Phase**: Production - Quality Perfection Phase Complete
 - **System Health**: 🟢 GREEN (Perfect Quality Achieved!)
 - **Documents**: 21,155 total (79% LLM scored, entity tracking deployed)
-- **Entity Tracking**: 106 entities tracked, 290 mentions detected, 51% of top-tier docs mention entities
+- **Entity Tracking**: 117 entities tracked (67 companies, 30 labs, 20 VCs)
+- **RSS Feeds**: 48 total (21 curated + 16 entity feeds + 11 high-quality additions)
 - **Broadcasts Ready**: 51 sendable (25 Telegram + 26 Bluesky, 100% images + sources)
 - **Model**: qwen2.5:32b (21GB, 128K context, GPT-4o equivalent)
-- **Major Systems**: LLM scoring, entity tracking, deal detection, quality checks, automated cleanup
+- **Major Systems**: LLM scoring, entity tracking, deal detection, quality checks, automated cleanup, RSS discovery
+
+## Session: 2026-02-03 - Automated RSS Discovery System
+
+### Session Summary: ✅ COMPLETE - Full RSS Discovery Automation Deployed
+
+**Duration**: ~2 hours
+**Focus**: Automate RSS feed discovery from tracked entities, expand coverage to labs and VCs
+
+### Major Accomplishments
+
+#### 1. Manual RSS Feed Additions ✅
+**Added 6 Missing High-Quality Feeds**:
+- The Spoon (food-tech, cultivated meat)
+- C&EN Chemical & Engineering News (chemical biology)
+- New Harvest (cellular agriculture)
+- Thermo Fisher Community (life sciences tools)
+- Cell Systems (systems biology journal)
+- ChemRxiv (preprints)
+
+**Commit**: `f7cd4cc8` - "Add 6 missing high-quality biotech RSS feeds"
+
+#### 2. Automated RSS Discovery System Built ✅
+**Created Core Infrastructure**:
+
+**discover-entity-rss-feeds.js** (350 lines):
+- Crawls entity websites looking for RSS feeds
+- Tests 12 common RSS URL patterns (/feed, /rss, /blog/feed, etc.)
+- Validates: XML format, recent posts (6+ months), biotech relevance
+- Scores feeds using 50+ biotech keywords
+- Stores discovered feeds in `tracked_entities.rss_feed` column
+- Rate limited (1-2 seconds between requests)
+
+**sync-entity-feeds-to-config.js** (200 lines):
+- Reads entities with RSS feeds from database
+- Converts to news source format with categories
+- Updates `gdelt-obsidian/search_config.yml`
+- Groups by entity type (company/lab/vc)
+- Prevents duplicates
+
+**Features**:
+- Smart homepage parsing (finds `<link rel="alternate">` tags)
+- Pattern testing (12 common RSS locations)
+- Biotech relevance scoring (CRISPR, fermentation, FDA approval, etc.)
+- Best feed selection (highest relevance, then most recent)
+- Automatic categorization by entity type and focus area
+
+#### 3. Entity Website Population ✅
+**Added Websites for Labs and VCs**:
+
+**add-entity-websites.js** created:
+- Populated 11 research lab websites
+- Populated 7 VC firm websites
+- Total: 18 entities ready for discovery
+
+**Results**:
+- Companies: 52/67 with websites (78%)
+- Labs: 11/30 with websites (37%)
+- VCs: 7/20 with websites (35%)
+- Total: 70/117 entities with websites (60%)
+
+#### 4. Full Discovery Run - 16 RSS Feeds Discovered ✅
+
+**Companies** (12 feeds, 23% success rate):
+- Anima Biotech (Bio-AI)
+- Atomwise (Bio-AI)
+- Cemvita (Circular bioeconomy)
+- Crinetics Pharmaceuticals (Synthetic biology)
+- Extracellular (Cellular agriculture)
+- Geltor (Precision fermentation)
+- GeneDx Holdings (Genomics)
+- Genegoggle (Genomics)
+- Insitro (ML for drug discovery)
+- Senti Biosciences (Gene circuits)
+- Synthego (CRISPR)
+- Twist Bioscience (DNA synthesis)
+
+**Labs** (2 feeds, 18% success rate):
+- Broad Institute (Synthetic biology research)
+- J. Craig Venter Institute (Genomics pioneer)
+
+**VCs** (2 feeds, 29% success rate):
+- ARCH Venture Partners (Top biotech investor)
+- OrbiMed (Healthcare-focused VC)
+
+**Commit**: `56de6d2f` - "Add RSS feeds from 12 tracked biotech companies"
+**Commit**: `0e34a5bd` - "Update entity RSS feeds (automated discovery)" - Added lab and VC feeds
+
+#### 5. Weekly Automation Installed ✅
+
+**automated-rss-discovery.sh** (bash script):
+- Runs discovery on all entity types (companies, labs, VCs)
+- Syncs discovered feeds to search_config.yml
+- Commits changes with detailed stats
+- Pushes to GitHub automatically
+- Logs all operations (kept 30 days)
+- Runs weekly via cron
+
+**Cron Schedule**:
+```bash
+# Entity RSS Discovery - Weekly on Sunday at 3am
+0 3 * * 0 cd /Users/davidlockie/Documents/Projects/Eliza && ./automated-rss-discovery.sh
+```
+
+**Why Sunday 3am?**
+- After GitHub Actions news scraper runs (every 6 hours)
+- Before broadcast creation runs (4am)
+- Low system activity window
+
+### System Status
+
+**RSS Feeds**:
+- Before: 32 total
+- After: 48 total (+50% increase)
+- Mix: 21 curated + 16 entity feeds + 11 high-quality additions
+
+**Entity Coverage**:
+- Total entities: 117 (67 companies + 30 labs + 20 VCs)
+- With websites: 70 (60%)
+- With RSS feeds: 16 (23% of websites, 14% of total)
+
+**Expected Impact**:
+- +8 articles/day from entity feeds
+- Focused on commercial milestones (funding, FDA approvals, product launches)
+- Company announcements, research breakthroughs, VC portfolio updates
+
+### Files Created
+
+1. **discover-entity-rss-feeds.js** - RSS discovery engine (350 lines)
+2. **sync-entity-feeds-to-config.js** - Config sync tool (200 lines)
+3. **automated-rss-discovery.sh** - Weekly automation script (bash)
+4. **add-entity-websites.js** - Website URL population tool
+5. **ENTITY_RSS_DISCOVERY_README.md** - User guide (450 lines)
+6. **RSS_AUTOMATION_COMPLETE.md** - Complete automation documentation
+
+### Files Modified
+
+1. **gdelt-obsidian/search_config.yml** - Added 22 new RSS feeds (6 manual + 16 entity)
+2. **agent/data/db.sqlite** - Added `rss_feed` column, populated 16 entities
+3. **crontab** - Added weekly RSS discovery automation
+4. **CLAUDE.md** - This session documentation
+
+### Automation Benefits
+
+1. **Self-Maintaining**: Weekly discovery of new RSS feeds from tracked entities
+2. **Scalable**: Adding entities to database automatically triggers discovery
+3. **Quality Controlled**: Only validated, active, biotech-relevant feeds added
+4. **Zero-Touch Deployment**: Commits and pushes to GitHub automatically
+5. **Comprehensive Logging**: 30-day log retention for monitoring
+
+### Next Session Priorities
+
+1. ⏭️ Monitor RSS feed imports from GitHub Actions (next 6-hour cycle)
+2. ⏭️ Track entity content flow into broadcast pipeline
+3. ⏭️ Analyze commercial signal detection from company blogs
+4. ⏭️ Consider entity mention tracking (already have framework)
+
+---
 
 ## Session: 2026-02-02 - Image Generation Cost Optimization
 
