@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI10BRO System Architecture</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+        .tab-button {
+            transition: all 0.3s ease;
+        }
+        .tab-button.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        .flow-step {
+            background: linear-gradient(135deg, #434343 0%, #000000 100%);
+            border: 2px solid #667eea;
+            transition: all 0.3s ease;
+        }
+        .flow-step:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        .flow-arrow::after {
+            content: '→';
+            font-size: 2rem;
+            color: #667eea;
+            margin: 0 1rem;
+        }
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.3s ease;
+        }
+        .metric-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
+        }
+        .pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="text-white p-8 font-sans">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
+                AI10BRO System Architecture
+            </h1>
+            <p class="text-xl text-gray-300 mb-8">Automated Biotech Content Intelligence & Distribution Platform</p>
+
+            <!-- Key Metrics -->
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+                <div class="metric-card rounded-lg p-4">
+                    <div class="text-3xl font-bold">58</div>
+                    <div class="text-sm opacity-90">RSS Feeds</div>
+                </div>
+                <div class="metric-card rounded-lg p-4">
+                    <div class="text-3xl font-bold">117</div>
+                    <div class="text-sm opacity-90">Tracked Entities</div>
+                </div>
+                <div class="metric-card rounded-lg p-4">
+                    <div class="text-3xl font-bold">70%</div>
+                    <div class="text-sm opacity-90">Commercial Content</div>
+                </div>
+                <div class="metric-card rounded-lg p-4">
+                    <div class="text-3xl font-bold">5</div>
+                    <div class="text-sm opacity-90">Active Platforms</div>
+                </div>
+                <div class="metric-card rounded-lg p-4">
+                    <div class="text-3xl font-bold">9</div>
+                    <div class="text-sm opacity-90">Automated Processes</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="flex flex-wrap justify-center gap-4 mb-8">
+            <button onclick="showTab('pipeline')" class="tab-button active px-6 py-3 rounded-lg font-semibold" id="tab-pipeline">
+                Content Pipeline
+            </button>
+            <button onclick="showTab('rss')" class="tab-button px-6 py-3 rounded-lg font-semibold bg-gray-700" id="tab-rss">
+                RSS Discovery
+            </button>
+            <button onclick="showTab('entities')" class="tab-button px-6 py-3 rounded-lg font-semibold bg-gray-700" id="tab-entities">
+                Entity Tracking
+            </button>
+            <button onclick="showTab('automation')" class="tab-button px-6 py-3 rounded-lg font-semibold bg-gray-700" id="tab-automation">
+                Automation
+            </button>
+        </div>
+
+        <!-- Tab 1: Content Pipeline -->
+        <div id="content-pipeline" class="tab-content active">
+            <h2 class="text-3xl font-bold mb-6 text-center">Complete Content Pipeline</h2>
+
+            <div class="flex flex-col items-center space-y-6 mb-12">
+                <!-- Stage 1: Content Sources -->
+                <div class="flow-step rounded-lg p-6 w-full max-w-2xl">
+                    <h3 class="text-xl font-bold mb-4 text-purple-400">Stage 1: Content Sources</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-gray-800 rounded p-4">
+                            <div class="font-bold text-lg mb-2">RSS Feeds (58)</div>
+                            <ul class="text-sm text-gray-300 space-y-1">
+                                <li>• 16 Entity-Discovered</li>
+                                <li>• 10 Commercial (Tier 1)</li>
+                                <li>• 21 Curated Sources</li>
+                                <li>• 11 Manual Additions</li>
+                            </ul>
+                        </div>
+                        <div class="bg-gray-800 rounded p-4">
+                            <div class="font-bold text-lg mb-2">GitHub Scrapers</div>
+                            <ul class="text-sm text-gray-300 space-y-1">
+                                <li>• bioRxiv Preprints</li>
+                                <li>• arXiv Papers</li>
+                                <li>• YouTube Channels</li>
+                                <li>• HackerNews</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flow-arrow"></div>
+
+                <!-- Stage 2: GitHub Actions -->
+                <div class="flow-step rounded-lg p-6 w-full max-w-2xl">
+                    <h3 class="text-xl font-bold mb-4 text-purple-400">Stage 2: Automated Collection</h3>
+                    <div class="bg-gray-800 rounded p-4">
+                        <div class="font-bold mb-2">GitHub Actions Workflows</div>
+                        <ul class="text-sm text-gray-300 space-y-2">
+                            <li>📰 <strong>news-fetch.yml</strong> - Every 6 hours (58 RSS feeds)</li>
+                            <li>🔬 <strong>extended-scrapers.yml</strong> - Twice daily (bioRxiv, arXiv, HN)</li>
+                            <li>🎥 <strong>youtube-fetch.yml</strong> - Weekly (science channels)</li>
+                            <li>📚 <strong>semantic-scholar-fetch.yml</strong> - As needed (academic papers)</li>
+                        </ul>
+                        <div class="mt-4 p-3 bg-purple-900 bg-opacity-30 rounded">
+                            <strong>Output:</strong> Markdown files saved to GitHub repository
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flow-arrow"></div>
+
+                <!-- Stage 3: Import to Eliza -->
+                <div class="flow-step rounded-lg p-6 w-full max-w-2xl">
+                    <h3 class="text-xl font-bold mb-4 text-purple-400">Stage 3: Import to Eliza</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-gray-800 rounded p-4">
+                            <div class="font-bold mb-2">GitHub Sync</div>
+                            <ul class="text-sm text-gray-300 space-y-1">
+                                <li>• Daily at 2:00am</li>
+                                <li>• Git clone approach</li>
+                                <li>• Zero API calls</li>
+                                <li>• 14,309 files tracked</li>
+                            </ul>
+                        </div>
+                        <div class="bg-gray-800 rounded p-4">
+                            <div class="font-bold mb-2">Obsidian Import</div>
+                            <ul class="text-sm text-gray-300 space-y-1">
+                                <li>• Daily at 2:30am</li>
+                                <li>• Manual research notes</li>
+                                <li>• High-quality curation</li>
+                                <li>• 166 documents</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flow-arrow"></div>
+
+                <!-- Stage 4: LLM Scoring -->
+                <div class="flow-step rounded-lg p-6 w-full max-w-2xl">
+                    <h3 class="text-xl font-bold mb-4 text-purple-400">Stage 4: LLM Scoring & Entity Detection</h3>
+                    <div class="bg-gray-800 rounded p-4">
+                        <div class="font-bold mb-3">Qwen2.5:32b Model (Local, Free)</div>
+                        <div class="grid grid-cols-2 gap-4 mb-3">
+                            <div>
+                                <div class="text-sm text-gray-400">Commercial Signals</div>
+                                <ul class="text-sm text-gray-300 mt-1 space-y-1">
+                                    <li>• FDA approvals</li>
+                                    <li>• Funding rounds</li>
+                                    <li>• Product launches</li>
+                                    <li>• M&A deals</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-400">Entity Mentions</div>
+                                <ul class="text-sm text-gray-300 mt-1 space-y-1">
+                                    <li>• 67 Companies</li>
+                                    <li>• 30 Research Labs</li>
+                                    <li>• 20 VCs</li>
+                                    <li>• +10 pts per mention</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="p-3 bg-purple-900 bg-opacity-30 rounded">
+                            <strong>Threshold:</strong> ≥12% alignment score → Broadcast-ready
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flow-arrow"></div>
+
+                <!-- Stage 5: Broadcast Creation -->
+                <div class="flow-step rounded-lg p-6 w-full max-w-2xl">
+                    <h3 class="text-xl font-bold mb-4 text-purple-400">Stage 5: Broadcast Generation</h3>
+                    <div class="bg-gray-800 rounded p-4">
+                        <div class="font-bold mb-2">4x Daily (4am, 10am, 4pm, 10pm)</div>
+                        <div class="grid grid-cols-3 gap-3 mt-3">
+                            <div class="bg-gray-700 rounded p-3 text-center">
+                                <div class="text-2xl mb-1">📱</div>
+                                <div class="text-sm font-semibold">Telegram</div>
+                                <div class="text-xs text-gray-400">280 chars</div>
+                            </div>
+                            <div class="bg-gray-700 rounded p-3 text-center">
+                                <div class="text-2xl mb-1">🦋</div>
+                                <div class="text-sm font-semibold">Bluesky</div>
+                                <div class="text-xs text-gray-400">300 chars</div>
+                            </div>
+                            <div class="bg-gray-700 rounded p-3 text-center">
+                                <div class="text-2xl mb-1">📰</div>
+                                <div class="text-sm font-semibold">WordPress</div>
+                                <div class="text-xs text-gray-400">800-1200 words</div>
+                            </div>
+                        </div>
+                        <div class="mt-3 p-3 bg-purple-900 bg-opacity-30 rounded text-sm">
+                            <strong>Image Generation:</strong> Gemini 2.5 Flash (JIT, 1024px PNG)
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flow-arrow"></div>
+
+                <!-- Stage 6: Distribution -->
+                <div class="flow-step rounded-lg p-6 w-full max-w-2xl">
+                    <h3 class="text-xl font-bold mb-4 text-purple-400">Stage 6: Multi-Platform Distribution</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-gray-800 rounded p-4">
+                            <div class="font-bold mb-2">Social Media</div>
+                            <ul class="text-sm text-gray-300 space-y-1">
+                                <li>📱 <strong>Telegram:</strong> Hourly at :00</li>
+                                <li>🦋 <strong>Bluesky:</strong> Hourly at :40</li>
+                                <li>❌ <strong>Farcaster:</strong> Paused</li>
+                            </ul>
+                        </div>
+                        <div class="bg-gray-800 rounded p-4">
+                            <div class="font-bold mb-2">Web Publishing</div>
+                            <ul class="text-sm text-gray-300 space-y-1">
+                                <li>📰 <strong>Insights:</strong> Every 4hrs</li>
+                                <li>📊 <strong>Deep Dives:</strong> Daily 10am</li>
+                                <li>🧬 <strong>BiologyInvestor:</strong> 3x daily</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Mix Visualization -->
+            <div class="bg-gray-800 rounded-lg p-6 mt-8">
+                <h3 class="text-2xl font-bold mb-4 text-center">Content Mix Evolution</h3>
+                <div class="grid grid-cols-2 gap-8">
+                    <div>
+                        <h4 class="text-lg font-semibold mb-3 text-center text-gray-400">Before (Dec 2025)</h4>
+                        <div class="space-y-2">
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span>Research Papers</span>
+                                    <span>60%</span>
+                                </div>
+                                <div class="w-full bg-gray-700 rounded h-4">
+                                    <div class="bg-blue-500 h-4 rounded" style="width: 60%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span>Commercial</span>
+                                    <span>30%</span>
+                                </div>
+                                <div class="w-full bg-gray-700 rounded h-4">
+                                    <div class="bg-green-500 h-4 rounded" style="width: 30%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span>Other</span>
+                                    <span>10%</span>
+                                </div>
+                                <div class="w-full bg-gray-700 rounded h-4">
+                                    <div class="bg-gray-500 h-4 rounded" style="width: 10%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-semibold mb-3 text-center text-purple-400">After (Feb 2026)</h4>
+                        <div class="space-y-2">
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span>Research Papers</span>
+                                    <span>20%</span>
+                                </div>
+                                <div class="w-full bg-gray-700 rounded h-4">
+                                    <div class="bg-blue-500 h-4 rounded" style="width: 20%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span>Commercial</span>
+                                    <span class="font-bold text-green-400">70%</span>
+                                </div>
+                                <div class="w-full bg-gray-700 rounded h-4">
+                                    <div class="bg-green-500 h-4 rounded" style="width: 70%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span>Other</span>
+                                    <span>10%</span>
+                                </div>
+                                <div class="w-full bg-gray-700 rounded h-4">
+                                    <div class="bg-gray-500 h-4 rounded" style="width: 10%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: RSS Discovery -->
+        <div id="content-rss" class="tab-content">
+            <h2 class="text-3xl font-bold mb-6 text-center">Automated RSS Discovery System</h2>
+
+            <!-- Discovery Process -->
+            <div class="bg-gray-800 rounded-lg p-6 mb-8">
+                <h3 class="text-xl font-bold mb-4 text-purple-400">Discovery Process</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-gray-700 rounded-lg p-4">
+                        <div class="text-3xl mb-2">🔍</div>
+                        <h4 class="font-bold mb-2">1. Website Crawling</h4>
+                        <p class="text-sm text-gray-300">Checks entity websites for RSS/Atom feeds in common locations and HTML headers</p>
+                    </div>
+                    <div class="bg-gray-700 rounded-lg p-4">
+                        <div class="text-3xl mb-2">✅</div>
+                        <h4 class="font-bold mb-2">2. Validation</h4>
+                        <p class="text-sm text-gray-300">Parses XML, validates structure, checks for recent updates (≤180 days)</p>
+                    </div>
+                    <div class="bg-gray-700 rounded-lg p-4">
+                        <div class="text-3xl mb-2">🚀</div>
+                        <h4 class="font-bold mb-2">3. Auto-Deploy</h4>
+                        <p class="text-sm text-gray-300">Syncs to search_config.yml, commits to git, triggers GitHub Actions</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Discovery Results -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg p-6">
+                    <h4 class="text-lg font-bold mb-4">Companies</h4>
+                    <div class="text-4xl font-bold mb-2">12 feeds</div>
+                    <div class="text-sm opacity-90">18% success rate</div>
+                    <div class="mt-4 text-xs">
+                        Ginkgo Bioworks, Twist Bioscience, Perfect Day, Zymergen, Modern Meadow, etc.
+                    </div>
+                </div>
+                <div class="bg-gradient-to-br from-green-600 to-teal-600 rounded-lg p-6">
+                    <h4 class="text-lg font-bold mb-4">Research Labs</h4>
+                    <div class="text-4xl font-bold mb-2">2 feeds</div>
+                    <div class="text-sm opacity-90">18% success rate</div>
+                    <div class="mt-4 text-xs">
+                        Broad Institute, Wyss Institute
+                    </div>
+                </div>
+                <div class="bg-gradient-to-br from-orange-600 to-red-600 rounded-lg p-6">
+                    <h4 class="text-lg font-bold mb-4">Venture Capital</h4>
+                    <div class="text-4xl font-bold mb-2">2 feeds</div>
+                    <div class="text-sm opacity-90">29% success rate</div>
+                    <div class="mt-4 text-xs">
+                        a16z Bio, Khosla Ventures
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tier 1 Commercial Feeds -->
+            <div class="bg-gray-800 rounded-lg p-6">
+                <h3 class="text-xl font-bold mb-4 text-purple-400">Tier 1 Commercial Feeds (10 sources)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-gray-700 rounded p-4">
+                        <div class="font-bold mb-2">📰 PR Newswire Biotech</div>
+                        <p class="text-sm text-gray-300">Press releases, partnerships, FDA approvals</p>
+                    </div>
+                    <div class="bg-gray-700 rounded p-4">
+                        <div class="font-bold mb-2">💰 MedCity News Funding</div>
+                        <p class="text-sm text-gray-300">Series B/C rounds, IPOs, M&A deals</p>
+                    </div>
+                    <div class="bg-gray-700 rounded p-4">
+                        <div class="font-bold mb-2">🏆 BioWorld Today</div>
+                        <p class="text-sm text-gray-300">Clinical trial results, regulatory milestones</p>
+                    </div>
+                    <div class="bg-gray-700 rounded p-4">
+                        <div class="font-bold mb-2">📊 BioCentury Extra</div>
+                        <p class="text-sm text-gray-300">Deal flow analysis, market trends</p>
+                    </div>
+                    <div class="bg-gray-700 rounded p-4">
+                        <div class="font-bold mb-2">🔬 Chemical & Engineering News</div>
+                        <p class="text-sm text-gray-300">Industrial biotech commercialization</p>
+                    </div>
+                    <div class="bg-gray-700 rounded p-4">
+                        <div class="font-bold mb-2">🌱 AgFunder News</div>
+                        <p class="text-sm text-gray-300">AgBio funding, product launches</p>
+                    </div>
+                    <div class="bg-gray-700 rounded p-4">
+                        <div class="font-bold mb-2">🏭 Industrial Biotech</div>
+                        <p class="text-sm text-gray-300">Production scale-ups, commercial partnerships</p>
+                    </div>
+                    <div class="bg-gray-700 rounded p-4">
+                        <div class="font-bold mb-2">💊 PharmaLive Biotech</div>
+                        <p class="text-sm text-gray-300">Big pharma biotech initiatives</p>
+                    </div>
+                    <div class="bg-gray-700 rounded p-4">
+                        <div class="font-bold mb-2">📈 BioSpace Industry News</div>
+                        <p class="text-sm text-gray-300">Job market trends (hiring = commercial traction)</p>
+                    </div>
+                    <div class="bg-gray-700 rounded p-4">
+                        <div class="font-bold mb-2">🎯 SynBioBeta Newsletter</div>
+                        <p class="text-sm text-gray-300">Synthetic biology commercial updates</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Automation Schedule -->
+            <div class="bg-gray-800 rounded-lg p-6 mt-8">
+                <h3 class="text-xl font-bold mb-4 text-purple-400">Automation Schedule</h3>
+                <div class="bg-gray-700 rounded p-4">
+                    <div class="font-bold mb-2">🔄 Weekly Discovery Cycle</div>
+                    <ul class="text-sm text-gray-300 space-y-2">
+                        <li>⏰ <strong>Every Sunday at 3:00am</strong></li>
+                        <li>🔍 Crawls all 117 tracked entity websites</li>
+                        <li>✅ Validates discovered feeds</li>
+                        <li>📝 Auto-commits to search_config.yml</li>
+                        <li>🚀 Pushes to GitHub (triggers workflows)</li>
+                        <li>📊 Logs results to discover-feeds.log</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Entity Tracking -->
+        <div id="content-entities" class="tab-content">
+            <h2 class="text-3xl font-bold mb-6 text-center">Entity Tracking Database</h2>
+
+            <!-- Entity Breakdown -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg p-6">
+                    <div class="text-5xl mb-2">🏢</div>
+                    <h4 class="text-2xl font-bold mb-2">67 Companies</h4>
+                    <ul class="text-sm space-y-1 mt-4">
+                        <li>• Ginkgo Bioworks</li>
+                        <li>• Twist Bioscience</li>
+                        <li>• Perfect Day</li>
+                        <li>• Upside Foods</li>
+                        <li>• Synthego</li>
+                        <li class="text-gray-400">+ 62 more</li>
+                    </ul>
+                </div>
+                <div class="bg-gradient-to-br from-green-600 to-blue-600 rounded-lg p-6">
+                    <div class="text-5xl mb-2">🔬</div>
+                    <h4 class="text-2xl font-bold mb-2">30 Research Labs</h4>
+                    <ul class="text-sm space-y-1 mt-4">
+                        <li>• Broad Institute</li>
+                        <li>• Wyss Institute</li>
+                        <li>• JCVI</li>
+                        <li>• Salk Institute</li>
+                        <li>• Stanford Bio-X</li>
+                        <li class="text-gray-400">+ 25 more</li>
+                    </ul>
+                </div>
+                <div class="bg-gradient-to-br from-orange-600 to-red-600 rounded-lg p-6">
+                    <div class="text-5xl mb-2">💰</div>
+                    <h4 class="text-2xl font-bold mb-2">20 VCs</h4>
+                    <ul class="text-sm space-y-1 mt-4">
+                        <li>• ARCH Venture</li>
+                        <li>• Flagship Pioneering</li>
+                        <li>• a16z Bio</li>
+                        <li>• Khosla Ventures</li>
+                        <li>• OrbiMed</li>
+                        <li class="text-gray-400">+ 15 more</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Entity Benefits -->
+            <div class="bg-gray-800 rounded-lg p-6 mb-8">
+                <h3 class="text-xl font-bold mb-4 text-purple-400">Entity Tracking Benefits</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-bold mb-3">🎯 Content Prioritization</h4>
+                        <ul class="text-sm text-gray-300 space-y-2">
+                            <li>• <strong>+10 points</strong> per entity mention in LLM scoring</li>
+                            <li>• Maximum +30 points bonus (3 entity mentions)</li>
+                            <li>• Documents mentioning tracked entities get priority</li>
+                            <li>• Focuses content on known commercial players</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-bold mb-3">📊 Signal Detection</h4>
+                        <ul class="text-sm text-gray-300 space-y-2">
+                            <li>• Tracks entity mentions across all documents</li>
+                            <li>• Identifies trending companies/labs/VCs</li>
+                            <li>• Enables entity-focused analytics</li>
+                            <li>• Supports future entity-based newsletters</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-bold mb-3">🔍 Automated Discovery</h4>
+                        <ul class="text-sm text-gray-300 space-y-2">
+                            <li>• Weekly RSS feed discovery from entity websites</li>
+                            <li>• Zero-touch deployment of new feeds</li>
+                            <li>• Automatic validation and categorization</li>
+                            <li>• Grows content sources organically</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-bold mb-3">🎓 Knowledge Graph</h4>
+                        <ul class="text-sm text-gray-300 space-y-2">
+                            <li>• Tracks company focus areas</li>
+                            <li>• Links labs to research areas</li>
+                            <li>• Maps VC investment patterns</li>
+                            <li>• Enables relationship analysis</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Entity Data Structure -->
+            <div class="bg-gray-800 rounded-lg p-6">
+                <h3 class="text-xl font-bold mb-4 text-purple-400">Database Schema</h3>
+                <div class="bg-gray-900 rounded p-4 font-mono text-sm">
+                    <div class="text-green-400 mb-2">CREATE TABLE tracked_entities (</div>
+                    <div class="ml-4 space-y-1">
+                        <div><span class="text-blue-400">id</span> TEXT PRIMARY KEY,</div>
+                        <div><span class="text-blue-400">type</span> TEXT NOT NULL,  <span class="text-gray-500">-- company, lab, vc</span></div>
+                        <div><span class="text-blue-400">name</span> TEXT NOT NULL,</div>
+                        <div><span class="text-blue-400">website</span> TEXT,</div>
+                        <div><span class="text-blue-400">twitter</span> TEXT,</div>
+                        <div><span class="text-blue-400">focus_area</span> TEXT,  <span class="text-gray-500">-- synbio, agbio, etc.</span></div>
+                        <div><span class="text-blue-400">funding_stage</span> TEXT,  <span class="text-gray-500">-- Series B, public, etc.</span></div>
+                        <div><span class="text-blue-400">confidence</span> TEXT,  <span class="text-gray-500">-- High, Medium, Low</span></div>
+                        <div><span class="text-blue-400">metadata</span> TEXT  <span class="text-gray-500">-- JSON additional info</span></div>
+                    </div>
+                    <div class="text-green-400">);</div>
+
+                    <div class="mt-4 text-green-400 mb-2">CREATE TABLE entity_mentions (</div>
+                    <div class="ml-4 space-y-1">
+                        <div><span class="text-blue-400">id</span> TEXT PRIMARY KEY,</div>
+                        <div><span class="text-blue-400">document_id</span> TEXT,</div>
+                        <div><span class="text-blue-400">entity_id</span> TEXT,</div>
+                        <div><span class="text-blue-400">mention_count</span> INTEGER,</div>
+                        <div><span class="text-blue-400">context</span> TEXT  <span class="text-gray-500">-- surrounding text</span></div>
+                    </div>
+                    <div class="text-green-400">);</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 4: Automation -->
+        <div id="content-automation" class="tab-content">
+            <h2 class="text-3xl font-bold mb-6 text-center">Automation Schedule</h2>
+
+            <!-- Cron Jobs -->
+            <div class="space-y-4">
+                <!-- Daily Schedules -->
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <h3 class="text-xl font-bold mb-4 text-purple-400">Daily Operations</h3>
+                    <div class="space-y-3">
+                        <div class="bg-gray-700 rounded p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="font-bold">🔄 GitHub Sync</div>
+                                <div class="text-sm bg-purple-600 px-3 py-1 rounded">2:00am</div>
+                            </div>
+                            <p class="text-sm text-gray-300">Clones ai10bro-gdelt repo, imports all markdown files (zero API calls)</p>
+                        </div>
+
+                        <div class="bg-gray-700 rounded p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="font-bold">📝 Obsidian Import</div>
+                                <div class="text-sm bg-purple-600 px-3 py-1 rounded">2:30am</div>
+                            </div>
+                            <p class="text-sm text-gray-300">Imports manually curated research notes from Obsidian vault</p>
+                        </div>
+
+                        <div class="bg-gray-700 rounded p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="font-bold">📊 Alignment Scoring</div>
+                                <div class="text-sm bg-purple-600 px-3 py-1 rounded">3:00am</div>
+                            </div>
+                            <p class="text-sm text-gray-300">Runs LLM scoring on all newly imported documents (Qwen2.5:32b)</p>
+                        </div>
+
+                        <div class="bg-gray-700 rounded p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="font-bold">🧹 Cleanup Unaligned</div>
+                                <div class="text-sm bg-purple-600 px-3 py-1 rounded">3:50am</div>
+                            </div>
+                            <p class="text-sm text-gray-300">Converts low-scoring documents (&lt;8%) to tombstone records</p>
+                        </div>
+
+                        <div class="bg-gray-700 rounded p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="font-bold">✅ Quality Checks</div>
+                                <div class="text-sm bg-purple-600 px-3 py-1 rounded">8:00am</div>
+                            </div>
+                            <p class="text-sm text-gray-300">Validates broadcast quality, checks for issues</p>
+                        </div>
+
+                        <div class="bg-gray-700 rounded p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="font-bold">📰 WordPress Deep Dives</div>
+                                <div class="text-sm bg-purple-600 px-3 py-1 rounded">10:00am</div>
+                            </div>
+                            <p class="text-sm text-gray-300">Publishes long-form analysis articles (2000-4000 words) to ai10bro.com</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Frequent Schedules -->
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <h3 class="text-xl font-bold mb-4 text-purple-400">Frequent Operations</h3>
+                    <div class="space-y-3">
+                        <div class="bg-gray-700 rounded p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="font-bold">🤖 LLM Scoring</div>
+                                <div class="text-sm bg-green-600 px-3 py-1 rounded">Hourly</div>
+                            </div>
+                            <p class="text-sm text-gray-300">Scores new documents as they arrive (Qwen2.5:32b, local)</p>
+                        </div>
+
+                        <div class="bg-gray-700 rounded p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="font-bold">📱 Telegram Send</div>
+                                <div class="text-sm bg-green-600 px-3 py-1 rounded">Hourly at :00</div>
+                            </div>
+                            <p class="text-sm text-gray-300">Sends pending broadcasts to Telegram channel</p>
+                        </div>
+
+                        <div class="bg-gray-700 rounded p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="font-bold">🦋 Bluesky Send</div>
+                                <div class="text-sm bg-green-600 px-3 py-1 rounded">Hourly at :40</div>
+                            </div>
+                            <p class="text-sm text-gray-300">Sends pending broadcasts to Bluesky</p>
+                        </div>
+
+                        <div class="bg-gray-700 rounded p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="font-bold">📰 WordPress Insights</div>
+                                <div class="text-sm bg-blue-600 px-3 py-1 rounded">Every 4 hours</div>
+                            </div>
+                            <p class="text-sm text-gray-300">Publishes daily insights (800-1200 words) to ai10bro.com</p>
+                        </div>
+
+                        <div class="bg-gray-700 rounded p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="font-bold">🧬 BiologyInvestor</div>
+                                <div class="text-sm bg-blue-600 px-3 py-1 rounded">3x daily</div>
+                            </div>
+                            <p class="text-sm text-gray-300">Publishes investment-focused content to biologyinvestor.com</p>
+                        </div>
+
+                        <div class="bg-gray-700 rounded p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="font-bold">🎯 Broadcast Creation</div>
+                                <div class="text-sm bg-orange-600 px-3 py-1 rounded">4x daily</div>
+                            </div>
+                            <p class="text-sm text-gray-300">Generates broadcasts for all platforms (4am, 10am, 4pm, 10pm)</p>
+                        </div>
+
+                        <div class="bg-gray-700 rounded p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="font-bold">🔄 Score Sync</div>
+                                <div class="text-sm bg-green-600 px-3 py-1 rounded">Every 30 min</div>
+                            </div>
+                            <p class="text-sm text-gray-300">Syncs alignment scores between systems</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Weekly Schedules -->
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <h3 class="text-xl font-bold mb-4 text-purple-400">Weekly Operations</h3>
+                    <div class="space-y-3">
+                        <div class="bg-gray-700 rounded p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="font-bold">🔍 RSS Discovery</div>
+                                <div class="text-sm bg-purple-600 px-3 py-1 rounded">Sunday 3:00am</div>
+                            </div>
+                            <p class="text-sm text-gray-300">Crawls entity websites for RSS feeds, auto-deploys to search_config.yml</p>
+                        </div>
+
+                        <div class="bg-gray-700 rounded p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="font-bold">🧬 BiologyInvestor Deep Dive</div>
+                                <div class="text-sm bg-purple-600 px-3 py-1 rounded">Mon & Thu 11:00am</div>
+                            </div>
+                            <p class="text-sm text-gray-300">Publishes investment-focused deep dives (2000-3000 words)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GitHub Actions -->
+            <div class="bg-gray-800 rounded-lg p-6 mt-6">
+                <h3 class="text-xl font-bold mb-4 text-purple-400">GitHub Actions (gdelt-obsidian repo)</h3>
+                <div class="space-y-3">
+                    <div class="bg-gray-700 rounded p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="font-bold">📰 news-fetch.yml</div>
+                            <div class="text-sm bg-blue-600 px-3 py-1 rounded">Every 6 hours</div>
+                        </div>
+                        <p class="text-sm text-gray-300">Fetches 58 RSS feeds, saves to GitHub as markdown</p>
+                    </div>
+
+                    <div class="bg-gray-700 rounded p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="font-bold">🔬 extended-scrapers.yml</div>
+                            <div class="text-sm bg-green-600 px-3 py-1 rounded">Twice daily</div>
+                        </div>
+                        <p class="text-sm text-gray-300">Scrapes bioRxiv, arXiv, HackerNews, GitHub Trending, OWID</p>
+                    </div>
+
+                    <div class="bg-gray-700 rounded p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="font-bold">🎥 youtube-fetch.yml</div>
+                            <div class="text-sm bg-purple-600 px-3 py-1 rounded">Weekly</div>
+                        </div>
+                        <p class="text-sm text-gray-300">Fetches transcripts from science YouTube channels</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="mt-12 bg-gray-800 rounded-lg p-6 text-center">
+            <h3 class="text-2xl font-bold mb-4">Session 2026-02-03 Achievements</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                    <div class="text-3xl font-bold text-purple-400">4</div>
+                    <div class="text-sm text-gray-300">Scripts Created</div>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold text-green-400">+26</div>
+                    <div class="text-sm text-gray-300">RSS Feeds Added</div>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold text-blue-400">+70</div>
+                    <div class="text-sm text-gray-300">Entity Websites</div>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold text-orange-400">100%</div>
+                    <div class="text-sm text-gray-300">Zero-Touch Deploy</div>
+                </div>
+            </div>
+            <div class="mt-6 text-sm text-gray-400">
+                Generated with Claude Sonnet 4.5 • System Architecture Visualization • ai10bro.com
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            // Hide all tab contents
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+
+            // Remove active class from all buttons
+            const buttons = document.querySelectorAll('.tab-button');
+            buttons.forEach(button => {
+                button.classList.remove('active');
+                button.classList.add('bg-gray-700');
+            });
+
+            // Show selected tab content
+            const selectedContent = document.getElementById('content-' + tabName);
+            if (selectedContent) {
+                selectedContent.classList.add('active');
+            }
+
+            // Add active class to selected button
+            const selectedButton = document.getElementById('tab-' + tabName);
+            if (selectedButton) {
+                selectedButton.classList.add('active');
+                selectedButton.classList.remove('bg-gray-700');
+            }
+        }
+    </script>
+</body>
+</html>
