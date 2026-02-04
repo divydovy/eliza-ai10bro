@@ -25,11 +25,18 @@
             transform: translateY(-5px);
             box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
         }
+        .flow-step.platform {
+            border: 3px solid #f59e0b;
+            background: linear-gradient(135deg, #78350f 0%, #451a03 100%);
+        }
         .flow-arrow::after {
             content: '→';
             font-size: 2rem;
             color: #667eea;
             margin: 0 1rem;
+        }
+        .flow-arrow.platform::after {
+            color: #f59e0b;
         }
         .metric-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -38,6 +45,18 @@
         .metric-card:hover {
             transform: scale(1.05);
             box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
+        }
+        .phase-card {
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+            border: 2px solid #3b82f6;
+        }
+        .phase-card.active {
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+            border: 2px solid #22c55e;
+        }
+        .phase-card.future {
+            background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+            border: 2px solid #f97316;
         }
         .pulse {
             animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
@@ -66,7 +85,8 @@
             <h1 class="text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
                 AI10BRO System Architecture
             </h1>
-            <p class="text-xl text-gray-300 mb-8">Automated Biotech Content Intelligence & Distribution Platform</p>
+            <p class="text-xl text-gray-300 mb-2">Automated Biotech Content Intelligence & Distribution Platform</p>
+            <p class="text-sm text-orange-400 mb-8">→ Evolving into Bio Intelligence Platform (PEI-Style Analytics)</p>
 
             <!-- Key Metrics -->
             <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
@@ -106,6 +126,9 @@
             </button>
             <button onclick="showTab('automation')" class="tab-button px-6 py-3 rounded-lg font-semibold bg-gray-700" id="tab-automation">
                 Automation
+            </button>
+            <button onclick="showTab('platform')" class="tab-button px-6 py-3 rounded-lg font-semibold bg-gray-700" id="tab-platform">
+                🎯 Platform Roadmap
             </button>
         </div>
 
@@ -215,6 +238,9 @@
                         <div class="p-3 bg-purple-900 bg-opacity-30 rounded">
                             <strong>Threshold:</strong> ≥12% alignment score → Broadcast-ready
                         </div>
+                        <div class="mt-2 p-3 bg-orange-900 bg-opacity-30 rounded text-sm">
+                            <strong>→ Platform Feed:</strong> Entity data, deals, commercial signals stored for analytics
+                        </div>
                     </div>
                 </div>
 
@@ -269,6 +295,39 @@
                                 <li>📊 <strong>Deep Dives:</strong> Daily 10am</li>
                                 <li>🧬 <strong>BiologyInvestor:</strong> 3x daily</li>
                             </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flow-arrow platform"></div>
+
+                <!-- Stage 7: Platform Integration -->
+                <div class="flow-step platform rounded-lg p-6 w-full max-w-2xl">
+                    <h3 class="text-xl font-bold mb-4 text-orange-400">Stage 7: Bio Intelligence Platform (Future)</h3>
+                    <div class="bg-gray-800 rounded p-4">
+                        <div class="font-bold mb-3 text-orange-300">All Data Feeds Into Platform Database</div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <div class="text-sm text-gray-400 mb-2">Entity Intelligence</div>
+                                <ul class="text-sm text-gray-300 space-y-1">
+                                    <li>• Company profiles</li>
+                                    <li>• Deal flow tracking</li>
+                                    <li>• VC activity mapping</li>
+                                    <li>• Technology relationships</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-400 mb-2">PEI-Style Analytics</div>
+                                <ul class="text-sm text-gray-300 space-y-1">
+                                    <li>• Company screeners</li>
+                                    <li>• Benchmarking tools</li>
+                                    <li>• Deal forecasting</li>
+                                    <li>• Commercial milestones</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="mt-3 p-3 bg-orange-900 bg-opacity-30 rounded text-sm">
+                            <strong>Vision:</strong> Investment-grade biotech intelligence platform with PostgreSQL, subscriptions, and institutional-quality analytics
                         </div>
                     </div>
                 </div>
@@ -372,6 +431,15 @@
                 </div>
             </div>
 
+            <!-- Platform Feed Note -->
+            <div class="bg-orange-900 bg-opacity-30 border border-orange-500 rounded-lg p-4 mb-8">
+                <div class="flex items-center mb-2">
+                    <span class="text-2xl mr-3">🎯</span>
+                    <h4 class="font-bold text-orange-300">Platform Integration</h4>
+                </div>
+                <p class="text-sm text-gray-300">All discovered RSS feeds feed entity profiles in future Bio Intelligence Platform, enabling comprehensive company/lab tracking and trend analysis.</p>
+            </div>
+
             <!-- Discovery Results -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div class="bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg p-6">
@@ -468,6 +536,15 @@
         <div id="content-entities" class="tab-content">
             <h2 class="text-3xl font-bold mb-6 text-center">Entity Tracking Database</h2>
 
+            <!-- Platform Foundation Note -->
+            <div class="bg-orange-900 bg-opacity-30 border border-orange-500 rounded-lg p-4 mb-8">
+                <div class="flex items-center mb-2">
+                    <span class="text-2xl mr-3">🏗️</span>
+                    <h4 class="font-bold text-orange-300">Platform Foundation</h4>
+                </div>
+                <p class="text-sm text-gray-300">Entity tracking system forms the core data layer for Bio Intelligence Platform. 290 entity mentions detected, 51% of top-tier docs mention tracked entities - validating commercial focus.</p>
+            </div>
+
             <!-- Entity Breakdown -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div class="bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg p-6">
@@ -540,12 +617,12 @@
                         </ul>
                     </div>
                     <div>
-                        <h4 class="font-bold mb-3">🎓 Knowledge Graph</h4>
+                        <h4 class="font-bold mb-3">🎓 Knowledge Graph → Platform</h4>
                         <ul class="text-sm text-gray-300 space-y-2">
                             <li>• Tracks company focus areas</li>
                             <li>• Links labs to research areas</li>
                             <li>• Maps VC investment patterns</li>
-                            <li>• Enables relationship analysis</li>
+                            <li>• <strong class="text-orange-400">Enables Platform analytics</strong></li>
                         </ul>
                     </div>
                 </div>
@@ -578,6 +655,9 @@
                         <div><span class="text-blue-400">context</span> TEXT  <span class="text-gray-500">-- surrounding text</span></div>
                     </div>
                     <div class="text-green-400">);</div>
+
+                    <div class="mt-4 text-orange-400 mb-2">-- Platform tables (ready for Phase 3):</div>
+                    <div class="text-gray-500 text-xs">deals, products, company_milestones, entity_relationships</div>
                 </div>
             </div>
         </div>
@@ -758,29 +838,218 @@
             </div>
         </div>
 
+        <!-- Tab 5: Platform Roadmap -->
+        <div id="content-platform" class="tab-content">
+            <h2 class="text-3xl font-bold mb-6 text-center">Bio Intelligence Platform Roadmap</h2>
+            <p class="text-center text-gray-300 mb-8">PEI-Style Analytics for Biotech Investment Intelligence</p>
+
+            <!-- Vision Statement -->
+            <div class="bg-gradient-to-r from-orange-900 to-red-900 border-2 border-orange-500 rounded-lg p-6 mb-8">
+                <h3 class="text-2xl font-bold mb-4 text-orange-300">🎯 Strategic Vision</h3>
+                <p class="text-lg mb-4">Transform AI10BRO from content aggregator into an investment-grade biotech intelligence platform with PEI-style analytics, company screeners, deal flow tracking, and institutional-quality insights.</p>
+                <div class="grid grid-cols-3 gap-4 mt-4">
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-orange-400">117</div>
+                        <div class="text-sm">Entities Tracked</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-orange-400">290</div>
+                        <div class="text-sm">Entity Mentions</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-orange-400">51%</div>
+                        <div class="text-sm">Top Docs w/ Entities</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3 Phases -->
+            <div class="space-y-6">
+                <!-- Phase 1 -->
+                <div class="phase-card active rounded-lg p-6">
+                    <div class="flex items-center mb-4">
+                        <span class="text-3xl mr-4">✅</span>
+                        <div>
+                            <h3 class="text-2xl font-bold text-green-300">Phase 1: Foundation (Current)</h3>
+                            <p class="text-sm text-gray-300">Content Hub with Lightweight Entity Tagging</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="font-bold mb-3 text-green-200">✅ Completed</h4>
+                            <ul class="text-sm space-y-2 text-gray-300">
+                                <li>• <strong>Entity Database:</strong> 117 companies, labs, VCs tracked</li>
+                                <li>• <strong>Entity Mentions:</strong> 290 mentions across 154 documents</li>
+                                <li>• <strong>RSS Discovery:</strong> Automated feed discovery from entity websites</li>
+                                <li>• <strong>Commercial Focus:</strong> 70% content shift toward market-ready innovations</li>
+                                <li>• <strong>WordPress Integration:</strong> ai10bro.com live with entity tagging</li>
+                                <li>• <strong>Deal Detection:</strong> Pattern-based extraction system deployed</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-bold mb-3 text-orange-300">🔄 In Progress</h4>
+                            <ul class="text-sm space-y-2 text-gray-300">
+                                <li>• <strong>Manual Deal Entry:</strong> Populate 10 high-quality deals (Cemvita, Newlight, eXoZymes)</li>
+                                <li>• <strong>Entity-Focused Broadcasts:</strong> 5 test articles with entity context</li>
+                                <li>• <strong>WordPress Entity Taxonomies:</strong> Auto-tagging with entity IDs</li>
+                                <li>• <strong>Deal Pattern Refinement:</strong> Improve product name extraction</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Phase 2 -->
+                <div class="phase-card rounded-lg p-6">
+                    <div class="flex items-center mb-4">
+                        <span class="text-3xl mr-4">🏗️</span>
+                        <div>
+                            <h3 class="text-2xl font-bold text-blue-300">Phase 2: Rich Entity Profiles</h3>
+                            <p class="text-sm text-gray-300">Investment-Grade Company & Lab Intelligence</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="font-bold mb-3">📊 Company Profiles</h4>
+                            <ul class="text-sm space-y-2 text-gray-300">
+                                <li>• <strong>Core Data:</strong> Focus areas, funding stage, technology stack</li>
+                                <li>• <strong>Funding History:</strong> All rounds with investors, amounts, dates</li>
+                                <li>• <strong>Product Portfolio:</strong> Commercial products, pipeline, milestones</li>
+                                <li>• <strong>Leadership:</strong> Key executives, board members, advisors</li>
+                                <li>• <strong>Partnerships:</strong> Strategic alliances, collaborations, customers</li>
+                                <li>• <strong>News Timeline:</strong> All entity mentions with context</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-bold mb-3">🔬 Lab & VC Profiles</h4>
+                            <ul class="text-sm space-y-2 text-gray-300">
+                                <li>• <strong>Research Labs:</strong> Focus areas, principal investigators, breakthroughs</li>
+                                <li>• <strong>VC Activity:</strong> Portfolio companies, investment thesis, deal flow</li>
+                                <li>• <strong>Relationship Mapping:</strong> Company ↔ Lab ↔ VC connections</li>
+                                <li>• <strong>Technology Tracking:</strong> Which companies use which technologies</li>
+                                <li>• <strong>Competitive Intelligence:</strong> Who's competing in each segment</li>
+                                <li>• <strong>Trend Detection:</strong> Emerging focus areas, hot technologies</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Phase 3 -->
+                <div class="phase-card future rounded-lg p-6">
+                    <div class="flex items-center mb-4">
+                        <span class="text-3xl mr-4">🚀</span>
+                        <div>
+                            <h3 class="text-2xl font-bold text-orange-300">Phase 3: Full Platform Launch</h3>
+                            <p class="text-sm text-gray-300">PostgreSQL, Subscriptions, PEI-Style Analytics</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <h4 class="font-bold mb-3">🎯 Screeners & Search</h4>
+                            <ul class="text-sm space-y-2 text-gray-300">
+                                <li>• Company screener (focus, stage, funding)</li>
+                                <li>• Technology search (CRISPR, fermentation, etc.)</li>
+                                <li>• VC portfolio analysis</li>
+                                <li>• Deal flow tracker</li>
+                                <li>• Competitive landscape maps</li>
+                                <li>• Custom watchlists</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-bold mb-3">📈 Analytics & Insights</h4>
+                            <ul class="text-sm space-y-2 text-gray-300">
+                                <li>• Benchmarking tools</li>
+                                <li>• Funding trend analysis</li>
+                                <li>• Technology adoption curves</li>
+                                <li>• Commercial milestone forecasting</li>
+                                <li>• Market segment analysis</li>
+                                <li>• Exit probability models</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-bold mb-3">💼 Subscription Tiers</h4>
+                            <ul class="text-sm space-y-2 text-gray-300">
+                                <li>• <strong>Free:</strong> Basic entity profiles, content</li>
+                                <li>• <strong>Pro:</strong> Screeners, analytics, watchlists</li>
+                                <li>• <strong>Institutional:</strong> Full data access, API, alerts</li>
+                                <li>• <strong>Enterprise:</strong> Custom integrations, white-label</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Foundation → Platform Flow -->
+            <div class="bg-gray-800 rounded-lg p-6 mt-8">
+                <h3 class="text-2xl font-bold mb-6 text-center text-purple-400">How Current Systems Feed the Platform</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-bold mb-3 text-orange-300">📥 Data Inputs</h4>
+                        <ul class="text-sm space-y-2 text-gray-300">
+                            <li>• <strong>58 RSS Feeds</strong> → Entity news, press releases, funding announcements</li>
+                            <li>• <strong>Entity Mentions</strong> → Relationship mapping, co-occurrence analysis</li>
+                            <li>• <strong>Deal Detection</strong> → Funding rounds, products, milestones, partnerships</li>
+                            <li>• <strong>Commercial Signals</strong> → FDA approvals, IPOs, M&A, scale-ups</li>
+                            <li>• <strong>LLM Scoring</strong> → Quality filter, relevance ranking</li>
+                            <li>• <strong>Content Pipeline</strong> → Continuous knowledge graph growth</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-bold mb-3 text-orange-300">📤 Platform Outputs</h4>
+                        <ul class="text-sm space-y-2 text-gray-300">
+                            <li>• <strong>Company Screeners</strong> → "Show me Series B synbio companies"</li>
+                            <li>• <strong>Deal Flow Tracker</strong> → "Latest funding in precision fermentation"</li>
+                            <li>• <strong>Technology Maps</strong> → "Who's using CRISPR-Cas12?"</li>
+                            <li>• <strong>VC Portfolio Analysis</strong> → "Show me ARCH Venture's biotech bets"</li>
+                            <li>• <strong>Competitive Intelligence</strong> → "Who competes with Ginkgo Bioworks?"</li>
+                            <li>• <strong>Market Forecasting</strong> → "Which segments are hot in 2026?"</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Key Differentiators -->
+            <div class="bg-gray-800 rounded-lg p-6 mt-8">
+                <h3 class="text-2xl font-bold mb-6 text-center text-purple-400">🏆 Competitive Advantages</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-gray-700 rounded p-4">
+                        <h4 class="font-bold mb-2 text-green-400">Automated Intelligence</h4>
+                        <p class="text-sm text-gray-300">Zero manual data entry. All insights automatically extracted from 58 RSS feeds + GitHub scrapers + entity websites.</p>
+                    </div>
+                    <div class="bg-gray-700 rounded p-4">
+                        <h4 class="font-bold mb-2 text-blue-400">Commercial Focus</h4>
+                        <p class="text-sm text-gray-300">70% commercial content focus. Prioritizes market-ready innovations, funding, FDA approvals, products over academic papers.</p>
+                    </div>
+                    <div class="bg-gray-700 rounded p-4">
+                        <h4 class="font-bold mb-2 text-orange-400">Real-Time Updates</h4>
+                        <p class="text-sm text-gray-300">24-hour latency for deal detection. RSS feeds refresh every 6 hours, entity mentions detected hourly.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Footer -->
         <div class="mt-12 bg-gray-800 rounded-lg p-6 text-center">
-            <h3 class="text-2xl font-bold mb-4">Session 2026-02-03 Achievements</h3>
+            <h3 class="text-2xl font-bold mb-4">Session 2026-02-04 Updates</h3>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                    <div class="text-3xl font-bold text-purple-400">4</div>
-                    <div class="text-sm text-gray-300">Scripts Created</div>
+                    <div class="text-3xl font-bold text-purple-400">5</div>
+                    <div class="text-sm text-gray-300">Interactive Tabs</div>
                 </div>
                 <div>
-                    <div class="text-3xl font-bold text-green-400">+26</div>
-                    <div class="text-sm text-gray-300">RSS Feeds Added</div>
+                    <div class="text-3xl font-bold text-green-400">3</div>
+                    <div class="text-sm text-gray-300">Platform Phases</div>
                 </div>
                 <div>
-                    <div class="text-3xl font-bold text-blue-400">+70</div>
-                    <div class="text-sm text-gray-300">Entity Websites</div>
+                    <div class="text-3xl font-bold text-blue-400">100%</div>
+                    <div class="text-sm text-gray-300">Strategic Clarity</div>
                 </div>
                 <div>
-                    <div class="text-3xl font-bold text-orange-400">100%</div>
-                    <div class="text-sm text-gray-300">Zero-Touch Deploy</div>
+                    <div class="text-3xl font-bold text-orange-400">🎯</div>
+                    <div class="text-sm text-gray-300">Platform Endgame</div>
                 </div>
             </div>
             <div class="mt-6 text-sm text-gray-400">
-                Generated with Claude Sonnet 4.5 • System Architecture Visualization • ai10bro.com
+                Generated with Claude Sonnet 4.5 • System Architecture + Platform Roadmap • ai10bro.com
             </div>
         </div>
     </div>
