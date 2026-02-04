@@ -12,28 +12,30 @@ v23.3.0
 
 This file tells nvm which Node version to use for this project.
 
-### 2. Automatic Switching (Just Added to ~/.zshrc)
-When you `cd` into this directory, Node v23.3.0 will be automatically activated.
-When you `cd` out, it reverts to your default Node version.
+### 2. Lazy-Loading Integration (Fixed in ~/.zshrc)
+Your zsh uses **lazy-loading** for nvm (loads only when needed, for faster shell startup).
+The `load_nvm()` function now checks for `.nvmrc` and auto-switches when nvm loads.
 
 **How it works**:
-- Uses zsh `chpwd` hook (runs on every directory change)
-- Checks for `.nvmrc` file
-- Automatically runs `nvm use` if needed
-- Installs the version if not present
+- You have lazy-loading nvm (fast shell startup)
+- When you run `node`, `npm`, or `nvm` → nvm loads
+- If `.nvmrc` exists → automatically uses that version
+- If no `.nvmrc` → uses your default version
 
-### 3. Test It Now
+### 3. Simple Usage
 
 ```bash
-# Reload your shell config
-source ~/.zshrc
+# In Eliza directory - just run any node command:
+node --version
+# First time: loads nvm + switches to v23.3.0
+# After that: already on v23.3.0
 
-# Leave and re-enter the Eliza directory
-cd ..
-cd Eliza
+# In other directories:
+cd ~/some-other-project
+node --version
+# Uses that project's .nvmrc (if exists) or your default
 
-# You should see: "Now using node v23.3.0"
-node --version  # Should show v23.3.0
+# No manual 'nvm use' needed! ✨
 ```
 
 ### 4. For Background Services & Cron Jobs
@@ -77,19 +79,22 @@ When you `cd` into that project, it will auto-switch to v20.19.2.
 
 ## 🚨 Troubleshooting
 
-### "nvm: command not found"
-```bash
-# Add to ~/.zshrc (should already be there)
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-```
+### "nvm: command not found" when opening terminal
+**This is normal!** You have lazy-loading nvm.
+- nvm loads when you first run: `node`, `npm`, `npx`, or `nvm`
+- This keeps shell startup fast
+- Just run any node command and nvm will load
 
-### Auto-switching not working
+### Still on wrong Node version?
 ```bash
-# Reload shell config
-source ~/.zshrc
+# In Eliza directory:
+node --version  # Triggers load + auto-switch to v23.3.0
 
-# Or restart terminal
+# If still wrong, manually switch:
+nvm use
+
+# Or reinstall version from .nvmrc:
+nvm install
 ```
 
 ### Node version mismatch in running services
@@ -97,8 +102,13 @@ source ~/.zshrc
 # Restart services from project root
 cd /Users/davidlockie/Documents/Projects/Eliza
 killall node  # Kill all Node processes
-nvm use       # Activate correct version
-node script.js  # Restart with correct version
+node --version  # Verify correct version loaded
+node packages/plugin-dashboard/src/services/broadcast-api.js
+```
+
+### Want to check without running node?
+```bash
+cat .nvmrc  # See what version this project wants
 ```
 
 ## 📊 Current Configuration
