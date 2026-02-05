@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI10BRO - PEI Media Acquisition Pitch</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .slide {
+            display: none;
+            min-height: 100vh;
+            padding: 3rem;
+        }
+        .slide.active {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .metric-box {
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+            border: 2px solid #3b82f6;
+        }
+        .highlight-box {
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+            border: 2px solid #22c55e;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .slide.active > * {
+            animation: fadeIn 0.5s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+    <!-- Slide 1: Cover -->
+    <div class="slide active">
+        <div class="max-w-6xl mx-auto text-center">
+            <div class="mb-8">
+                <div class="text-6xl mb-4">🧬</div>
+                <h1 class="text-6xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-green-400 text-transparent bg-clip-text">
+                    AI10BRO
+                </h1>
+                <p class="text-3xl text-gray-300 mb-8">Automated Biotech Intelligence Platform</p>
+            </div>
+            <div class="grid grid-cols-3 gap-6 mt-12">
+                <div class="metric-box rounded-lg p-6">
+                    <div class="text-4xl font-bold text-blue-400">117</div>
+                    <div class="text-gray-300">Tracked Entities</div>
+                </div>
+                <div class="metric-box rounded-lg p-6">
+                    <div class="text-4xl font-bold text-green-400">58</div>
+                    <div class="text-gray-300">Automated Feeds</div>
+                </div>
+                <div class="metric-box rounded-lg p-6">
+                    <div class="text-4xl font-bold text-purple-400">290</div>
+                    <div class="text-gray-300">Deal Mentions</div>
+                </div>
+            </div>
+            <p class="text-xl text-gray-400 mt-12">Acquisition Proposal for PEI Media</p>
+        </div>
+    </div>
+
+    <!-- Slide 2: The Problem -->
+    <div class="slide">
+        <div class="max-w-5xl mx-auto">
+            <h2 class="text-5xl font-bold mb-12 text-blue-400">The Problem</h2>
+            <div class="space-y-8">
+                <div class="bg-gray-800 rounded-lg p-8 border-l-4 border-red-500">
+                    <h3 class="text-2xl font-bold mb-4 text-red-400">Manual Intelligence is Broken</h3>
+                    <ul class="text-xl text-gray-300 space-y-3">
+                        <li>• <strong>Slow</strong>: Analysts spend 40+ hours/week tracking companies manually</li>
+                        <li>• <strong>Incomplete</strong>: Miss 70% of deals due to limited coverage</li>
+                        <li>• <strong>Expensive</strong>: Human analysts cost $80-120K/year each</li>
+                        <li>• <strong>Stale</strong>: Average 2-7 day lag on commercial milestones</li>
+                    </ul>
+                </div>
+                <div class="bg-gray-800 rounded-lg p-8 border-l-4 border-yellow-500">
+                    <h3 class="text-2xl font-bold mb-4 text-yellow-400">Biotech Requires Domain Expertise</h3>
+                    <ul class="text-xl text-gray-300 space-y-3">
+                        <li>• Can't just scrape Twitter - need scientific validation</li>
+                        <li>• FDA approvals, funding rounds, clinical trials buried in noise</li>
+                        <li>• Relationships matter: Which VCs back which technologies?</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 3: The Solution -->
+    <div class="slide">
+        <div class="max-w-5xl mx-auto">
+            <h2 class="text-5xl font-bold mb-12 text-green-400">The Solution</h2>
+            <div class="highlight-box rounded-lg p-8 mb-8">
+                <h3 class="text-3xl font-bold mb-4">Automated Entity Intelligence System</h3>
+                <p class="text-xl text-gray-200">AI-powered platform that discovers, tracks, and scores biotech companies, labs, and VCs automatically</p>
+            </div>
+            <div class="grid grid-cols-2 gap-6">
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <div class="text-4xl mb-4">🔍</div>
+                    <h4 class="text-xl font-bold mb-3 text-blue-400">Auto-Discovery</h4>
+                    <p class="text-gray-300">Finds RSS feeds from entity websites. 36% of our feeds were machine-discovered.</p>
+                </div>
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <div class="text-4xl mb-4">📊</div>
+                    <h4 class="text-xl font-bold mb-3 text-blue-400">LLM Scoring</h4>
+                    <p class="text-gray-300">Qwen2.5-32B scores commercial relevance. Only 12% threshold passes.</p>
+                </div>
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <div class="text-4xl mb-4">🎯</div>
+                    <h4 class="text-xl font-bold mb-3 text-blue-400">Entity Mentions</h4>
+                    <p class="text-gray-300">Tracks 290 mentions across content. 51% of top docs mention tracked entities.</p>
+                </div>
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <div class="text-4xl mb-4">⚡</div>
+                    <h4 class="text-xl font-bold mb-3 text-blue-400">Real-Time</h4>
+                    <p class="text-gray-300">Updates every 6 hours. Commercial signals detected within 24 hours.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 4: How It Works -->
+    <div class="slide">
+        <div class="max-w-5xl mx-auto">
+            <h2 class="text-5xl font-bold mb-12 text-purple-400">How It Works</h2>
+            <div class="space-y-6">
+                <div class="flex items-center gap-4">
+                    <div class="bg-blue-600 rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold flex-shrink-0">1</div>
+                    <div class="bg-gray-800 rounded-lg p-4 flex-grow">
+                        <strong class="text-blue-400">RSS Discovery:</strong> Automated crawler finds feeds from 117 tracked entity websites (companies, labs, VCs)
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="bg-blue-600 rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold flex-shrink-0">2</div>
+                    <div class="bg-gray-800 rounded-lg p-4 flex-grow">
+                        <strong class="text-blue-400">Content Ingestion:</strong> GitHub Actions pull 58 feeds every 6 hours → 100+ articles/day
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="bg-blue-600 rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold flex-shrink-0">3</div>
+                    <div class="bg-gray-800 rounded-lg p-4 flex-grow">
+                        <strong class="text-blue-400">LLM Scoring:</strong> Local Qwen2.5-32B model scores alignment (biotech + commercial + entity mentions)
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="bg-blue-600 rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold flex-shrink-0">4</div>
+                    <div class="bg-gray-800 rounded-lg p-4 flex-grow">
+                        <strong class="text-blue-400">Entity Detection:</strong> Identifies mentions of tracked companies/labs/VCs, builds relationship graph
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="bg-blue-600 rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold flex-shrink-0">5</div>
+                    <div class="bg-gray-800 rounded-lg p-4 flex-grow">
+                        <strong class="text-blue-400">Deal Signals:</strong> Detects FDA approvals, funding rounds, commercial launches, clinical trial results
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="bg-blue-600 rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold flex-shrink-0">6</div>
+                    <div class="bg-gray-800 rounded-lg p-4 flex-grow">
+                        <strong class="text-blue-400">Multi-Channel Distribution:</strong> Publishes to Telegram, Bluesky, WordPress (5 active channels)
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 5: Current Traction -->
+    <div class="slide">
+        <div class="max-w-5xl mx-auto">
+            <h2 class="text-5xl font-bold mb-12 text-green-400">Current Traction</h2>
+            <div class="grid grid-cols-2 gap-8">
+                <div>
+                    <h3 class="text-2xl font-bold mb-6 text-blue-400">Intelligence Database</h3>
+                    <div class="space-y-4">
+                        <div class="bg-gray-800 rounded-lg p-6">
+                            <div class="text-3xl font-bold text-green-400">21,155</div>
+                            <div class="text-gray-300">Total Documents Processed</div>
+                        </div>
+                        <div class="bg-gray-800 rounded-lg p-6">
+                            <div class="text-3xl font-bold text-green-400">79%</div>
+                            <div class="text-gray-300">LLM Scored for Quality</div>
+                        </div>
+                        <div class="bg-gray-800 rounded-lg p-6">
+                            <div class="text-3xl font-bold text-green-400">241</div>
+                            <div class="text-gray-300">Broadcast-Ready (≥12% alignment)</div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold mb-6 text-blue-400">Entity Coverage</h3>
+                    <div class="space-y-4">
+                        <div class="bg-gray-800 rounded-lg p-6">
+                            <div class="text-3xl font-bold text-purple-400">67</div>
+                            <div class="text-gray-300">Companies Tracked</div>
+                            <div class="text-sm text-gray-500 mt-2">Ginkgo, Perfect Day, Solugen, etc.</div>
+                        </div>
+                        <div class="bg-gray-800 rounded-lg p-6">
+                            <div class="text-3xl font-bold text-purple-400">30</div>
+                            <div class="text-gray-300">Research Labs</div>
+                            <div class="text-sm text-gray-500 mt-2">Broad, Wyss, JCVI, Salk, etc.</div>
+                        </div>
+                        <div class="bg-gray-800 rounded-lg p-6">
+                            <div class="text-3xl font-bold text-purple-400">20</div>
+                            <div class="text-gray-300">VC Firms</div>
+                            <div class="text-sm text-gray-500 mt-2">ARCH, Flagship, a16z bio, etc.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-8 highlight-box rounded-lg p-6">
+                <div class="text-center">
+                    <div class="text-2xl font-bold mb-2">51% Entity Mention Rate</div>
+                    <div class="text-gray-200">Half of our top-tier content mentions tracked entities - validating commercial focus</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 6: Intelligence Outputs -->
+    <div class="slide">
+        <div class="max-w-5xl mx-auto">
+            <h2 class="text-5xl font-bold mb-12 text-blue-400">Intelligence Outputs</h2>
+            <p class="text-xl text-gray-300 mb-8">Not just content - structured data products</p>
+            <div class="grid grid-cols-2 gap-6">
+                <div class="bg-gray-800 rounded-lg p-6 border-l-4 border-blue-500">
+                    <h3 class="text-xl font-bold mb-4 text-blue-400">📊 Deal Flow Signals</h3>
+                    <ul class="text-gray-300 space-y-2">
+                        <li>• FDA approvals (Phase I/II/III results)</li>
+                        <li>• Funding rounds (Series A-C, IPOs)</li>
+                        <li>• Commercial launches (first customer, scale-up)</li>
+                        <li>• Partnership announcements</li>
+                    </ul>
+                    <div class="mt-4 text-sm text-gray-500">
+                        Example: "Ginkgo announces $100M Series E for expansion"
+                    </div>
+                </div>
+                <div class="bg-gray-800 rounded-lg p-6 border-l-4 border-green-500">
+                    <h3 class="text-xl font-bold mb-4 text-green-400">🏢 Company Profiles</h3>
+                    <ul class="text-gray-300 space-y-2">
+                        <li>• Auto-updated from RSS feeds</li>
+                        <li>• Technology focus areas</li>
+                        <li>• Funding stage detection</li>
+                        <li>• News mention frequency</li>
+                    </ul>
+                    <div class="mt-4 text-sm text-gray-500">
+                        Example: "Perfect Day - 42 mentions (precision fermentation)"
+                    </div>
+                </div>
+                <div class="bg-gray-800 rounded-lg p-6 border-l-4 border-purple-500">
+                    <h3 class="text-xl font-bold mb-4 text-purple-400">🔗 Relationship Mapping</h3>
+                    <ul class="text-gray-300 space-y-2">
+                        <li>• VC → Portfolio companies</li>
+                        <li>• Lab → Spinout tracking</li>
+                        <li>• Company → Technology partners</li>
+                        <li>• Co-mention networks</li>
+                    </ul>
+                    <div class="mt-4 text-sm text-gray-500">
+                        Example: "ARCH Venture backs 8 synbio companies"
+                    </div>
+                </div>
+                <div class="bg-gray-800 rounded-lg p-6 border-l-4 border-orange-500">
+                    <h3 class="text-xl font-bold mb-4 text-orange-400">📈 Trend Analysis</h3>
+                    <ul class="text-gray-300 space-y-2">
+                        <li>• Technology momentum scoring</li>
+                        <li>• Deal velocity tracking</li>
+                        <li>• Market timing signals</li>
+                        <li>• Competitive landscape shifts</li>
+                    </ul>
+                    <div class="mt-4 text-sm text-gray-500">
+                        Example: "CRISPR mentions up 300% QoQ"
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 7: Technology Stack -->
+    <div class="slide">
+        <div class="max-w-5xl mx-auto">
+            <h2 class="text-5xl font-bold mb-12 text-purple-400">Technology Stack</h2>
+            <p class="text-xl text-gray-300 mb-8">Built for scale, automation, and cost efficiency</p>
+            <div class="grid grid-cols-3 gap-6">
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <div class="text-3xl mb-4">🤖</div>
+                    <h3 class="text-lg font-bold mb-3 text-blue-400">ElizaOS Framework</h3>
+                    <p class="text-sm text-gray-300">Autonomous agent architecture with memory, actions, and multi-platform plugins</p>
+                </div>
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <div class="text-3xl mb-4">🧠</div>
+                    <h3 class="text-lg font-bold mb-3 text-blue-400">Local LLM (Qwen2.5)</h3>
+                    <p class="text-sm text-gray-300">32B parameter model, GPT-4 equivalent, $0 inference costs, 128K context</p>
+                </div>
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <div class="text-3xl mb-4">🗄️</div>
+                    <h3 class="text-lg font-bold mb-3 text-blue-400">SQLite Database</h3>
+                    <p class="text-sm text-gray-300">21K+ docs, entity tracking, embeddings, broadcast queue</p>
+                </div>
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <div class="text-3xl mb-4">⚙️</div>
+                    <h3 class="text-lg font-bold mb-3 text-green-400">GitHub Actions</h3>
+                    <p class="text-sm text-gray-300">RSS scraping, 58 feeds, every 6 hours, zero infrastructure costs</p>
+                </div>
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <div class="text-3xl mb-4">🚀</div>
+                    <h3 class="text-lg font-bold mb-3 text-green-400">LaunchD Services</h3>
+                    <p class="text-sm text-gray-300">15 automated jobs: scoring, cleanup, broadcast creation, distribution</p>
+                </div>
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <div class="text-3xl mb-4">📡</div>
+                    <h3 class="text-lg font-bold mb-3 text-green-400">Multi-Platform</h3>
+                    <p class="text-sm text-gray-300">Telegram, Bluesky, WordPress (2 sites), API-ready for more</p>
+                </div>
+            </div>
+            <div class="mt-8 highlight-box rounded-lg p-6">
+                <div class="grid grid-cols-3 gap-6 text-center">
+                    <div>
+                        <div class="text-3xl font-bold text-green-400">$0</div>
+                        <div class="text-gray-200">Monthly LLM Costs</div>
+                    </div>
+                    <div>
+                        <div class="text-3xl font-bold text-green-400">100%</div>
+                        <div class="text-gray-200">Automated (zero manual curation)</div>
+                    </div>
+                    <div>
+                        <div class="text-3xl font-bold text-green-400">15</div>
+                        <div class="text-gray-200">Services (all operational)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 8: Why PEI? -->
+    <div class="slide">
+        <div class="max-w-5xl mx-auto">
+            <h2 class="text-5xl font-bold mb-12 text-orange-400">Why PEI Media?</h2>
+            <div class="space-y-6">
+                <div class="bg-gradient-to-r from-orange-900 to-red-900 rounded-lg p-8 border-2 border-orange-500">
+                    <h3 class="text-2xl font-bold mb-4">Perfect Strategic Fit</h3>
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="font-bold text-orange-300 mb-3">What PEI Does:</h4>
+                            <ul class="text-gray-200 space-y-2">
+                                <li>✓ Intelligence for PE/VC investors</li>
+                                <li>✓ Deal flow tracking platforms</li>
+                                <li>✓ Company/fund databases</li>
+                                <li>✓ Subscription data products</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-orange-300 mb-3">What AI10BRO Brings:</h4>
+                            <ul class="text-gray-200 space-y-2">
+                                <li>✓ Automated biotech intelligence</li>
+                                <li>✓ Entity tracking (117 companies/labs/VCs)</li>
+                                <li>✓ Deal signal detection</li>
+                                <li>✓ Proven automation stack</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-6">
+                    <div class="bg-gray-800 rounded-lg p-6 border-l-4 border-blue-500">
+                        <h4 class="font-bold mb-3 text-blue-400">Immediate Value</h4>
+                        <ul class="text-sm text-gray-300 space-y-2">
+                            <li>• Add biotech vertical to PEI portfolio</li>
+                            <li>• 117 tracked entities ready to monetize</li>
+                            <li>• Proven content pipeline (100+ articles/day)</li>
+                        </ul>
+                    </div>
+                    <div class="bg-gray-800 rounded-lg p-6 border-l-4 border-green-500">
+                        <h4 class="font-bold mb-3 text-green-400">Technology Transfer</h4>
+                        <ul class="text-sm text-gray-300 space-y-2">
+                            <li>• Apply AI automation to PEI's existing verticals</li>
+                            <li>• Replicate for energy, climate tech, fintech</li>
+                            <li>• Reduce analyst headcount with AI</li>
+                        </ul>
+                    </div>
+                    <div class="bg-gray-800 rounded-lg p-6 border-l-4 border-purple-500">
+                        <h4 class="font-bold mb-3 text-purple-400">Market Timing</h4>
+                        <ul class="text-sm text-gray-300 space-y-2">
+                            <li>• Biotech deal flow at record highs</li>
+                            <li>• AI-powered intelligence is table stakes</li>
+                            <li>• First-mover advantage in automated biotech data</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 9: 3-Phase Roadmap -->
+    <div class="slide">
+        <div class="max-w-5xl mx-auto">
+            <h2 class="text-5xl font-bold mb-12 text-blue-400">3-Phase Roadmap</h2>
+            <div class="space-y-6">
+                <div class="bg-gradient-to-r from-green-900 to-green-800 rounded-lg p-6 border-2 border-green-500">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-2xl font-bold">Phase 1: Content Hub</h3>
+                        <span class="bg-green-600 px-4 py-2 rounded-full text-sm font-bold">CURRENT</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4 text-sm">
+                        <div>✅ Entity database (117 tracked)</div>
+                        <div>✅ RSS automation (58 feeds)</div>
+                        <div>✅ LLM scoring pipeline</div>
+                        <div>✅ Multi-platform publishing</div>
+                        <div>🔄 Entity-focused broadcasts</div>
+                        <div>🔄 Manual deal entry</div>
+                    </div>
+                </div>
+                <div class="bg-gradient-to-r from-blue-900 to-blue-800 rounded-lg p-6 border-2 border-blue-500">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-2xl font-bold">Phase 2: Rich Entity Profiles</h3>
+                        <span class="bg-blue-600 px-4 py-2 rounded-full text-sm font-bold">3-6 MONTHS</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4 text-sm">
+                        <div>🎯 Company profiles (funding, products, team)</div>
+                        <div>🎯 Lab profiles (research, papers, spinouts)</div>
+                        <div>🎯 VC profiles (portfolio, deals, patterns)</div>
+                        <div>🎯 Relationship mapping</div>
+                        <div>🎯 Deal flow dashboard</div>
+                        <div>🎯 Automated alerts</div>
+                    </div>
+                </div>
+                <div class="bg-gradient-to-r from-orange-900 to-orange-800 rounded-lg p-6 border-2 border-orange-500">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-2xl font-bold">Phase 3: Full Platform</h3>
+                        <span class="bg-orange-600 px-4 py-2 rounded-full text-sm font-bold">6-12 MONTHS</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4 text-sm">
+                        <div>🚀 Company screeners (searchable database)</div>
+                        <div>🚀 Deal flow tracker (automated signals)</div>
+                        <div>🚀 VC portfolio analysis</div>
+                        <div>🚀 Trend analytics & forecasting</div>
+                        <div>🚀 Subscription tiers (Free/Pro/Enterprise)</div>
+                        <div>🚀 API access for institutional clients</div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-8 bg-gray-800 rounded-lg p-6">
+                <h4 class="font-bold mb-4 text-yellow-400">With PEI Resources:</h4>
+                <div class="grid grid-cols-2 gap-4 text-gray-300">
+                    <div>• Accelerate Phase 2 to 2-3 months (vs 6 months solo)</div>
+                    <div>• Integrate with PEI's existing platforms</div>
+                    <div>• Apply tech to PEI's other verticals</div>
+                    <div>• Access PEI's subscriber base for beta testing</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 10: The Ask -->
+    <div class="slide">
+        <div class="max-w-5xl mx-auto">
+            <h2 class="text-5xl font-bold mb-12 text-green-400">The Ask</h2>
+            <div class="bg-gradient-to-r from-green-900 to-blue-900 rounded-lg p-12 border-2 border-green-500 mb-8">
+                <h3 class="text-3xl font-bold mb-6 text-center">Acquisition Proposal</h3>
+                <div class="grid grid-cols-2 gap-8 text-lg">
+                    <div>
+                        <h4 class="font-bold text-green-400 mb-4">What You Get:</h4>
+                        <ul class="text-gray-200 space-y-3">
+                            <li>✓ Working biotech intelligence platform</li>
+                            <li>✓ 117-entity database (companies/labs/VCs)</li>
+                            <li>✓ 58 automated RSS feeds</li>
+                            <li>✓ 21K document corpus with LLM scores</li>
+                            <li>✓ Full codebase + deployment automation</li>
+                            <li>✓ Founder (me) joins PEI team</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-blue-400 mb-4">Integration Plan:</h4>
+                        <ul class="text-gray-200 space-y-3">
+                            <li>• Rebrand as "PEI BioIntelligence"</li>
+                            <li>• Integrate with PEI's existing platforms</li>
+                            <li>• Add subscription tier to PEI offerings</li>
+                            <li>• Apply AI automation to other PEI verticals</li>
+                            <li>• Launch Phase 2 within 3 months</li>
+                            <li>• Path to Phase 3 full platform in 2025</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-8">
+                <h4 class="text-xl font-bold mb-4 text-center text-orange-400">Let's build the future of biotech intelligence together</h4>
+                <div class="text-center text-gray-300">
+                    <p class="mb-4">Ready to discuss terms, integration timeline, and how this fits into PEI's strategic roadmap.</p>
+                    <p class="text-lg font-bold text-blue-400">Open to negotiation on structure: acquisition, partnership, or joint venture</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="fixed bottom-8 right-8 flex gap-4">
+        <button onclick="prevSlide()" class="bg-gray-700 hover:bg-gray-600 px-6 py-3 rounded-lg font-bold">← Previous</button>
+        <button onclick="nextSlide()" class="bg-blue-600 hover:bg-blue-500 px-6 py-3 rounded-lg font-bold">Next →</button>
+    </div>
+    <div class="fixed bottom-8 left-8 text-gray-500">
+        <span id="slideNumber">1 / 10</span>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        function showSlide(index) {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (index + totalSlides) % totalSlides;
+            slides[currentSlide].classList.add('active');
+            document.getElementById('slideNumber').textContent = `${currentSlide + 1} / ${totalSlides}`;
+        }
+
+        function nextSlide() {
+            showSlide(currentSlide + 1);
+        }
+
+        function prevSlide() {
+            showSlide(currentSlide - 1);
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') nextSlide();
+            if (e.key === 'ArrowLeft') prevSlide();
+        });
+    </script>
+</body>
+</html>
