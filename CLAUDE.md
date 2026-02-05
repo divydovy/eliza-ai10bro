@@ -39,6 +39,233 @@ Look for the "## Backlog" section in the Obsidian project note for current prior
 - **Model**: qwen2.5:32b (21GB, 128K context, GPT-4o equivalent)
 - **Major Systems**: LLM scoring, entity tracking, deal detection, quality checks, automated cleanup, RSS discovery
 
+## Session: 2026-02-05 - PEI Media Acquisition Pitch Materials
+
+### Session Summary: ✅ COMPLETE - Full Acquisition Pitch Package Created
+
+**Duration**: ~45 minutes
+**Focus**: Create tailored 10-slide pitch deck and support materials for PEI Media acquisition meeting
+
+### Major Accomplishments
+
+#### 1. Interactive 10-Slide Pitch Deck ✅
+**File**: `pei-acquisition-pitch.html` (800+ lines)
+
+**Tailored for PEI Media**:
+- Emphasizes intelligence/data angle (not just content)
+- Uses PEI language: deal flow, screeners, company databases, subscriptions
+- Shows strategic fit with PEI's existing verticals
+- Highlights technology transfer potential
+
+**Slide Structure**:
+1. **Cover**: AI10BRO brand + key metrics (117 entities, 58 feeds, 290 mentions)
+2. **Problem**: Manual intelligence broken (70% missed deals, $80-120K/analyst, 2-7 day lag)
+3. **Solution**: Automated entity intelligence (auto-discovery, LLM scoring, real-time)
+4. **How It Works**: 6-step pipeline (RSS → ingestion → scoring → detection → signals → distribution)
+5. **Current Traction**: 21K docs, 79% scored, 117 entities, 51% mention rate
+6. **Intelligence Outputs**: Deal flow signals, company profiles, relationship mapping, trend analysis
+7. **Technology Stack**: ElizaOS + Qwen2.5 + SQLite + GitHub Actions ($0 LLM costs, 15 services)
+8. **Why PEI?**: Strategic fit table, 3 value pillars (immediate value, tech transfer, market timing)
+9. **3-Phase Roadmap**: Content Hub (current) → Rich Profiles (3-6mo) → Full Platform (6-12mo)
+10. **The Ask**: Acquisition proposal with integration plan
+
+**Design Features**:
+- Professional gradient backgrounds
+- Keyboard navigation (arrow keys)
+- Smooth transitions with animations
+- Color-coded phases (green=current, blue=planning, orange=future)
+- Metric boxes with live stats
+- Responsive layout
+
+#### 2. Comprehensive Speaker Notes ✅
+**File**: `pei-presentation-notes.md` (600+ lines)
+
+**Contents**:
+- **Per-Slide Talking Points**: 1-2 minutes of scripted content per slide
+- **Key Metrics to Emphasize**: What numbers to highlight at each stage
+- **Transitions**: Smooth segues between slides
+- **Questions to Anticipate**: Pre-scripted answers for common objections
+- **Confidence Boosters**: Reminders of traction and strategic value
+- **Technical Prep Checklist**: Pre-meeting setup tasks
+- **Post-Meeting Follow-Up**: What to send, next steps to propose
+
+**Strategic Coaching**:
+- PEI background research (what they value, their business model)
+- How to position AI10BRO as strategic fit
+- Emphasis on "not begging—presenting opportunity"
+- Listen more than talk (especially after final slide)
+
+#### 3. Detailed Metrics Summary ✅
+**File**: `pei-metrics-summary.md** (300+ lines)
+
+**One-Page Reference Sheet**:
+- System metrics (21K docs, 79% scored, 241 broadcast-ready)
+- Entity tracking database (67 companies, 30 labs, 20 VCs with examples)
+- Entity mention analysis (290 mentions, 51% coverage)
+- Content sources breakdown (58 feeds, 36% auto-discovered)
+- Automation infrastructure (15 LaunchD services with schedules)
+- Cost efficiency ($0 LLM costs, ~$5/mo total)
+- Distribution channels (5 active platforms)
+- Technology stack (ElizaOS, Qwen2.5, SQLite, GitHub Actions)
+- Performance metrics (throughput, latency, quality filters)
+- Strategic value for PEI (immediate, tech transfer, market opportunity)
+- 3-phase roadmap with timelines
+- Acquisition proposal terms
+
+**Use Case**: Print or email as follow-up after meeting
+
+#### 4. Quick Reference Stats Card ✅
+**File**: `pei-quick-stats.md` (200+ lines)
+
+**Memorization Sheet**:
+- **The Big 5 Numbers**: 117, 58, 21K, 290, $0
+- **One-Sentence Pitch**: Complete elevator pitch
+- **Three Value Props**: Immediate value, tech transfer, market timing
+- **30-Second Roadmap**: Phase summary
+- **Why PEI Table**: Side-by-side comparison
+- **Intelligence Outputs**: What you can sell
+- **Tech Stack in 3 Bullets**: Simplified explanation
+- **Cost Efficiency**: Monthly costs vs manual analyst
+- **Traction Proof Points**: Evidence of production-grade
+- **The Ask**: Final slide verbatim
+- **Anticipated Q&A**: Pre-scripted answers (valuation, why not VC, role, etc.)
+- **Opening Script**: First 30 seconds
+- **Closing Script**: Final 30 seconds
+- **Follow-Up Materials**: What to send post-meeting
+
+**Use Case**: Review night before meeting, memorize key stats
+
+### Strategic Positioning
+
+#### Why PEI Media?
+**Perfect Buyer Profile**:
+- Business intelligence provider for PE/VC industry
+- Existing products: deal databases, fund trackers, market reports
+- Revenue model: Subscriptions ($500-5K/month per user)
+- Verticals: Private equity, infrastructure, real estate, secondaries
+
+**Strategic Fit Arguments**:
+1. **Immediate Value**: Add biotech vertical (117 entities, Day 1 monetization)
+2. **Technology Transfer**: Apply AI automation to PEI's existing verticals
+3. **Market Timing**: First-mover in automated biotech intelligence
+4. **Distribution**: PEI has subscriber base, AI10BRO has technology
+5. **Acceleration**: PEI resources compress Phase 2 from 6mo → 2-3mo
+
+#### Key Differentiators Highlighted
+- **$0 LLM costs** (local inference, no vendor lock-in)
+- **100% automated** (zero manual curation)
+- **36% auto-discovery** (machine finds feeds, not humans)
+- **51% entity mention rate** (validates commercial focus)
+- **Production-grade** (15 services, 100% uptime, 21K docs processed)
+
+#### Value Proposition Layers
+1. **Product**: Working biotech intelligence platform
+2. **Data**: 117-entity database + 21K document corpus
+3. **Technology**: Replicable automation stack for other verticals
+4. **Talent**: Founder joins as product lead
+5. **Speed**: Accelerates PEI's biotech entry vs build-from-scratch
+
+### Files Created
+
+1. **pei-acquisition-pitch.html** - 10-slide interactive presentation
+2. **pei-presentation-notes.md** - Speaker notes with talking points
+3. **pei-metrics-summary.md** - Detailed one-page metrics sheet
+4. **pei-quick-stats.md** - Quick reference memorization card
+
+### Git Operations
+
+```bash
+git add pei-*.html pei-*.md
+git commit -m "feat: Add PEI Media acquisition pitch deck and materials"
+git push origin main
+```
+
+**Commit**: `5587c1c4b` - 4 files, 1,302 insertions
+
+### Usage Instructions
+
+#### For Tomorrow's Meeting:
+1. **Tonight**: Review `pei-quick-stats.md`, memorize Big 5 Numbers
+2. **Morning**: Practice with `pei-presentation-notes.md`, rehearse transitions
+3. **Pre-Meeting**: Open `pei-acquisition-pitch.html` in browser, test navigation
+4. **Backup**: Have `pei-metrics-summary.md` printed (in case of tech issues)
+
+#### During Meeting:
+- Navigate: Arrow keys (Left/Right) or on-screen buttons
+- Let slides guide pacing (10 min total)
+- Listen after Slide 10 (The Ask) - don't over-talk
+
+#### Post-Meeting Follow-Up:
+- Email `pei-acquisition-pitch.html` (this deck)
+- Email `pei-metrics-summary.md` (metrics sheet)
+- Include live demo links (Telegram, Bluesky, WordPress)
+- Offer GitHub repo access for due diligence
+
+### Presentation Strategy
+
+#### Opening (Slide 1):
+- Confidence: "Thank you for meeting. Excited to show you AI10BRO."
+- Promise: "Next 10 minutes: problem, technology, traction, strategic fit."
+- Engagement: Point to metrics → "These numbers tell the story."
+
+#### Middle (Slides 2-7):
+- Problem → Solution (classic structure)
+- Show, don't tell (live system metrics)
+- Technical credibility (15 services, $0 costs, 100% automation)
+- PEI language (intelligence, deal flow, entity tracking)
+
+#### Strategic Close (Slides 8-9):
+- Why PEI specifically (not generic buyer)
+- 3 value props (immediate, tech transfer, timing)
+- Roadmap acceleration (6mo → 2-3mo with PEI resources)
+
+#### The Ask (Slide 10):
+- Clear proposal: "Acquisition with founder joining team"
+- Open structure: "Acquisition, partnership, or joint venture"
+- Confident close: "Ready to discuss terms and integration."
+- Then: **STOP TALKING. Listen.**
+
+### Key Talking Points to Memorize
+
+1. **One-Sentence Pitch**: "AI10BRO is an automated biotech intelligence platform that tracks 117 entities across 58 RSS feeds, detects deal signals in real-time, and produces structured data products—exactly what PEI does for PE/VC, but automated and focused on biotech."
+
+2. **Why PEI**: "You have the distribution and subscriber base. We have the technology and corpus. Together, we launch PEI BioIntelligence in Q2 2025."
+
+3. **The Big 5**: 117 entities, 58 feeds, 21K docs, 290 mentions, $0 LLM costs
+
+4. **Value Props**: (1) Add biotech vertical Day 1, (2) Apply AI automation to other verticals, (3) First-mover advantage in biotech intelligence
+
+5. **The Ask**: "Proposing acquisition. You get working platform, 117-entity database, full codebase, and me joining the team. Open to discussing structure."
+
+### Confidence Reminders
+
+**You Have Real Traction**:
+- Not a prototype: 15 services running 24/7
+- Not manual: 100% automated from discovery to distribution
+- Not expensive: $0 monthly LLM costs
+- Not unproven: 21K documents processed, 117 entities tracked
+
+**You're Solving a Real Problem**:
+- PE/VC firms miss 70% of deals (limited coverage)
+- Manual intelligence costs $80-120K per analyst
+- 2-7 day lag on commercial milestones
+- Biotech requires domain expertise
+
+**PEI is the Right Buyer**:
+- They have distribution (subscriber base)
+- They have brand (established in PE/VC)
+- They have resources (accelerate roadmap)
+- They have adjacent verticals (tech transfer opportunity)
+
+### Next Session Priorities
+
+1. ⏭️ Post-meeting debrief (capture feedback, next steps)
+2. ⏭️ Update materials based on PEI questions
+3. ⏭️ Prepare technical deep dive (if requested)
+4. ⏭️ Draft term sheet scenarios
+
+---
+
 ## Session: 2026-02-04 - System Visualization with Platform Roadmap
 
 ### Session Summary: ✅ COMPLETE - Interactive Stakeholder Presentation Created
